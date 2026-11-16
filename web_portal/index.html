@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dealer Connect Cloud • Footwear Portal</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <!-- Load JsBarcode for generating crisp scannable SVG barcodes -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <!-- QR generator (ISO/IEC 18004, ECC level M) for MARG:<item_code> stickers -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <!-- Load build-time environment variables injected from .env / Netlify -->
+  <script src="env-config.js" onerror="window.MARG_ENV = window.MARG_ENV || {};"></script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 6px; }
+
+    /* Thermal Barcode Label Printing Stylesheet */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printable-labels-container, #printable-labels-container * {
+        visibility: visible !important;
+      }
+      #printable-labels-container {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        background: white !important;
+        color: black !important;
+      }
+      @page {
+        margin: 0mm;
+        size: auto;
+      }
+      .label-sticker-thermal {
+        page-break-after: always;
+        break-after: page;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased font-sans min-h-screen p-3 sm:p-6">
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 0: LOCKED AUTHENTICATION GATE (LOGIN SCREEN)                     -->
+  <!-- ===================================================================== -->
+  <div id="auth-gate-screen" class="min-h-[85vh] flex flex-col items-center justify-center">
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+      <!-- Brand Header -->
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-500 text-slate-950 flex items-center justify-center font-extrabold text-xl shadow-lg shadow-teal-500/20">
+          M
+        </div>
+        <div>
+          <h1 class="text-lg font-extrabold text-slate-100">Dealer Connect Cloud Portal</h1>
+          <p class="text-xs text-slate-400">B2B Footwear Event Booking &amp; ERP Sync</p>
+        </div>
+      </div>
+
+      <!-- Login Role Selector Tabs -->
+      <div class="grid grid-cols-2 gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+        <button onclick="selectLoginMode('SHOP_OWNER')" id="login-tab-owner" class="py-2.5 rounded-xl text-xs font-extrabold bg-teal-500 text-slate-950 transition-all">
+          🏪 Shop Owner Login
+        </button>
+        <button onclick="selectLoginMode('SUPER_ADMIN')" id="login-tab-admin" class="py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all">
+          🛡️ Super Admin Login
+        </button>
+      </div>
+
+      <!-- Error Alert Box -->
+      <div id="login-error-box" class="hidden p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-300 font-semibold"></div>
+
+      <!-- FORM A: SHOP OWNER LOGIN -->
+      <div id="form-shop-owner" class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1.5">Shop License Key</label>
+          <input type="text" id="owner-login-key" value="" placeholder="e.g. SHOP-2026-XXXX" 
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-teal-300 font-mono focus:outline-none focus:border-teal-500">
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1.5">Shop Owner Password</label>
+          <input type="password" id="owner-login-pass" value="" placeholder="Enter shop password" 
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-slate-100 focus:outline-none focus:border-teal-500">
+        </div>
+        <button onclick="handleShopOwnerLogin()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-teal-500/20">
+          Login to Shop Dashboard &rarr;
+        </button>
+        <p class="text-[11px] text-slate-500 text-center">
+          Use the license key and password issued by your vendor.
+        </p>
+      </div>
+
+      <!-- FORM B: SUPER ADMIN LOGIN -->
+      <div id="form-super-admin" class="space-y-4 text-xs hidden">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1.5">Super Admin ID / Email</label>
+          <input type="text" id="admin-login-id" value="" placeholder="Enter Super Admin ID" 
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-slate-100 focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1.5">Master Password</label>
+          <input type="password" id="admin-login-pass" value="" placeholder="Enter master password" 
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-slate-100 focus:outline-none focus:border-indigo-500">
+        </div>
+        <button onclick="handleSuperAdminLogin()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-teal-500 hover:from-indigo-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-indigo-500/20">
+          Unlock Super Admin Control Center &rarr;
+        </button>
+        <p class="text-[11px] text-slate-500 text-center">
+          Configured via <code>.env</code> / Netlify Environment Variables
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- AUTHENTICATED TOP BAR (SHOWN ONLY AFTER LOGIN)                        -->
+  <!-- ===================================================================== -->
+  <div id="authenticated-top-bar" class="max-w-6xl mx-auto mb-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl hidden flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-500 text-slate-950 flex items-center justify-center font-extrabold text-lg">
+        M
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-base font-bold text-slate-100" id="session-header-title">Dealer Connect Cloud</h1>
+          <span id="session-role-badge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-teal-500/15 text-teal-300 border border-teal-500/30 font-bold">
+            Authenticated
+          </span>
+        </div>
+        <p class="text-xs text-slate-400" id="session-header-subtitle">Connected via Secure Environment Config</p>
+      </div>
+    </div>
+
+    <button onclick="logoutPortal()" class="px-4 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 text-xs font-bold flex items-center gap-1.5">
+      <span>🔒 Logout Session</span>
+    </button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- PORTAL 1: SUPER ADMIN PANEL (ONLY VISIBLE TO VENDOR AFTER LOGIN)      -->
+  <!-- ===================================================================== -->
+  <div id="portal-super-admin" class="max-w-6xl mx-auto space-y-6 hidden">
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <span class="text-xs text-slate-400">Total Licensed Shops</span>
+        <p class="text-2xl font-extrabold text-slate-100 mt-1" id="kpi-total-shops">3</p>
+        <span class="text-[11px] text-emerald-400">Multi-tenant active</span>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <span class="text-xs text-slate-400">Active Devices / Quota</span>
+        <p class="text-2xl font-extrabold text-teal-400 mt-1" id="kpi-total-devices">5 / 8</p>
+        <span class="text-[11px] text-slate-400">Hardware UUID locked</span>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <span class="text-xs text-slate-400">Blocked / Piracy Attempts</span>
+        <p class="text-2xl font-extrabold text-amber-400 mt-1" id="kpi-blocked-devices">1</p>
+        <span class="text-[11px] text-amber-300/80">Prevented unauthorized APK</span>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <span class="text-xs text-slate-400">Today's Synced Bills</span>
+        <p class="text-2xl font-extrabold text-indigo-400 mt-1">4</p>
+        <span class="text-[11px] text-slate-400">Real-time Supabase sync</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Left: Register New Shopkeeper Form -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 h-fit">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-teal-400">Vendor Onboarding</span>
+          <h2 class="text-base font-bold text-slate-100">Register New Shopkeeper</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Issue License Key, Shop Dashboard Password &amp; Device Limit.</p>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="block text-slate-300 font-medium mb-1">Shop / Business Name</label>
+            <input type="text" id="new-shop-name" placeholder="e.g. BARDHAMAN SHOE AGENCY" 
+              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-teal-500">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-300 font-medium mb-1">License Key</label>
+              <div class="flex gap-1">
+                <input type="text" id="new-shop-key" value="SHOE-2026-889" 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-teal-300 font-mono text-xs focus:outline-none">
+                <button onclick="generateRandomKey()" class="px-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300">🎲</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-medium mb-1">Shop Login Password</label>
+              <input type="text" id="new-shop-pass" value="" placeholder="Min 6 chars (set a unique password)" 
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-amber-300 font-mono text-xs focus:outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-300 font-medium mb-1">Allowed Devices</label>
+              <select id="new-shop-max-devices" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-100 focus:outline-none">
+                <option value="1">1 Device</option>
+                <option value="2">2 Devices</option>
+                <option value="3" selected>3 Devices</option>
+                <option value="5">5 Devices</option>
+                <option value="10">10 Devices</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-medium mb-1">Valid Until</label>
+              <input type="date" id="new-shop-expiry" value="2027-11-02" 
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-100 focus:outline-none">
+            </div>
+          </div>
+
+          <button onclick="createNewShop()" class="w-full py-3 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-teal-500/20">
+            + Create Shop &amp; Save Credentials
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Shops & Hardware Devices Management -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-100">Licensed Shops &amp; Device Quotas</h2>
+            <p class="text-xs text-slate-400">Click any shop to manage its salesman devices and PINs</p>
+          </div>
+          <div class="space-y-3" id="shops-table-container"></div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+            <div>
+              <span class="text-[11px] text-teal-400 font-bold uppercase tracking-wider">Salesman Accounts &amp; Auto-Detected Devices</span>
+              <h3 class="text-base font-bold text-slate-100">
+                Salesmen for: <span id="selected-admin-shop-title" class="text-teal-300">ANCHAR SHOE HOUSE</span>
+              </h3>
+              <p class="text-[11px] text-slate-400">Device UUID is auto-detected &amp; locked automatically when salesman logs in from the Android App</p>
+            </div>
+            <button onclick="promptAddDevice()" class="px-3 py-2 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 text-xs font-bold">
+              + Pre-Create Salesman Email / PIN
+            </button>
+          </div>
+          <div class="space-y-2.5" id="shop-devices-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- PORTAL 2: SHOP OWNER DASHBOARD (WITH LIVE DATA, ITEM MASTER & PRINT)  -->
+  <!-- ===================================================================== -->
+  <div id="portal-shop-owner" class="max-w-6xl mx-auto space-y-6 hidden">
+    <!-- Shop Banner & Top Bar -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div>
+        <span class="text-xs font-bold text-teal-400 uppercase tracking-wider">Shop Owner Dashboard • Real-Time Marg ERP Cloud</span>
+        <h2 class="text-xl font-extrabold text-slate-100 mt-0.5" id="owner-shop-title">SHOP NAME</h2>
+        <p class="text-xs text-slate-400 mt-0.5" id="owner-shop-meta">License: - • Active Salesmen: -</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button onclick="downloadConsolidatedMargCsv()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-teal-500/20 flex items-center gap-2">
+          <span>⬇ Download Merged Marg CSV</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Shop Owner Navigation Tabs -->
+    <div class="flex items-center gap-2 border-b border-slate-800 pb-3 flex-wrap">
+      <button onclick="switchOwnerTab('orders')" id="tab-btn-orders" 
+        class="px-4 py-2 rounded-xl text-xs font-bold bg-teal-500 text-slate-950 transition-all flex items-center gap-2">
+        <span>📊</span> <span>Live Orders &amp; Marg Export</span>
+      </button>
+      <button onclick="switchOwnerTab('items')" id="tab-btn-items" 
+        class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800 transition-all flex items-center gap-2">
+        <span>📦</span> <span>Master Items &amp; Barcodes (4,774)</span>
+      </button>
+      <button onclick="switchOwnerTab('print')" id="tab-btn-print" 
+        class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800 transition-all flex items-center gap-2">
+        <span>🖨️</span> <span>Barcode Sticker Printing Studio</span>
+      </button>
+    </div>
+
+    <!-- TAB 1: LIVE ORDERS & MARG EXPORT -->
+    <div id="owner-tab-orders" class="space-y-6">
+      <!-- Filter Bar & KPI Row -->
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <span class="text-xs text-slate-400 font-medium">Filter by Salesman Terminal:</span>
+        <select id="owner-salesman-filter" onchange="renderOwnerPortal()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 font-medium focus:outline-none">
+          <option value="ALL">All Salesmen (Consolidated)</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <span class="text-xs text-slate-400">Total Synced Bills Today</span>
+          <p class="text-2xl font-extrabold text-slate-100 mt-1" id="owner-bill-count">0 Bills</p>
+          <span class="text-[11px] text-teal-400" id="owner-bill-sub">Real data synced from app</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <span class="text-xs text-slate-400">Total Footwear Pairs</span>
+          <p class="text-2xl font-extrabold text-teal-400 mt-1" id="owner-pair-count">0 Pairs</p>
+          <span class="text-[11px] text-slate-400">Ready for Marg stock deduction</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <span class="text-xs text-slate-400">Total Order Value</span>
+          <p class="text-2xl font-extrabold text-amber-400 mt-1" id="owner-total-amount">₹0.00</p>
+          <span class="text-[11px] text-emerald-400">100% Mapped with Marg Item_Code</span>
+        </div>
+      </div>
+
+      <!-- SALESMAN-WISE PERFORMANCE BREAKDOWN -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+        <div>
+          <h3 class="text-sm font-bold text-slate-100">Salesman-Wise Billing Performance (Today)</h3>
+          <p class="text-xs text-slate-400">Track real-time orders created by each salesman terminal</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="salesman-summary-cards">
+          <!-- Dynamically populated or empty state -->
+        </div>
+      </div>
+
+      <!-- LIVE HALL MONITOR: TOP ARTICLES + ACTIVE TERMINALS -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-sm font-bold text-slate-100">🔥 Top Booked Articles</h3>
+              <p class="text-xs text-slate-400">Fast-selling inventory by pairs booked</p>
+            </div>
+            <span class="text-[11px] text-slate-400" id="live-last-updated">Live: --</span>
+          </div>
+          <div class="space-y-2 max-h-80 overflow-y-auto" id="top-articles-list"></div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <div>
+            <h3 class="text-sm font-bold text-slate-100">📡 Active Dealer Terminals</h3>
+            <p class="text-xs text-slate-400">Latest bill activity per device (auto-refresh every 10s)</p>
+          </div>
+          <div class="space-y-2 max-h-80 overflow-y-auto" id="active-terminals-list"></div>
+        </div>
+      </div>
+
+      <!-- Bills List + Consolidated CSV Preview -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <div class="flex justify-between items-center">
+            <h3 class="text-sm font-bold text-slate-100">Synced Bills Breakdown</h3>
+            <span class="text-xs text-slate-400">Real-Time Supabase Sync</span>
+          </div>
+          <div class="space-y-2.5 max-h-80 overflow-y-auto" id="owner-bills-list"></div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-sm font-bold text-slate-100">MARG_CONSOLIDATED_EXPORT.csv</h3>
+              <p class="text-[11px] text-slate-400">RFC-4180 CSV with Marg <code>Item_Code</code> &amp; <code>Salesman</code></p>
+            </div>
+            <button onclick="copyMergedCsv()" id="copy-merged-btn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 font-semibold border border-slate-700">
+              Copy CSV
+            </button>
+          </div>
+          <pre id="owner-csv-box" class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-[11px] font-mono text-slate-200 overflow-x-auto leading-relaxed max-h-72 overflow-y-auto"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: MASTER ITEMS & BARCODES (4,774 ITEMS) -->
+    <div id="owner-tab-items" class="space-y-4 hidden">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 class="text-base font-bold text-slate-100">Footwear Master Items &amp; Barcode Catalog</h3>
+            <p class="text-xs text-slate-400" id="master-items-count-badge">Loaded 4,774 Footwear items from Marg ERP</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="filterMasterItems('ALL')" id="filter-btn-all" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-teal-500 text-slate-950">All Items</button>
+            <button onclick="filterMasterItems('MAPPED')" id="filter-btn-mapped" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:text-slate-100">With Barcode</button>
+            <button onclick="filterMasterItems('UNMAPPED')" id="filter-btn-unmapped" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:text-slate-100">Unmapped (Missing)</button>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <input type="text" id="master-search-input" oninput="handleMasterSearch(this.value)" placeholder="Search by Product Name, Marg Code (e.g. 3046, 0329), Brand (Ajanta, Paragon), or Barcode..." 
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500">
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 text-[11px] uppercase tracking-wider">
+                <th class="py-2.5 px-3">Marg Code</th>
+                <th class="py-2.5 px-3">Product Name</th>
+                <th class="py-2.5 px-3">Brand / Company</th>
+                <th class="py-2.5 px-3">Category / Size</th>
+                <th class="py-2.5 px-3">MRP / Rate</th>
+                <th class="py-2.5 px-3">Barcode</th>
+                <th class="py-2.5 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="master-items-table-body" class="divide-y divide-slate-800/60 font-medium">
+              <tr>
+                <td colspan="7" class="py-8 text-center text-slate-500">Loading master items from catalogue...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex items-center justify-between pt-3 border-t border-slate-800 text-xs text-slate-400">
+          <span id="master-pagination-info">Showing 1-25 of 4,774 items</span>
+          <div class="flex items-center gap-2">
+            <button onclick="prevMasterPage()" id="master-prev-btn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold disabled:opacity-40">Previous</button>
+            <span id="master-current-page" class="font-bold text-slate-200">1</span>
+            <button onclick="nextMasterPage()" id="master-next-btn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold disabled:opacity-40">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: BARCODE LABEL PRINTING STUDIO -->
+    <div id="owner-tab-print" class="space-y-6 hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left: Configuration Form -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
+          <div>
+            <h3 class="text-base font-bold text-slate-100">🖨️ Shoe Box Barcode Sticker Studio</h3>
+            <p class="text-slate-400 text-xs">Generate scannable barcode stickers for thermal label printers (TSC, Zebra, TVS, Xprinter) &amp; A4 sheets</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-300 font-medium mb-1">Shop / Store Header</label>
+              <input type="text" id="print-shop-name" value="ANCHAR SHOE HOUSE" oninput="updatePrintPreview()"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500 font-bold">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-medium mb-1">Marg Item Code</label>
+              <input type="text" id="print-item-code" value="3046" oninput="updatePrintPreview()"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-amber-300 font-mono focus:outline-none focus:border-teal-500">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-medium mb-1">Footwear Product Title</label>
+            <input type="text" id="print-item-title" value="028 GRY 2X5 (NEW)" oninput="updatePrintPreview()"
+              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-300 font-medium mb-1">Brand &amp; Size / Color</label>
+              <input type="text" id="print-item-brand" value="AJANTA • Size: 2X5" oninput="updatePrintPreview()"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-medium mb-1">MRP Price (₹)</label>
+              <input type="text" id="print-item-mrp" value="₹129.00" oninput="updatePrintPreview()"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-emerald-400 font-bold focus:outline-none focus:border-teal-500">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-medium mb-1">Barcode String (Numeric / Code128)</label>
+            <div class="flex gap-2">
+              <input type="text" id="print-item-barcode" value="8901234560012" oninput="updatePrintPreview()"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-teal-300 font-mono font-bold focus:outline-none focus:border-teal-500">
+              <button onclick="generateRandomBarcodeForPrint()" class="px-3 bg-slate-800 hover:bg-slate-700 text-teal-300 rounded-xl text-xs font-bold whitespace-nowrap">
+                ⚡ Auto-Gen
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-medium mb-1">Sticker Code Type</label>
+            <select id="print-code-type" onchange="updatePrintPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none">
+              <option value="QR" selected>QR Code — payload MARG:&lt;Item_Code&gt; (recommended, price-proof)</option>
+              <option value="BARCODE">Code128 Barcode (legacy)</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div>
+              <label class="block text-slate-300 font-medium mb-1">Label Paper Format</label>
+              <select id="print-label-format" onchange="updatePrintPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none">
+                <option value="50x25" selected>Thermal Roll: 50mm x 25mm (2" x 1") [Standard Shoe Box]</option>
+                <option value="50x38">Thermal Roll: 50mm x 38mm (2" x 1.5")</option>
+                <option value="a4_24">A4 Sticker Sheet (24 labels: 3x8)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-medium mb-1">Sticker Copies to Print</label>
+              <select id="print-label-qty" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none">
+                <option value="1">1 Sticker (Single Box)</option>
+                <option value="6">6 Stickers (Half Dozen)</option>
+                <option value="12" selected>12 Stickers (1 Dozen Box)</option>
+                <option value="24">24 Stickers (2 Dozen / 1 Carton)</option>
+                <option value="48">48 Stickers (4 Dozen)</option>
+                <option value="100">100 Stickers (Bulk)</option>
+              </select>
+            </div>
+          </div>
+
+          <button onclick="printBarcodeLabels()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-teal-500/20 flex items-center justify-center gap-2">
+            <span>🖨️ Print Barcode Labels Now</span>
+          </button>
+        </div>
+
+        <!-- Right: Live Sticker Visual Preview -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 flex flex-col items-center justify-center">
+          <div class="w-full flex justify-between items-center pb-2 border-b border-slate-800 text-xs">
+            <span class="font-bold text-slate-200">Live Thermal Label Preview (50mm x 25mm)</span>
+            <span class="text-[11px] text-teal-400">High-Contrast Scannable SVG</span>
+          </div>
+
+          <!-- White Background Sticker Container -->
+          <div class="w-full max-w-[340px] bg-white text-black p-3.5 rounded-lg border-2 border-slate-300 shadow-2xl space-y-1 font-sans">
+            <div class="flex justify-between items-center text-[11px] font-black tracking-tight border-b border-black pb-0.5">
+              <span id="preview-shop" class="uppercase truncate">ANCHAR SHOE HOUSE</span>
+              <span id="preview-code" class="font-mono font-bold">CODE: 3046</span>
+            </div>
+
+            <div class="text-[12px] font-extrabold leading-tight truncate mt-1" id="preview-title">
+              028 GRY 2X5 (NEW)
+            </div>
+
+            <div class="flex justify-between items-center text-[10px] font-bold text-slate-800">
+              <span id="preview-brand" class="truncate">AJANTA • Size: 2X5</span>
+              <span id="preview-mrp" class="font-black text-[12px]">MRP: ₹129.00</span>
+            </div>
+
+            <!-- QR (left) + text (right) dual-mode layout; barcode shown only in legacy mode -->
+            <div class="flex gap-2 items-center pt-1">
+              <div id="preview-qr" class="w-20 h-20 shrink-0 bg-white"></div>
+              <div class="flex-1 min-w-0 text-[10px] font-bold text-slate-800 space-y-0.5">
+                <div id="preview-qr-code" class="font-mono text-[13px] font-black">MARG:3046</div>
+                <div id="preview-qr-title" class="truncate"></div>
+                <div id="preview-qr-brand" class="truncate"></div>
+              </div>
+            </div>
+            <div id="preview-barcode-wrap" class="w-full flex flex-col items-center justify-center pt-1 hidden">
+              <svg id="preview-barcode-svg" class="w-full max-h-[52px]"></svg>
+            </div>
+          </div>
+
+          <p class="text-[11px] text-slate-400 text-center max-w-sm mt-2">
+            Compatible with any thermal printer (TSC, Zebra, TVS, Xprinter) via USB/Network and regular laser printers.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Container rendered during window.print() -->
+  <div id="printable-labels-container" class="hidden"></div>
+
+  <script>
+    // Environment config loaded strictly from env-config.js / Netlify build environment
+    const ENV = window.MARG_ENV || {};
+    const SUPABASE_URL = (ENV.SUPABASE_URL || "").trim().replace(/\/$/, "");
+    const SUPABASE_KEY = (ENV.SUPABASE_ANON_KEY || "").trim();
+    const IS_CLOUD = SUPABASE_URL.length > 0 && SUPABASE_KEY.length > 0 && !SUPABASE_KEY.includes("paste-your");
+
+    function sbHeaders(extra = {}) {
+      const h = { "apikey": SUPABASE_KEY, "Content-Type": "application/json", ...extra };
+      if (SUPABASE_KEY.startsWith("eyJ")) {
+        h["Authorization"] = `Bearer ${SUPABASE_KEY}`;
+      }
+      return h;
+    }
+
+    async function loadCloudDataForAdmin() {
+      if (!IS_CLOUD) return;
+      try {
+        const [shopsRes, devsRes] = await Promise.all([
+          fetch(`${SUPABASE_URL}/rest/v1/shops?select=*&order=created_at.desc`, { headers: sbHeaders() }),
+          fetch(`${SUPABASE_URL}/rest/v1/devices?select=*&order=created_at.desc`, { headers: sbHeaders() })
+        ]);
+        if (shopsRes.ok) {
+          const rows = await shopsRes.json();
+          if (Array.isArray(rows) && rows.length > 0) {
+            shops = rows.map(r => ({
+              id: r.id,
+              shopName: r.shop_name,
+              licenseKey: r.license_key,
+              shopPassword: r.shop_password || "",
+              maxDevices: r.max_devices || 3,
+              subscriptionEnd: r.subscription_end || "2027-10-31",
+              isActive: r.is_active !== false
+            }));
+            selectedShopId = shops[0].id;
+          }
+        }
+        if (devsRes.ok) {
+          const dRows = await devsRes.json();
+          if (Array.isArray(dRows)) {
+            devices = dRows.map(d => ({
+              id: d.id,
+              shopId: d.shop_id,
+              deviceUuid: d.device_uuid,
+              salesmanName: d.salesman_name,
+              salesmanPin: d.salesman_pin || "1234",
+              isBlocked: d.is_blocked === true,
+              lastSync: d.last_sync_at ? new Date(d.last_sync_at).toLocaleString() : "Synced"
+            }));
+          }
+        }
+      } catch (e) {
+        console.warn("Supabase fetch fallback:", e);
+      }
+    }
+
+    async function loadCloudBillsForShop(shopId) {
+      syncedBills = [];
+      if (!IS_CLOUD || !shopId) return;
+      try {
+        const billsRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/bills?shop_id=eq.${shopId}&select=*,bill_items(*)&order=created_at.desc`,
+          { headers: sbHeaders() }
+        );
+        if (billsRes.ok) {
+          const rows = await billsRes.json();
+          if (Array.isArray(rows)) {
+            syncedBills = rows.map(b => ({
+              billNo: b.bill_no,
+              billDate: b.bill_date,
+              createdTime: b.created_time || "",
+              partyName: b.party_name,
+              deviceUuid: b.device_uuid,
+              salesman: b.salesman_name || "Salesman",
+              items: Array.isArray(b.bill_items) && b.bill_items.length > 0
+                ? b.bill_items.map(it => ({
+                    itemCode: it.item_code,
+                    productName: it.product_name,
+                    qty: Number(it.qty || 1),
+                    unit: it.unit || "PAIR",
+                    rate: Number(it.rate || 0),
+                    mrp: Number(it.mrp || 0)
+                  }))
+                : [{
+                    itemCode: "MARG-SYNC",
+                    productName: "CONSOLIDATED BILL ITEMS",
+                    qty: Number(b.total_pairs || 1),
+                    unit: "PAIR",
+                    rate: Number(b.total_pairs ? (b.total_amount / b.total_pairs) : b.total_amount || 0),
+                    mrp: Number(b.total_pairs ? (b.total_amount / b.total_pairs) : b.total_amount || 0)
+                  }]
+            }));
+          }
+        }
+      } catch (e) {
+        console.warn("Supabase bills fetch fallback:", e);
+      }
+    }
+
+    let shops = [];
+    let devices = [];
+    let syncedBills = [];
+    let selectedShopId = null;
+    let activeShopOwnerSession = null;
+
+    // Master items state
+    let masterItems = [];
+    let masterItemsLoaded = false;
+    let cloudBarcodeMappings = {};
+    let masterSearchQuery = "";
+    let masterStatusFilter = "ALL";
+    let masterCurrentPage = 1;
+    const MASTER_PAGE_SIZE = 25;
+
+    // Pre-load cloud shops on page load so Shop Owner login has access to data immediately
+    if (IS_CLOUD) {
+      loadCloudDataForAdmin().catch(() => {});
+    }
+
+    function selectLoginMode(mode) {
+      document.getElementById('login-error-box').classList.add('hidden');
+      const ownerForm = document.getElementById('form-shop-owner');
+      const adminForm = document.getElementById('form-super-admin');
+      const ownerTab = document.getElementById('login-tab-owner');
+      const adminTab = document.getElementById('login-tab-admin');
+
+      if (mode === 'SHOP_OWNER') {
+        ownerForm.classList.remove('hidden');
+        adminForm.classList.add('hidden');
+        ownerTab.className = "py-2.5 rounded-xl text-xs font-extrabold bg-teal-500 text-slate-950 transition-all";
+        adminTab.className = "py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all";
+      } else {
+        ownerForm.classList.add('hidden');
+        adminForm.classList.remove('hidden');
+        adminTab.className = "py-2.5 rounded-xl text-xs font-extrabold bg-indigo-500 text-slate-950 transition-all";
+        ownerTab.className = "py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all";
+      }
+    }
+
+    function showLoginError(msg) {
+      const box = document.getElementById('login-error-box');
+      box.innerText = msg;
+      box.classList.remove('hidden');
+    }
+
+    async function handleShopOwnerLogin() {
+      const key = document.getElementById('owner-login-key').value.trim().toUpperCase();
+      const pass = document.getElementById('owner-login-pass').value.trim();
+
+      let matchedShop = null;
+      if (IS_CLOUD) {
+        try {
+          // 1. Primary: Verify via Supabase RPC (matches PostgreSQL parameter p_shop_password)
+          const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/verify_shop_owner_login`, {
+            method: "POST",
+            headers: sbHeaders(),
+            body: JSON.stringify({ p_license_key: key, p_shop_password: pass })
+          });
+          if (rpcRes.ok) {
+            const rpcData = await rpcRes.json();
+            if (rpcData && rpcData.success) {
+              matchedShop = {
+                id: rpcData.shopId,
+                shopName: rpcData.shopName,
+                licenseKey: rpcData.licenseKey,
+                maxDevices: rpcData.maxDevices,
+                subscriptionEnd: rpcData.subscriptionEnd,
+                isActive: true
+              };
+            } else if (rpcData && rpcData.message) {
+              showLoginError(rpcData.message);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn("RPC login fallback:", e);
+        }
+
+      }
+
+      if (!matchedShop) {
+        showLoginError("Invalid Shop License Key or Shop Password!");
+        return;
+      }
+      if (!matchedShop.isActive) {
+        showLoginError("This shop license is currently suspended. Contact Super Admin.");
+        return;
+      }
+
+      activeShopOwnerSession = matchedShop;
+      await loadCloudBillsForShop(matchedShop.id);
+      document.getElementById('auth-gate-screen').classList.add('hidden');
+      const topBar = document.getElementById('authenticated-top-bar');
+      topBar.classList.remove('hidden');
+      topBar.classList.add('flex');
+
+      document.getElementById('session-header-title').innerText = matchedShop.shopName;
+      document.getElementById('session-role-badge').innerText = "🏪 Shop Owner Session";
+      document.getElementById('session-header-subtitle').innerText = `License: ${matchedShop.licenseKey} • Valid Until: ${matchedShop.subscriptionEnd}`;
+
+      document.getElementById('portal-super-admin').classList.add('hidden');
+      document.getElementById('portal-shop-owner').classList.remove('hidden');
+      switchOwnerTab('orders');
+      renderOwnerPortal();
+      loadMasterItems();
+    }
+
+    async function handleSuperAdminLogin() {
+      const id = document.getElementById('admin-login-id').value.trim();
+      const pass = document.getElementById('admin-login-pass').value.trim();
+
+      if (!IS_CLOUD) {
+        showLoginError("Cloud is not configured. Super Admin login requires the server.");
+        return;
+      }
+      // Verified server-side (bcrypt in Postgres). No admin credentials ship to the browser.
+      let verified = false;
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/verify_super_admin_login`, {
+          method: "POST",
+          headers: sbHeaders(),
+          body: JSON.stringify({ p_email: id, p_password: pass })
+        });
+        const data = res.ok ? await res.json() : null;
+        if (data && data.success) {
+          verified = true;
+        } else {
+          showLoginError((data && data.message) || "Invalid Super Admin ID or Master Password!");
+          return;
+        }
+      } catch (e) {
+        console.warn("Admin login error:", e);
+      }
+      if (!verified) {
+        showLoginError("Could not verify admin login. Check connection / run supabase_admin_auth.sql.");
+        return;
+      }
+
+      await loadCloudDataForAdmin();
+      document.getElementById('auth-gate-screen').classList.add('hidden');
+      const topBar = document.getElementById('authenticated-top-bar');
+      topBar.classList.remove('hidden');
+      topBar.classList.add('flex');
+
+      document.getElementById('session-header-title').innerText = "Dealer Connect Admin Control Center";
+      document.getElementById('session-role-badge').innerText = "🛡️ Super Admin (Vendor)";
+      document.getElementById('session-header-subtitle').innerText = `Logged in as ${id}`;
+
+      document.getElementById('portal-shop-owner').classList.add('hidden');
+      document.getElementById('portal-super-admin').classList.remove('hidden');
+      renderSuperAdmin();
+    }
+
+    function logoutPortal() {
+      activeShopOwnerSession = null;
+      document.getElementById('authenticated-top-bar').classList.add('hidden');
+      document.getElementById('authenticated-top-bar').classList.remove('flex');
+      document.getElementById('portal-super-admin').classList.add('hidden');
+      document.getElementById('portal-shop-owner').classList.add('hidden');
+      document.getElementById('auth-gate-screen').classList.remove('hidden');
+    }
+
+    function generateRandomKey() {
+      const num = Math.floor(100 + Math.random() * 900);
+      document.getElementById('new-shop-key').value = `MARG-2026-${num}`;
+    }
+
+    async function createNewShop() {
+      const name = document.getElementById('new-shop-name').value.trim().toUpperCase();
+      const key = document.getElementById('new-shop-key').value.trim().toUpperCase();
+      const pass = document.getElementById('new-shop-pass').value.trim();
+      const maxDevs = parseInt(document.getElementById('new-shop-max-devices').value);
+      const exp = document.getElementById('new-shop-expiry').value;
+
+      if (!name) {
+        alert("Please enter a Shop Name!");
+        return;
+      }
+      if (pass.length < 6) {
+        alert("Please set a shop password of at least 6 characters.");
+        return;
+      }
+
+      let createdId = "shop-" + Date.now();
+      let savedToCloud = false;
+
+      if (IS_CLOUD) {
+        try {
+          // 1. Try RPC create_shop first (bypasses RLS)
+          const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_shop`, {
+            method: "POST",
+            headers: sbHeaders(),
+            body: JSON.stringify({
+              p_name: name,
+              p_license_key: key,
+              p_password: pass,
+              p_max_devices: maxDevs,
+              p_valid_until: exp
+            })
+          });
+          if (rpcRes.ok) {
+            const rpcData = await rpcRes.json();
+            if (rpcData && rpcData.success && rpcData.shop) {
+              createdId = rpcData.shop.id || createdId;
+              savedToCloud = true;
+            }
+          }
+
+          // 2. If RPC not available, try direct table POST
+          if (!savedToCloud) {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/shops`, {
+              method: "POST",
+              headers: sbHeaders({ "Prefer": "return=representation" }),
+              body: JSON.stringify({
+                shop_name: name,
+                license_key: key,
+                shop_password: pass,
+                max_devices: maxDevs,
+                subscription_end: exp,
+                is_active: true
+              })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (Array.isArray(data) && data[0] && data[0].id) {
+                createdId = data[0].id;
+                savedToCloud = true;
+              }
+            } else {
+              const errJson = await res.json().catch(() => ({}));
+              console.error("Supabase shop insert failed:", errJson);
+              if (errJson && errJson.code === "42501") {
+                alert("Supabase RLS Error: Row-Level Security is blocking shop creation. Please run the SQL in .agents/supabase_setup.sql in your Supabase SQL Editor!");
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Create shop cloud fallback:", e);
+        }
+      }
+
+      const newShop = {
+        id: createdId,
+        shopName: name,
+        licenseKey: key,
+        shopPassword: pass,
+        maxDevices: maxDevs,
+        subscriptionEnd: exp,
+        isActive: true
+      };
+
+      shops = shops.filter(s => s.licenseKey !== key);
+      shops.unshift(newShop);
+      selectedShopId = newShop.id;
+      document.getElementById('new-shop-name').value = "";
+      generateRandomKey();
+      renderSuperAdmin();
+
+      if (IS_CLOUD && savedToCloud) {
+        alert(`Shop "${name}" (Key: ${key}) successfully registered and saved to Cloud Database!`);
+      }
+    }
+
+    async function adjustDeviceQuota(shopId, delta, event) {
+      event.stopPropagation();
+      const shop = shops.find(s => s.id === shopId);
+      if (shop) {
+        shop.maxDevices = Math.max(1, shop.maxDevices + delta);
+        if (IS_CLOUD) {
+          fetch(`${SUPABASE_URL}/rest/v1/shops?id=eq.${shopId}`, {
+            method: "PATCH",
+            headers: sbHeaders(),
+            body: JSON.stringify({ max_devices: shop.maxDevices })
+          }).catch(() => {});
+        }
+        renderSuperAdmin();
+      }
+    }
+
+    async function toggleShopActive(shopId, event) {
+      event.stopPropagation();
+      const shop = shops.find(s => s.id === shopId);
+      if (shop) {
+        shop.isActive = !shop.isActive;
+        if (IS_CLOUD) {
+          fetch(`${SUPABASE_URL}/rest/v1/shops?id=eq.${shopId}`, {
+            method: "PATCH",
+            headers: sbHeaders(),
+            body: JSON.stringify({ is_active: shop.isActive })
+          }).catch(() => {});
+        }
+        renderSuperAdmin();
+      }
+    }
+
+    async function toggleDeviceBlock(deviceId) {
+      const dev = devices.find(d => d.id === deviceId);
+      if (dev) {
+        dev.isBlocked = !dev.isBlocked;
+        if (IS_CLOUD) {
+          fetch(`${SUPABASE_URL}/rest/v1/devices?id=eq.${deviceId}`, {
+            method: "PATCH",
+            headers: sbHeaders(),
+            body: JSON.stringify({ is_blocked: dev.isBlocked })
+          }).catch(() => {});
+        }
+        renderSuperAdmin();
+      }
+    }
+
+    async function promptAddDevice() {
+      const shop = shops.find(s => s.id === selectedShopId);
+      if (!shop) return;
+      const activeCount = devices.filter(d => d.shopId === shop.id && !d.isBlocked).length;
+      if (activeCount >= shop.maxDevices) {
+        alert(`Device limit reached (${activeCount}/${shop.maxDevices}) for ${shop.shopName}! Increase Allowed Devices quota first.`);
+        return;
+      }
+
+      const salesman = prompt("Enter Salesman Email ID (or Name):", "kartick@shop.com");
+      if (!salesman) return;
+      const pin = prompt("Set Salesman Password / 4-Digit PIN:", "4444");
+      if (!pin) return;
+      const autoPlaceholder = "PENDING-AUTO-" + Math.floor(1000 + Math.random() * 9000);
+
+      let devId = "dev-" + Date.now();
+      if (IS_CLOUD) {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/devices`, {
+            method: "POST",
+            headers: sbHeaders({ "Prefer": "return=representation" }),
+            body: JSON.stringify({
+              shop_id: shop.id,
+              device_uuid: autoPlaceholder,
+              salesman_name: salesman.trim(),
+              salesman_pin: pin.trim(),
+              is_blocked: false
+            })
+          });
+          if (res.ok) {
+            const rows = await res.json();
+            if (Array.isArray(rows) && rows[0] && rows[0].id) {
+              devId = rows[0].id;
+            }
+          }
+        } catch (e) {
+          console.warn("Add device cloud fallback:", e);
+        }
+      }
+
+      devices.push({
+        id: devId,
+        shopId: shop.id,
+        deviceUuid: autoPlaceholder,
+        salesmanName: salesman.trim(),
+        salesmanPin: pin.trim(),
+        isBlocked: false,
+        lastSync: "Waiting for 1st App Login (Auto-Bind)"
+      });
+      renderSuperAdmin();
+    }
+
+    function renderSuperAdmin() {
+      const totalQuota = shops.reduce((acc, s) => acc + s.maxDevices, 0);
+      const activeDevs = devices.filter(d => !d.isBlocked).length;
+      const blockedDevs = devices.filter(d => d.isBlocked).length;
+
+      document.getElementById('kpi-total-shops').innerText = shops.length;
+      document.getElementById('kpi-total-devices').innerText = `${activeDevs} / ${totalQuota}`;
+      document.getElementById('kpi-blocked-devices').innerText = blockedDevs;
+
+      const container = document.getElementById('shops-table-container');
+      container.innerHTML = shops.map(shop => {
+        const shopDevs = devices.filter(d => d.shopId === shop.id && !d.isBlocked);
+        const isSelected = shop.id === selectedShopId;
+        return `
+          <div onclick="selectedShopId = '${shop.id}'; renderSuperAdmin();" 
+            class="p-3.5 rounded-xl border ${isSelected ? 'border-teal-500 bg-slate-950/90 ring-1 ring-teal-500/30' : 'border-slate-800 bg-slate-950/40'} cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-sm font-bold text-slate-100">${shop.shopName}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-teal-500/15 text-teal-300 border border-teal-500/30">Key: ${shop.licenseKey}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30">Pass: ${shop.shopPassword}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${shop.isActive ? 'bg-emerald-500/15 text-emerald-300' : 'bg-red-500/20 text-red-300'}">
+                  ${shop.isActive ? 'ACTIVE' : 'SUSPENDED'}
+                </span>
+              </div>
+              <p class="text-xs text-slate-400 mt-1">Valid Until: <strong>${shop.subscriptionEnd}</strong></p>
+            </div>
+
+            <div class="text-right">
+              <span class="text-xs font-bold ${shopDevs.length >= shop.maxDevices ? 'text-amber-400' : 'text-teal-400'}">
+                ${shopDevs.length} / ${shop.maxDevices} Devices Used
+              </span>
+              <div class="flex items-center gap-1 mt-1 justify-end">
+                <button onclick="adjustDeviceQuota('${shop.id}', -1, event)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-300">-1 Slot</button>
+                <button onclick="adjustDeviceQuota('${shop.id}', 1, event)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-xs text-teal-300">+1 Slot</button>
+                <button onclick="toggleShopActive('${shop.id}', event)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-xs ${shop.isActive ? 'text-amber-300' : 'text-emerald-300'}">
+                  ${shop.isActive ? 'Suspend' : 'Activate'}
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const currentShop = shops.find(s => s.id === selectedShopId) || shops[0];
+      document.getElementById('selected-admin-shop-title').innerText = currentShop.shopName;
+
+      const shopDevices = devices.filter(d => d.shopId === currentShop.id);
+      const devListEl = document.getElementById('shop-devices-list');
+
+      if (shopDevices.length === 0) {
+        devListEl.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">No salesman devices registered yet.</p>`;
+      } else {
+        devListEl.innerHTML = shopDevices.map(d => `
+          <div class="p-3 rounded-xl bg-slate-950 border ${d.isBlocked ? 'border-red-500/40' : 'border-slate-800'} flex items-center justify-between">
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-bold text-slate-100">${d.salesmanName}</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-900 text-teal-300 border border-slate-800">${d.deviceUuid}</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-900 text-amber-300 border border-slate-800">PIN: ${d.salesmanPin}</span>
+              </div>
+              <span class="text-[11px] text-slate-400">Last Sync: ${d.lastSync}</span>
+            </div>
+            <button onclick="toggleDeviceBlock('${d.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold ${d.isBlocked ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-red-500/15 text-red-300 border border-red-500/30'}">
+              ${d.isBlocked ? 'Unblock' : 'Block Device'}
+            </button>
+          </div>
+        `).join('');
+      }
+    }
+
+    function getFilteredOwnerBills() {
+      const sFilter = document.getElementById('owner-salesman-filter').value;
+      if (sFilter === 'ALL') return syncedBills;
+      return syncedBills.filter(b => b.salesman === sFilter);
+    }
+
+    function buildConsolidatedCsv(billsList) {
+      let lines = ["Bill_No,Bill_Date,Party_Name,Item_Code,Item_Name,Qty,Unit,Rate,MRP,Amount,Salesman"];
+      billsList.forEach(bill => {
+        bill.items.forEach(item => {
+          const amt = (item.qty * item.rate).toFixed(2);
+          lines.push(`${bill.billNo},${bill.billDate},${bill.partyName},${item.itemCode},${item.productName},${item.qty},${item.unit},${item.rate.toFixed(2)},${item.mrp.toFixed(2)},${amt},${bill.salesman}`);
+        });
+      });
+      return lines.join("\n");
+    }
+
+    function switchOwnerTab(tabName) {
+      const tabs = ['orders', 'items', 'print'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const panel = document.getElementById(`owner-tab-${t}`);
+        if (t === tabName) {
+          btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-teal-500 text-slate-950 transition-all flex items-center gap-2";
+          panel.classList.remove('hidden');
+        } else {
+          btn.className = "px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800 transition-all flex items-center gap-2";
+          panel.classList.add('hidden');
+        }
+      });
+
+      if (tabName === 'items' && !masterItemsLoaded) {
+        loadMasterItems();
+      }
+      if (tabName === 'print') {
+        updatePrintPreview();
+      }
+    }
+
+    async function loadMasterItems() {
+      try {
+        const res = await fetch('./full_item_master.csv');
+        let csvText = "";
+        if (res.ok) {
+          csvText = await res.text();
+        }
+        
+        if (IS_CLOUD) {
+          try {
+            const mapRes = await fetch(`${SUPABASE_URL}/rest/v1/barcode_mappings?select=barcode,item_code`, {
+              headers: sbHeaders()
+            });
+            if (mapRes.ok) {
+              const rows = await mapRes.json();
+              if (Array.isArray(rows)) {
+                rows.forEach(r => {
+                  if (r.item_code && r.barcode) {
+                    cloudBarcodeMappings[r.item_code] = r.barcode;
+                  }
+                });
+              }
+            }
+          } catch (e) {
+            console.warn("Cloud mappings fetch fallback:", e);
+          }
+        }
+
+        if (csvText.length > 0) {
+          const lines = csvText.split(/\r?\n/);
+          masterItems = [];
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+            const parts = parseCsvLine(line);
+            if (parts.length >= 6) {
+              const code = parts[0] ? parts[0].trim() : "";
+              const mappedBarcode = cloudBarcodeMappings[code] || (parts[1] ? parts[1].trim() : "");
+              masterItems.push({
+                code: code,
+                barcode: mappedBarcode,
+                product: parts[2] ? parts[2].trim() : "",
+                unit: parts[3] ? parts[3].trim() : "PAIR",
+                company: parts[4] ? parts[4].trim() : "",
+                group: parts[5] ? parts[5].trim() : "",
+                category: parts[6] ? parts[6].trim() : "",
+                mrp: parts[10] ? parseFloat(parts[10]) || 0 : 0,
+                rate: parts[11] ? parseFloat(parts[11]) || 0 : 0
+              });
+            }
+          }
+        } else {
+          // Fallback initial items if file read is restricted
+          masterItems = [
+            { code: "3046", barcode: cloudBarcodeMappings["3046"] || "8901234560012", product: "028 GRY 2X5 (NEW)", company: "AJANTA", group: "GREY", category: "COLOUR HAWAI", mrp: 129, rate: 129 },
+            { code: "3048", barcode: cloudBarcodeMappings["3048"] || "8901234560029", product: "028 GRY 6X9 (NEW)", company: "AJANTA", group: "GREY", category: "COLOUR HAWAI", mrp: 136, rate: 136 },
+            { code: "0329", barcode: cloudBarcodeMappings["0329"] || "8901234560036", product: "6220 VERTEX GENTS (P) TAN0610A", company: "PARAGON", group: "TAN", category: "VERTEX GENTS", mrp: 409, rate: 409 },
+            { code: "3019", barcode: cloudBarcodeMappings["3019"] || "", product: "510-A-72 6X9 (NEW)", company: "AGRA SHOE", group: "GREEN", category: "CASUAL", mrp: 120, rate: 120 }
+          ];
+        }
+
+        masterItemsLoaded = true;
+        renderMasterItems(1);
+      } catch (e) {
+        console.error("Master items error:", e);
+      }
+    }
+
+    function parseCsvLine(text) {
+      const result = [];
+      let cur = '';
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (c === '"') {
+          inQuotes = !inQuotes;
+        } else if (c === ',' && !inQuotes) {
+          result.push(cur);
+          cur = '';
+        } else {
+          cur += c;
+        }
+      }
+      result.push(cur);
+      return result;
+    }
+
+    function handleMasterSearch(query) {
+      masterSearchQuery = (query || "").trim().toLowerCase();
+      renderMasterItems(1);
+    }
+
+    function filterMasterItems(status) {
+      masterStatusFilter = status;
+      ['all', 'mapped', 'unmapped'].forEach(s => {
+        const btn = document.getElementById(`filter-btn-${s}`);
+        if (s === status.toLowerCase()) {
+          btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-teal-500 text-slate-950";
+        } else {
+          btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:text-slate-100";
+        }
+      });
+      renderMasterItems(1);
+    }
+
+    function getFilteredMasterItems() {
+      return masterItems.filter(item => {
+        const matchesStatus = masterStatusFilter === 'ALL'
+          || (masterStatusFilter === 'MAPPED' && item.barcode.length > 0)
+          || (masterStatusFilter === 'UNMAPPED' && item.barcode.length === 0);
+
+        if (!matchesStatus) return false;
+
+        if (!masterSearchQuery) return true;
+        return item.product.toLowerCase().includes(masterSearchQuery)
+          || item.code.toLowerCase().includes(masterSearchQuery)
+          || item.company.toLowerCase().includes(masterSearchQuery)
+          || item.barcode.toLowerCase().includes(masterSearchQuery);
+      });
+    }
+
+    function renderMasterItems(page = 1) {
+      masterCurrentPage = page;
+      const filtered = getFilteredMasterItems();
+      const total = filtered.length;
+      const totalMapped = masterItems.filter(i => i.barcode.length > 0).length;
+
+      document.getElementById('master-items-count-badge').innerText =
+        `Loaded ${masterItems.length} Footwear items • ${totalMapped} with Barcodes`;
+
+      const startIdx = (page - 1) * MASTER_PAGE_SIZE;
+      const endIdx = Math.min(startIdx + MASTER_PAGE_SIZE, total);
+      const pageSlice = filtered.slice(startIdx, endIdx);
+
+      const tbody = document.getElementById('master-items-table-body');
+      if (pageSlice.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 text-xs">No items found matching your search.</td></tr>`;
+      } else {
+        tbody.innerHTML = pageSlice.map(item => {
+          const hasBarcode = item.barcode && item.barcode.length > 0;
+          return `
+            <tr class="hover:bg-slate-900/60 transition-colors">
+              <td class="py-3 px-3 font-mono font-bold text-amber-300">${item.code}</td>
+              <td class="py-3 px-3 text-slate-100 font-bold">${item.product}</td>
+              <td class="py-3 px-3 text-slate-300">${item.company || '-'}</td>
+              <td class="py-3 px-3 text-slate-400">${item.category || item.group || '-'}</td>
+              <td class="py-3 px-3">
+                <span class="text-emerald-400 font-bold">₹${item.rate.toFixed(2)}</span>
+                <span class="text-[10px] text-slate-400 block">MRP ₹${item.mrp.toFixed(2)}</span>
+              </td>
+              <td class="py-3 px-3">
+                ${hasBarcode 
+                  ? `<span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">${item.barcode}</span>`
+                  : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">Not Mapped</span>`
+                }
+              </td>
+              <td class="py-3 px-3 text-right">
+                <div class="flex items-center gap-1.5 justify-end">
+                  ${!hasBarcode ? `
+                    <button onclick="generateBarcodeForItem('${item.code}')" class="px-2.5 py-1 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 text-[11px] font-bold">
+                      ⚡ Gen Barcode
+                    </button>
+                  ` : ''}
+                  <button onclick="openPrintStudioForItem('${item.code}')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-bold flex items-center gap-1">
+                    <span>🖨️</span> <span>Print</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      const totalPages = Math.max(1, Math.ceil(total / MASTER_PAGE_SIZE));
+      document.getElementById('master-pagination-info').innerText =
+        total > 0 ? `Showing ${startIdx + 1}-${endIdx} of ${total} items` : `0 items`;
+      document.getElementById('master-current-page').innerText = `${page} / ${totalPages}`;
+      document.getElementById('master-prev-btn').disabled = page <= 1;
+      document.getElementById('master-next-btn').disabled = page >= totalPages;
+    }
+
+    function prevMasterPage() {
+      if (masterCurrentPage > 1) {
+        renderMasterItems(masterCurrentPage - 1);
+      }
+    }
+
+    function nextMasterPage() {
+      const filtered = getFilteredMasterItems();
+      const totalPages = Math.ceil(filtered.length / MASTER_PAGE_SIZE);
+      if (masterCurrentPage < totalPages) {
+        renderMasterItems(masterCurrentPage + 1);
+      }
+    }
+
+    async function generateBarcodeForItem(itemCode) {
+      const cleanCode = (itemCode || "").trim();
+      const item = masterItems.find(i => i.code === cleanCode);
+      if (!item) return;
+
+      // Generate standard 13-digit EAN-like barcode with Marg code
+      const numericSeed = cleanCode.replace(/\D/g, '').padEnd(6, '0').slice(0, 6);
+      const generated = "890" + numericSeed + Math.floor(1000 + Math.random() * 9000);
+
+      item.barcode = generated;
+      cloudBarcodeMappings[cleanCode] = generated;
+
+      if (IS_CLOUD) {
+        try {
+          await fetch(`${SUPABASE_URL}/rest/v1/barcode_mappings?on_conflict=shop_id,barcode`, {
+            method: "POST",
+            headers: sbHeaders({ "Prefer": "resolution=merge-duplicates" }),
+            body: JSON.stringify({
+              shop_id: activeShopOwnerSession ? activeShopOwnerSession.id : "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+              barcode: generated,
+              item_code: cleanCode
+            })
+          });
+        } catch (e) {
+          console.warn("Cloud barcode save fallback:", e);
+        }
+      }
+
+      renderMasterItems(masterCurrentPage);
+      alert(`Barcode ${generated} generated and mapped to "${item.product}"! All salesman mobile devices will now scan it instantly.`);
+    }
+
+    function openPrintStudioForItem(itemCode) {
+      const item = masterItems.find(i => i.code === itemCode);
+      if (!item) return;
+
+      if (activeShopOwnerSession) {
+        document.getElementById('print-shop-name').value = activeShopOwnerSession.shopName;
+      }
+      document.getElementById('print-item-code').value = item.code;
+      document.getElementById('print-item-title').value = item.product;
+      document.getElementById('print-item-brand').value = `${item.company || 'FOOTWEAR'} • ${item.group || item.category || 'STD'}`;
+      document.getElementById('print-item-mrp').value = `₹${item.mrp.toFixed(2)}`;
+      
+      const effectiveBarcode = item.barcode && item.barcode.length > 0 
+        ? item.barcode 
+        : ("890" + item.code.padEnd(6, '0') + "1234");
+      document.getElementById('print-item-barcode').value = effectiveBarcode;
+
+      switchOwnerTab('print');
+    }
+
+    function generateRandomBarcodeForPrint() {
+      const num = Math.floor(1000000000 + Math.random() * 9000000000);
+      document.getElementById('print-item-barcode').value = `890${num}`.slice(0, 13);
+      updatePrintPreview();
+    }
+
+    function updatePrintPreview() {
+      const shopName = document.getElementById('print-shop-name').value.trim() || "FOOTWEAR STORE";
+      const itemCode = document.getElementById('print-item-code').value.trim() || "0000";
+      const itemTitle = document.getElementById('print-item-title').value.trim() || "FOOTWEAR ITEM";
+      const itemBrand = document.getElementById('print-item-brand').value.trim() || "BRAND • Size: STD";
+      const itemMrp = document.getElementById('print-item-mrp').value.trim() || "₹0.00";
+      const barcodeVal = document.getElementById('print-item-barcode').value.trim() || "8901234560012";
+
+      document.getElementById('preview-shop').innerText = shopName;
+      document.getElementById('preview-code').innerText = `CODE: ${itemCode}`;
+      document.getElementById('preview-title').innerText = itemTitle;
+      document.getElementById('preview-brand').innerText = itemBrand;
+      document.getElementById('preview-mrp').innerText = itemMrp.startsWith('₹') ? itemMrp : `₹${itemMrp}`;
+
+      const isQr = document.getElementById('print-code-type').value === 'QR';
+      document.getElementById('preview-qr').parentElement.classList.toggle('hidden', !isQr);
+      document.getElementById('preview-barcode-wrap').classList.toggle('hidden', isQr);
+      if (isQr) {
+        document.getElementById('preview-qr').innerHTML = buildQrSvg(itemCode);
+        document.getElementById('preview-qr-code').innerText = `MARG:${itemCode}`;
+        document.getElementById('preview-qr-title').innerText = itemTitle;
+        document.getElementById('preview-qr-brand').innerText = itemBrand;
+      } else {
+        renderBarcodeSvg('#preview-barcode-svg', barcodeVal);
+      }
+    }
+
+    // Decoupled dynamic reference key: QR holds only the immutable Marg item code,
+    // so price/pack changes never require reprinting. ISO/IEC 18004, ECC level M.
+    function buildQrSvg(itemCode) {
+      if (typeof qrcode === 'undefined') {
+        return `<div class="text-[9px] text-red-600">QR library failed to load (check internet).</div>`;
+      }
+      const qr = qrcode(0, 'M');
+      qr.addData(`MARG:${itemCode}`);
+      qr.make();
+      return qr.createSvgTag({ cellSize: 4, margin: 1, scalable: true });
+    }
+
+    function renderBarcodeSvg(targetSelector, text) {
+      const cleanText = (text || "8901234560012").trim();
+      const el = document.querySelector(targetSelector);
+      if (!el) return;
+
+      if (window.JsBarcode) {
+        try {
+          JsBarcode(targetSelector, cleanText, {
+            format: "CODE128",
+            width: 1.8,
+            height: 48,
+            displayValue: true,
+            fontSize: 11,
+            margin: 2
+          });
+          return;
+        } catch (e) {
+          console.warn("JsBarcode fallback:", e);
+        }
+      }
+
+      // Offline SVG Barcode Fallback (Simulated high-contrast Code128 pattern)
+      el.innerHTML = "";
+      el.setAttribute("viewBox", "0 0 240 50");
+      let barsHtml = `<rect width="100%" height="100%" fill="white"/>`;
+      let x = 12;
+      for (let i = 0; i < cleanText.length; i++) {
+        const code = cleanText.charCodeAt(i);
+        const w1 = ((code % 3) + 1.2).toFixed(1);
+        const w2 = (((code >> 1) % 3) + 1.2).toFixed(1);
+        barsHtml += `<rect x="${x}" y="2" width="${w1}" height="32" fill="black"/>`;
+        x += parseFloat(w1) + 2.0;
+        barsHtml += `<rect x="${x}" y="2" width="${w2}" height="32" fill="black"/>`;
+        x += parseFloat(w2) + 2.5;
+      }
+      barsHtml += `<text x="120" y="44" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="black">${cleanText}</text>`;
+      el.innerHTML = barsHtml;
+    }
+
+    function printBarcodeLabels() {
+      const shopName = document.getElementById('print-shop-name').value.trim() || "FOOTWEAR STORE";
+      const itemCode = document.getElementById('print-item-code').value.trim() || "0000";
+      const itemTitle = document.getElementById('print-item-title').value.trim() || "FOOTWEAR ITEM";
+      const itemBrand = document.getElementById('print-item-brand').value.trim() || "BRAND • Size: STD";
+      const itemMrp = document.getElementById('print-item-mrp').value.trim() || "₹0.00";
+      const barcodeVal = document.getElementById('print-item-barcode').value.trim() || "8901234560012";
+      const qty = parseInt(document.getElementById('print-label-qty').value) || 1;
+      const format = document.getElementById('print-label-format').value;
+      const isQr = document.getElementById('print-code-type').value === 'QR';
+      const qrSvg = isQr ? buildQrSvg(itemCode) : '';
+      const container = document.getElementById('printable-labels-container');
+      container.innerHTML = "";
+
+      // Render sticker items
+      let html = "";
+      if (format === 'a4_24') {
+        html += `<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; font-family: sans-serif;">`;
+      } else {
+        html += `<div style="display:flex; flex-direction:column; align-items:center; font-family: sans-serif;">`;
+      }
+
+      const isThermal = format.startsWith('50x');
+      const heightCss = format === '50x38' ? '38mm' : '25mm';
+      const boxStyle = `width: 50mm; height: ${heightCss}; padding: 2mm 3mm; box-sizing: border-box; background: white; color: black; border: 1px dashed #ccc; margin: 2mm auto; page-break-inside: avoid; overflow: hidden;`;
+
+      for (let i = 0; i < qty; i++) {
+        const svgId = `print-barcode-${i}`;
+        if (isQr) {
+          // Dual-mode: left 20x20mm QR (MARG:<code>), right human-readable fallback text
+          html += `
+          <div class="${isThermal ? 'label-sticker-thermal' : ''}" style="${boxStyle} display:flex; align-items:center; gap:2mm;">
+            <div style="width:20mm; height:20mm; flex-shrink:0;">${qrSvg}</div>
+            <div style="min-width:0; flex:1; overflow:hidden; line-height:1.15;">
+              <div style="font-family:monospace; font-size:11px; font-weight:900;">${escHtml(itemCode)}</div>
+              <div style="font-size:8px; font-weight:800; max-height:20px; overflow:hidden;">${escHtml(itemTitle)}</div>
+              <div style="font-size:7px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escHtml(itemBrand)}</div>
+              <div style="font-size:9px; font-weight:900;">${escHtml(itemMrp)}</div>
+            </div>
+          </div>`;
+        } else {
+          html += `
+          <div class="${isThermal ? 'label-sticker-thermal' : ''}" style="${boxStyle}">
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size: 8px; font-weight: 900; border-bottom: 1px solid black; padding-bottom: 1px;">
+              <span style="text-transform:uppercase; max-width: 32mm; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(shopName)}</span>
+              <span style="font-family: monospace;">CODE: ${escHtml(itemCode)}</span>
+            </div>
+            <div style="font-size: 9px; font-weight: 800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top: 1px;">${escHtml(itemTitle)}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size: 7.5px; font-weight: 700;">
+              <span style="max-width: 30mm; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(itemBrand)}</span>
+              <span style="font-size: 8.5px; font-weight: 900;">${escHtml(itemMrp)}</span>
+            </div>
+            <div style="display:flex; justify-content:center; align-items:center; margin-top: 1px;">
+              <svg id="${svgId}" style="width: 100%; max-height: 12mm;"></svg>
+            </div>
+          </div>`;
+        }
+      }
+      html += `</div>`;
+      container.innerHTML = html;
+
+      // Render barcode lines into each SVG (legacy mode only)
+      if (!isQr) {
+        for (let i = 0; i < qty; i++) {
+          renderBarcodeSvg(`#print-barcode-${i}`, barcodeVal);
+        }
+      }
+
+      setTimeout(() => {
+        window.print();
+      }, 250);
+    }
+
+    function renderOwnerPortal() {
+      if (activeShopOwnerSession) {
+        document.getElementById('owner-shop-title').innerText = activeShopOwnerSession.shopName;
+        document.getElementById('owner-shop-meta').innerText = `License: ${activeShopOwnerSession.licenseKey} • Subscription Valid Until: ${activeShopOwnerSession.subscriptionEnd}`;
+        document.getElementById('print-shop-name').value = activeShopOwnerSession.shopName;
+      }
+
+      // Compute Salesman-wise Analytics across real synced bills
+      const salesmanStats = {};
+      syncedBills.forEach(b => {
+        if (!salesmanStats[b.salesman]) {
+          salesmanStats[b.salesman] = { bills: 0, pairs: 0, amount: 0 };
+        }
+        salesmanStats[b.salesman].bills += 1;
+        b.items.forEach(i => {
+          salesmanStats[b.salesman].pairs += i.qty;
+          salesmanStats[b.salesman].amount += i.qty * i.rate;
+        });
+      });
+
+      const salesmanNames = Object.keys(salesmanStats);
+      if (salesmanNames.length === 0) {
+        document.getElementById('salesman-summary-cards').innerHTML = `
+          <div class="col-span-1 sm:col-span-3 text-center py-6 text-slate-500 text-xs bg-slate-950 rounded-xl border border-slate-800">
+            No synced orders yet today. Bills created on salesman devices will appear here in real-time.
+          </div>
+        `;
+      } else {
+        document.getElementById('salesman-summary-cards').innerHTML = salesmanNames.map(smName => {
+          const st = salesmanStats[smName];
+          return `
+            <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-teal-300">${smName}</span>
+                <span class="px-2 py-0.5 rounded bg-teal-500/15 text-teal-300 text-[10px] font-bold">${st.bills} Bills</span>
+              </div>
+              <p class="text-lg font-extrabold text-slate-100">₹${st.amount.toFixed(2)}</p>
+              <span class="text-[11px] text-slate-400">Total Sold: <strong>${st.pairs} Pairs</strong></span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Populate filter dropdown with real active salesmen
+      const filterSelect = document.getElementById('owner-salesman-filter');
+      const currentSelected = filterSelect.value;
+      filterSelect.innerHTML = `<option value="ALL">All Salesmen (Consolidated)</option>` +
+        salesmanNames.map(name => `<option value="${name}" ${name === currentSelected ? 'selected' : ''}>${name}</option>`).join('');
+
+      const filtered = getFilteredOwnerBills();
+      let totalPairs = 0;
+      let totalValue = 0;
+
+      if (filtered.length === 0) {
+        document.getElementById('owner-bills-list').innerHTML = `
+          <div class="text-center py-10 text-slate-500 text-xs">
+            No synced bills yet. Waiting for salesman sync...
+          </div>
+        `;
+      } else {
+        document.getElementById('owner-bills-list').innerHTML = filtered.map(b => {
+          let billPairs = 0;
+          let billAmt = 0;
+          b.items.forEach(i => {
+            billPairs += i.qty;
+            billAmt += i.qty * i.rate;
+          });
+          totalPairs += billPairs;
+          totalValue += billAmt;
+
+          return `
+            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex justify-between items-center">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-slate-100">${b.partyName}</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-teal-300 font-mono">${b.billNo}</span>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-0.5">
+                  Salesman: <strong class="text-teal-300">${b.salesman}</strong> &bull; ${b.createdTime}
+                </p>
+              </div>
+              <div class="text-right">
+                <span class="text-sm font-extrabold text-emerald-400">₹${billAmt.toFixed(2)}</span>
+                <span class="block text-[10px] text-slate-400">${billPairs} Pairs</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      renderLiveInsights();
+      document.getElementById('owner-bill-count').innerText = `${filtered.length} Bills`;
+      document.getElementById('owner-pair-count').innerText = `${totalPairs} Pairs`;
+      document.getElementById('owner-total-amount').innerText = `₹${totalValue.toFixed(2)}`;
+      document.getElementById('owner-csv-box').innerText = filtered.length > 0
+        ? buildConsolidatedCsv(filtered)
+        : "Bill_No,Bill_Date,Party_Name,Item_Code,Item_Name,Qty,Unit,Rate,MRP,Amount,Salesman\n(No bills created yet)";
+    }
+
+    function escHtml(v) {
+      return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function renderLiveInsights() {
+      // Top booked articles leaderboard
+      const articles = {};
+      syncedBills.forEach(b => b.items.forEach(i => {
+        const k = i.itemCode;
+        if (!articles[k]) articles[k] = { name: i.productName, pairs: 0, amount: 0 };
+        articles[k].pairs += i.qty;
+        articles[k].amount += i.qty * i.rate;
+      }));
+      const top = Object.entries(articles).sort((a, b) => b[1].pairs - a[1].pairs).slice(0, 10);
+      const maxPairs = top.length ? top[0][1].pairs : 1;
+      document.getElementById('top-articles-list').innerHTML = top.length === 0
+        ? `<div class="text-center py-8 text-slate-500 text-xs">No bookings yet.</div>`
+        : top.map(([code, a], idx) => `
+          <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-100">#${idx + 1} ${escHtml(a.name)}
+                <span class="font-mono text-[10px] text-teal-300">${escHtml(code)}</span></span>
+              <span class="font-extrabold text-emerald-400">${a.pairs} Pairs</span>
+            </div>
+            <div class="h-1.5 mt-1.5 rounded bg-slate-800 overflow-hidden">
+              <div class="h-full bg-teal-500" style="width:${Math.round((a.pairs / maxPairs) * 100)}%"></div>
+            </div>
+            <span class="text-[10px] text-slate-400">₹${a.amount.toFixed(2)}</span>
+          </div>`).join('');
+
+      // Active terminals (latest bill per device)
+      const terms = {};
+      syncedBills.forEach(b => {
+        const k = b.deviceUuid || b.salesman;
+        if (!terms[k]) terms[k] = { salesman: b.salesman, last: `${b.billDate || ''} ${b.createdTime || ''}`.trim(), bills: 0, pairs: 0 };
+        terms[k].bills += 1;
+        b.items.forEach(i => { terms[k].pairs += i.qty; });
+      });
+      const termList = Object.entries(terms);
+      document.getElementById('active-terminals-list').innerHTML = termList.length === 0
+        ? `<div class="text-center py-8 text-slate-500 text-xs">No terminals active yet.</div>`
+        : termList.map(([id, t]) => `
+          <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex justify-between items-center">
+            <div>
+              <span class="text-xs font-bold text-teal-300">🟢 ${escHtml(t.salesman)}</span>
+              <p class="text-[10px] text-slate-500 font-mono">${escHtml(String(id).slice(0, 12))}</p>
+              <p class="text-[10px] text-slate-400">Last: ${escHtml(t.last)}</p>
+            </div>
+            <div class="text-right text-[11px] text-slate-300">${t.bills} Bills<br>${t.pairs} Pairs</div>
+          </div>`).join('');
+
+      document.getElementById('live-last-updated').innerText = `Live: ${new Date().toLocaleTimeString()}`;
+    }
+
+    // Auto-refresh live orders for the logged-in shop owner (every 10s)
+    setInterval(async () => {
+      if (!activeShopOwnerSession || !IS_CLOUD) return;
+      if (document.getElementById('portal-shop-owner').classList.contains('hidden')) return;
+      await loadCloudBillsForShop(activeShopOwnerSession.id);
+      renderOwnerPortal();
+    }, 10000);
+
+    function downloadConsolidatedMargCsv() {
+      const filtered = getFilteredOwnerBills();
+      const csvContent = buildConsolidatedCsv(filtered);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'MARG_CONSOLIDATED_ORDERS.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function copyMergedCsv() {
+      const csvText = document.getElementById('owner-csv-box').innerText;
+      navigator.clipboard.writeText(csvText);
+      const btn = document.getElementById('copy-merged-btn');
+      btn.innerText = "Copied!";
+      setTimeout(() => btn.innerText = "Copy CSV", 2000);
+    }
+  </script>
+</body>
+</html>

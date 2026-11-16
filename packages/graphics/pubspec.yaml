@@ -1,0 +1,12 @@
+name: graphics
+description: Pure reusable UI widgets, theme, and centralized constants for MargSync Pro.
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  mobile_scanner: ^5.1.1

@@ -1,0 +1,40 @@
+# AI Rules & Documentation (Ignored from repository as per requirement)
+.agents/
+Docs/
+scratch/
+*.pyc
+__pycache__/
+
+# Environment Secrets (NEVER commit to Git)
+.env
+*.env
+web_portal/env-config.js
+
+# Miscellaneous
+*.log
+*.tmp
+.DS_Store
+
+# Dart & Flutter
+.dart_tool/
+.packages
+build/
+.pub-cache/
+.pub/
+
+# Android
+**/android/**/gradle-wrapper.jar
+**/android/.gradle
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Credentials notes (NEVER commit)
+Docs/supabase.txt
