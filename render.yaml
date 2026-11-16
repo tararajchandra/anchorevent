@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: dealer-connect-portal
+    env: static
+    rootDir: web_portal
+    buildCommand: echo "window.MARG_ENV = { SUPABASE_URL: '${SUPABASE_URL}', SUPABASE_ANON_KEY: '${SUPABASE_ANON_KEY}' };" > env-config.js
+    staticPublishPath: .
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
