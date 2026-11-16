@@ -741,10 +741,12 @@
   </div>
 
   <script>
-    // Environment config loaded strictly from env-config.js / Netlify build environment
+    // Environment config loaded from env-config.js or fallback to default project Supabase cloud
     const ENV = window.MARG_ENV || {};
-    const SUPABASE_URL = (ENV.SUPABASE_URL || "").trim().replace(/\/$/, "");
-    const SUPABASE_KEY = (ENV.SUPABASE_ANON_KEY || "").trim();
+    const DEFAULT_SB_URL = "https://obepjbdoicltdlqtbtlc.supabase.co";
+    const DEFAULT_SB_KEY = "sb_publishable_NJKnS1oXBZzaXscD7n6jYQ_LaEK3DmA";
+    const SUPABASE_URL = ((ENV.SUPABASE_URL && ENV.SUPABASE_URL.trim().length > 0) ? ENV.SUPABASE_URL : DEFAULT_SB_URL).trim().replace(/\/$/, "");
+    const SUPABASE_KEY = ((ENV.SUPABASE_ANON_KEY && ENV.SUPABASE_ANON_KEY.trim().length > 0) ? ENV.SUPABASE_ANON_KEY : DEFAULT_SB_KEY).trim();
     const IS_CLOUD = SUPABASE_URL.length > 0 && SUPABASE_KEY.length > 0 && !SUPABASE_KEY.includes("paste-your");
 
     function sbHeaders(extra = {}) {
