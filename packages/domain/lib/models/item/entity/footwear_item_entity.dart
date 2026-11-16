@@ -45,4 +45,21 @@ class FootwearItemEntity {
       rateA: rateA,
     );
   }
+
+  FootwearItemEntity copyWithRates({double? newRateA, double? newMrp}) {
+    return FootwearItemEntity(
+      code: code,
+      barcode: barcode,
+      product: product,
+      unit: unit,
+      company: company,
+      group: group,
+      category: category,
+      hsn: hsn,
+      gst: gst,
+      closingStock: closingStock,
+      mrp: newMrp ?? mrp,
+      rateA: newRateA ?? rateA,
+    );
+  }
 }

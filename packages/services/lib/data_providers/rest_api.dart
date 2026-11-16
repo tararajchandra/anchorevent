@@ -219,6 +219,68 @@ class RestApi {
     );
   }
 
+  Future<ServiceResponse<List<Map<String, dynamic>>>> fetchCloudSchemes() async {
+    if (isCloudConfigured) {
+      final list = await _getSupabaseList(
+        path: '/rest/v1/schemes?is_active=eq.true&order=min_pairs.asc',
+      );
+      if (list != null) {
+        final result = <Map<String, dynamic>>[];
+        for (final item in list) {
+          if (item is Map<String, dynamic>) {
+            result.add(item);
+          }
+        }
+        return ServiceResponse<List<Map<String, dynamic>>>.success(data: result);
+      }
+    }
+    return ServiceResponse<List<Map<String, dynamic>>>.success(
+      data: const <Map<String, dynamic>>[],
+    );
+  }
+
+  Future<ServiceResponse<Map<String, Map<String, dynamic>>>>
+      fetchCloudRateOverrides() async {
+    if (isCloudConfigured) {
+      final list = await _getSupabaseList(
+        path: '/rest/v1/rate_overrides?select=*',
+      );
+      if (list != null) {
+        final result = <String, Map<String, dynamic>>{};
+        for (final item in list) {
+          if (item is Map<String, dynamic>) {
+            final code = item['item_code']?.toString() ?? '';
+            if (code.isNotEmpty) {
+              result[code] = item;
+            }
+          }
+        }
+        return ServiceResponse<Map<String, Map<String, dynamic>>>.success(
+          data: result,
+        );
+      }
+    }
+    return ServiceResponse<Map<String, Map<String, dynamic>>>.success(
+      data: const <String, Map<String, dynamic>>{},
+    );
+  }
+
+  Future<ServiceResponse<String>> fetchCloudCatalogVersion() async {
+    if (isCloudConfigured) {
+      final list = await _getSupabaseList(
+        path: '/rest/v1/catalog_metadata?id=eq.global&select=catalog_version',
+      );
+      if (list != null && list.isNotEmpty) {
+        final first = list.first;
+        if (first is Map<String, dynamic>) {
+          final ver = first['catalog_version']?.toString() ?? 'v1.0.0';
+          return ServiceResponse<String>.success(data: ver);
+        }
+      }
+    }
+    return ServiceResponse<String>.success(data: 'v1.0.0');
+  }
+
   Future<ServiceResponse<bool>> registerCloudDealerWithPin({
     required String phone,
     required String shopName,

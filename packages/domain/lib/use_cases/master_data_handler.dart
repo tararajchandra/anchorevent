@@ -3,6 +3,7 @@ import 'package:services/services.dart';
 import '../models/dealer/entity/dealer_profile_entity.dart';
 import '../models/item/entity/footwear_item_entity.dart';
 import '../models/party/entity/party_ledger_entity.dart';
+import '../models/scheme/entity/booking_scheme_entity.dart';
 import '../repository/master_data_repository.dart';
 
 class MasterDataHandler with ServiceStateMixin<List<FootwearItemEntity>> {
@@ -27,6 +28,10 @@ class MasterDataHandler with ServiceStateMixin<List<FootwearItemEntity>> {
     return serviceObserver(() async {
       return MasterDataRepository.instance.loadRegisteredDealers();
     });
+  }
+
+  Future<ServiceResponse<List<BookingSchemeEntity>>> fetchCloudSchemes() async {
+    return MasterDataRepository.instance.loadCloudSchemes();
   }
 
   static String normalizePhone(String raw) =>

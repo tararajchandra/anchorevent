@@ -7,6 +7,8 @@ import '../models/item/converter/footwear_item_converter.dart';
 import '../models/item/entity/footwear_item_entity.dart';
 import '../models/party/converter/party_ledger_converter.dart';
 import '../models/party/entity/party_ledger_entity.dart';
+import '../models/scheme/entity/booking_scheme_entity.dart';
+import '../utils/enums/scheme_reward_type_enum.dart';
 import '../utils/storage_key_consts.dart';
 
 class MasterDataRepository {
@@ -229,9 +231,103 @@ class MasterDataRepository {
     final parsed = FootwearItemConverter.fromCsvRows(rows, itemCodeToBarcode);
     _cachedItems = parsed.isEmpty ? _fallbackItems(itemCodeToBarcode) : parsed;
 
+    // Apply cloud dynamic rate & MRP overrides (Module A)
+    final rateOverridesResp = await RestApi.instance.fetchCloudRateOverrides();
+    final overridesMap = rateOverridesResp.data;
+    if (overridesMap != null && overridesMap.isNotEmpty) {
+      final updatedWithOverrides = <FootwearItemEntity>[];
+      for (final item in _cachedItems) {
+        final override = overridesMap[item.code];
+        if (override != null) {
+          final newRate = double.tryParse(override['wholesale_rate']?.toString() ?? '');
+          final newMrp = double.tryParse(override['mrp']?.toString() ?? '');
+          updatedWithOverrides.add(item.copyWithRates(newRateA: newRate, newMrp: newMrp));
+        } else {
+          updatedWithOverrides.add(item);
+        }
+      }
+      _cachedItems = updatedWithOverrides;
+    }
+
+    final verResp = await RestApi.instance.fetchCloudCatalogVersion();
+    final ver = verResp.data;
+    if (ver != null && ver.isNotEmpty) {
+      await LocalStorage.instance.writeString(StorageKeyConsts.catalogVersion, ver);
+    }
+
     return ServiceResponse<List<FootwearItemEntity>>.success(
       data: _cachedItems,
     );
+  }
+
+  Future<ServiceResponse<List<BookingSchemeEntity>>> loadCloudSchemes() async {
+    final schemesResp = await RestApi.instance.fetchCloudSchemes();
+    final list = schemesResp.data;
+    if (list != null && list.isNotEmpty) {
+      final parsedSchemes = list.map((e) => BookingSchemeEntity.fromJson(e)).toList();
+      await LocalStorage.instance.writeString(
+        StorageKeyConsts.cachedSchemes,
+        jsonEncode(list),
+      );
+      return ServiceResponse<List<BookingSchemeEntity>>.success(data: parsedSchemes);
+    }
+
+    final cachedRaw = LocalStorage.instance.readString(StorageKeyConsts.cachedSchemes);
+    if (cachedRaw != null && cachedRaw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cachedRaw);
+        if (decoded is List<dynamic>) {
+          final cachedSchemes = decoded
+              .whereType<Map<String, dynamic>>()
+              .map((e) => BookingSchemeEntity.fromJson(e))
+              .toList();
+          if (cachedSchemes.isNotEmpty) {
+            return ServiceResponse<List<BookingSchemeEntity>>.success(data: cachedSchemes);
+          }
+        }
+      } catch (_) {}
+    }
+
+    return ServiceResponse<List<BookingSchemeEntity>>.success(
+      data: _defaultFallbackSchemes(),
+    );
+  }
+
+  static List<BookingSchemeEntity> _defaultFallbackSchemes() {
+    return const <BookingSchemeEntity>[
+      BookingSchemeEntity(
+        id: 'scheme-bronze',
+        schemeName: 'Bronze Scheme',
+        minPairs: 100,
+        rewardDescription: '2% Additional Cash Discount',
+        rewardType: SchemeRewardTypeEnum.discountPercent,
+        discountPercent: 2.0,
+      ),
+      BookingSchemeEntity(
+        id: 'scheme-silver',
+        schemeName: 'Silver Coin Scheme',
+        minPairs: 250,
+        rewardDescription: 'Free 10g Silver Coin + 3% Extra Trade Discount',
+        rewardType: SchemeRewardTypeEnum.giftItem,
+        discountPercent: 3.0,
+      ),
+      BookingSchemeEntity(
+        id: 'scheme-gold',
+        schemeName: 'Gold Scheme',
+        minPairs: 500,
+        rewardDescription: 'Free Microwave Oven / 5g Gold Coin',
+        rewardType: SchemeRewardTypeEnum.giftItem,
+        discountPercent: 4.0,
+      ),
+      BookingSchemeEntity(
+        id: 'scheme-platinum',
+        schemeName: 'Platinum VIP Scheme',
+        minPairs: 1000,
+        rewardDescription: 'Free LED TV / Goa Trip Voucher',
+        rewardType: SchemeRewardTypeEnum.giftItem,
+        discountPercent: 5.0,
+      ),
+    ];
   }
 
   Future<ServiceResponse<List<PartyLedgerEntity>>> loadPartyLedgers() async {

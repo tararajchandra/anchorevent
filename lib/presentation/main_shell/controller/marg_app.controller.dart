@@ -80,42 +80,49 @@ class MargAppController extends ReactiveController {
     }
   }
 
-  void _loadInitialSchemes() {
-    const defaultSchemes = <BookingSchemeEntity>[
-      BookingSchemeEntity(
-        id: 'scheme-bronze',
-        schemeName: 'Bronze Scheme',
-        minPairs: 100,
-        rewardDescription: '2% Additional Cash Discount',
-        rewardType: SchemeRewardTypeEnum.discountPercent,
-        discountPercent: 2.0,
-      ),
-      BookingSchemeEntity(
-        id: 'scheme-silver',
-        schemeName: 'Silver Coin Scheme',
-        minPairs: 250,
-        rewardDescription: 'Free 10g Silver Coin + 3% Extra Trade Discount',
-        rewardType: SchemeRewardTypeEnum.giftItem,
-        discountPercent: 3.0,
-      ),
-      BookingSchemeEntity(
-        id: 'scheme-gold',
-        schemeName: 'Gold Scheme',
-        minPairs: 500,
-        rewardDescription: 'Free Microwave Oven / 5g Gold Coin',
-        rewardType: SchemeRewardTypeEnum.giftItem,
-        discountPercent: 4.0,
-      ),
-      BookingSchemeEntity(
-        id: 'scheme-platinum',
-        schemeName: 'Platinum VIP Scheme',
-        minPairs: 1000,
-        rewardDescription: 'Free LED TV / Goa Trip Voucher',
-        rewardType: SchemeRewardTypeEnum.giftItem,
-        discountPercent: 5.0,
-      ),
-    ];
-    _replaceAll(bookingSchemes, defaultSchemes);
+  static const _defaultSchemes = <BookingSchemeEntity>[
+    BookingSchemeEntity(
+      id: 'scheme-bronze',
+      schemeName: 'Bronze Scheme',
+      minPairs: 100,
+      rewardDescription: '2% Additional Cash Discount',
+      rewardType: SchemeRewardTypeEnum.discountPercent,
+      discountPercent: 2.0,
+    ),
+    BookingSchemeEntity(
+      id: 'scheme-silver',
+      schemeName: 'Silver Coin Scheme',
+      minPairs: 250,
+      rewardDescription: 'Free 10g Silver Coin + 3% Extra Trade Discount',
+      rewardType: SchemeRewardTypeEnum.giftItem,
+      discountPercent: 3.0,
+    ),
+    BookingSchemeEntity(
+      id: 'scheme-gold',
+      schemeName: 'Gold Scheme',
+      minPairs: 500,
+      rewardDescription: 'Free Microwave Oven / 5g Gold Coin',
+      rewardType: SchemeRewardTypeEnum.giftItem,
+      discountPercent: 4.0,
+    ),
+    BookingSchemeEntity(
+      id: 'scheme-platinum',
+      schemeName: 'Platinum VIP Scheme',
+      minPairs: 1000,
+      rewardDescription: 'Free LED TV / Goa Trip Voucher',
+      rewardType: SchemeRewardTypeEnum.giftItem,
+      discountPercent: 5.0,
+    ),
+  ];
+
+  Future<void> _loadInitialSchemes() async {
+    final schemesResp = await MasterDataHandler.instance.fetchCloudSchemes();
+    final loadedSchemes = schemesResp.data;
+    if (loadedSchemes != null && loadedSchemes.isNotEmpty) {
+      _replaceAll(bookingSchemes, loadedSchemes);
+    } else {
+      _replaceAll(bookingSchemes, _defaultSchemes);
+    }
     recalculateSchemeProgress();
   }
 
