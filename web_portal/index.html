@@ -16,7 +16,7 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 6px; }
 
-    /* Thermal Barcode Label Printing Stylesheet */
+    /* Epson L380 A4 Sticker Sheet Printing Stylesheet */
     @media print {
       body * {
         visibility: hidden !important;
@@ -36,8 +36,36 @@
         color: black !important;
       }
       @page {
-        margin: 0mm;
-        size: auto;
+        size: A4 portrait;
+        margin: 5mm 4mm 5mm 4mm;
+      }
+      .a4-print-sheet {
+        width: 202mm;
+        height: 287mm;
+        page-break-after: always;
+        break-after: page;
+        box-sizing: border-box;
+        margin: 0 auto;
+        padding: 2mm 1mm;
+        background: white !important;
+        color: black !important;
+        display: grid;
+        overflow: hidden;
+      }
+      .a4-print-sheet:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+      .a4-sticker-cell {
+        box-sizing: border-box;
+        overflow: hidden;
+        border: 0.25pt dashed #aaa;
+        padding: 1.5mm 2mm;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background: white !important;
+        color: black !important;
       }
       .label-sticker-thermal {
         page-break-after: always;
@@ -157,7 +185,7 @@
       </button>
       <button onclick="switchOwnerTab('print')" id="tab-btn-print"
         class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800 transition-all flex items-center gap-2">
-        <span>🖨️</span> <span>QR / Barcode Sticker Studio</span>
+        <span>🖨️</span> <span>A4 QR Sticker Studio (Epson L380)</span>
       </button>
     </div>
 
@@ -355,134 +383,198 @@
       </div>
     </div>
 
-    <!-- TAB 3: BARCODE LABEL PRINTING STUDIO -->
+    <!-- TAB 3: A4 INKJET QR STICKER STUDIO (EPSON L380) -->
     <div id="owner-tab-print" class="space-y-6 hidden">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Left: Configuration Form -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
-          <div>
-            <h3 class="text-base font-bold text-slate-100">🖨️ Shoe Box Barcode Sticker Studio</h3>
-            <p class="text-slate-400 text-xs">Generate scannable barcode stickers for thermal label printers (TSC, Zebra, TVS, Xprinter) &amp; A4 sheets</p>
+      <!-- Top Control & Preset Toolbar -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-base sm:text-lg font-bold text-slate-100">🖨️ A4 QR Sticker Studio</span>
+            <span class="px-2.5 py-0.5 rounded-full bg-teal-500/15 text-teal-300 border border-teal-500/30 text-[11px] font-extrabold font-mono">EPSON L380 INKJET</span>
+          </div>
+          <p class="text-slate-400 text-xs mt-0.5">
+            Auto-generate scannable QR codes (<code class="text-teal-300 font-mono">MARG:&lt;item_code&gt;</code>) and layout onto A4 sticker sheets for footwear boxes.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Sticker Sheet Layout Selector -->
+          <div class="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs">
+            <label class="text-slate-300 font-semibold whitespace-nowrap">Sticker Format:</label>
+            <select id="print-sheet-layout" onchange="changePrintLayout(this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-teal-300 font-bold focus:outline-none focus:border-teal-500">
+              <option value="a4_24" selected>24 Labels / A4 (3 cols × 8 rows) — ~70×37mm [Shoe Box]</option>
+              <option value="a4_40">40 Labels / A4 (4 cols × 10 rows) — ~52.5×29.7mm [Compact]</option>
+              <option value="a4_65">65 Labels / A4 (5 cols × 13 rows) — ~38×21mm [Mini QR]</option>
+              <option value="a4_12">12 Labels / A4 (2 cols × 6 rows) — ~105×48mm [Large Carton]</option>
+            </select>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-slate-300 font-medium mb-1">Shop / Store Header</label>
-              <input type="text" id="print-shop-name" value="ANCHAR SHOE HOUSE" oninput="updatePrintPreview()"
-                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500 font-bold">
+          <!-- Store Header -->
+          <div class="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs">
+            <label class="text-slate-300 font-semibold whitespace-nowrap">Shop Header:</label>
+            <input type="text" id="print-shop-name" value="ANCHAR SHOE HOUSE" oninput="renderA4PreviewSheet()"
+              class="w-44 bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-slate-100 font-bold focus:outline-none focus:border-teal-500">
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Two-Column Layout: Left (Item Grid & Keyboard Nav) + Right (A4 Live Preview) -->
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        <!-- LEFT: Items Selection Grid with Keyboard Navigation (5 Cols on XL) -->
+        <div class="xl:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3.5 text-xs flex flex-col">
+          <!-- Search & Filter Controls -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-bold text-slate-200">1. Select Footwear Items</span>
+              <span id="print-selected-badge" class="px-2.5 py-0.5 rounded-full bg-teal-500/15 text-teal-300 font-mono font-bold text-[11px] border border-teal-500/30">
+                0 Selected
+              </span>
             </div>
-            <div>
-              <label class="block text-slate-300 font-medium mb-1">Marg Item Code</label>
-              <input type="text" id="print-item-code" value="3046" oninput="updatePrintPreview()"
-                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-amber-300 font-mono focus:outline-none focus:border-teal-500">
+
+            <!-- Search input -->
+            <div class="relative">
+              <input type="text" id="print-search-input" placeholder="🔍 Search code (e.g. 3046), product, brand..."
+                oninput="handlePrintSearch(this.value)"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3.5 pr-8 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500">
+              <button onclick="clearPrintSearch()" id="print-search-clear-btn" class="hidden absolute right-2.5 top-2 text-slate-400 hover:text-slate-200">✕</button>
+            </div>
+
+            <!-- Status Filter Tabs -->
+            <div class="flex items-center gap-1.5">
+              <button onclick="filterPrintItems('ALL')" id="print-filter-all"
+                class="flex-1 py-1 px-2 rounded-lg text-[11px] font-bold bg-teal-500 text-slate-950 transition-all text-center">
+                All (<span id="print-count-all">0</span>)
+              </button>
+              <button onclick="filterPrintItems('PENDING')" id="print-filter-pending"
+                class="flex-1 py-1 px-2 rounded-lg text-[11px] font-semibold bg-slate-800 text-amber-300 hover:bg-slate-700 transition-all text-center">
+                ⏳ Pending (<span id="print-count-pending">0</span>)
+              </button>
+              <button onclick="filterPrintItems('PRINTED')" id="print-filter-printed"
+                class="flex-1 py-1 px-2 rounded-lg text-[11px] font-semibold bg-slate-800 text-emerald-300 hover:bg-slate-700 transition-all text-center">
+                ✅ Printed (<span id="print-count-printed">0</span>)
+              </button>
+            </div>
+
+            <!-- Quick Batch Buttons -->
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button onclick="selectNextUnprintedBatch()" id="print-btn-fill-sheet"
+                class="py-2 px-2.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 font-bold text-[11px] flex items-center justify-center gap-1 transition-all">
+                <span>➕</span> <span id="print-fill-sheet-label">Fill 1 Sheet (Next 24)</span>
+              </button>
+              <button onclick="selectAllFilteredPrintItems()"
+                class="py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-[11px] flex items-center justify-center gap-1 transition-all">
+                <span>☑️</span> <span>Select Filtered</span>
+              </button>
+            </div>
+
+            <div class="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
+              <button onclick="clearPrintSelection()" class="hover:text-red-400 font-semibold flex items-center gap-1">
+                <span>✕</span> <span>Clear Selection</span>
+              </button>
+              <div class="flex items-center gap-2">
+                <button onclick="markSelectedAsPrinted()" class="hover:text-teal-300 font-semibold">
+                  Mark Printed
+                </button>
+                <span>•</span>
+                <button onclick="resetAllPrintedStatus()" class="hover:text-amber-400 font-semibold">
+                  Reset All
+                </button>
+              </div>
             </div>
           </div>
 
-          <div>
-            <label class="block text-slate-300 font-medium mb-1">Footwear Product Title</label>
-            <input type="text" id="print-item-title" value="028 GRY 2X5 (NEW)" oninput="updatePrintPreview()"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500">
+          <!-- Keyboard Help Bar -->
+          <div class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 text-[11px] text-slate-400 flex items-center gap-2">
+            <span class="text-sm">⌨️</span>
+            <span>
+              <strong class="text-slate-200">Keyboard Controls:</strong> Use <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono">⬆️</kbd> <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono">⬇️</kbd> to move, <kbd class="px-2 py-0.5 rounded bg-slate-800 text-teal-300 font-mono font-bold">Spacebar</kbd> to toggle select.
+            </span>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-slate-300 font-medium mb-1">Brand &amp; Size / Color</label>
-              <input type="text" id="print-item-brand" value="AJANTA • Size: 2X5" oninput="updatePrintPreview()"
-                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500">
+          <!-- Items Table (Scrollable Container) -->
+          <div id="print-items-list-container" tabindex="0"
+            class="focus:outline-none focus:ring-1 focus:ring-teal-500/50 rounded-xl border border-slate-800 bg-slate-950 overflow-hidden flex flex-col h-[520px]">
+            <!-- Fixed Table Header -->
+            <div class="bg-slate-900 border-b border-slate-800 px-3 py-2 text-[11px] font-bold text-slate-400 flex items-center gap-2 select-none">
+              <span class="w-6 text-center">✓</span>
+              <span class="w-16">Code</span>
+              <span class="flex-1">Footwear Product / Brand</span>
+              <span class="w-16 text-right">MRP</span>
+              <span class="w-20 text-center">Status</span>
             </div>
-            <div>
-              <label class="block text-slate-300 font-medium mb-1">MRP Price (₹)</label>
-              <input type="text" id="print-item-mrp" value="₹129.00" oninput="updatePrintPreview()"
-                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-emerald-400 font-bold focus:outline-none focus:border-teal-500">
+
+            <!-- Scrollable Table Body -->
+            <div id="print-items-tbody" class="overflow-y-auto divide-y divide-slate-850/60 flex-1">
+              <!-- Rendered rows go here -->
+            </div>
+
+            <!-- Pagination / Counter Footer -->
+            <div class="bg-slate-900 border-t border-slate-800 px-3 py-2 text-[11px] text-slate-400 flex items-center justify-between">
+              <span id="print-pagination-info">Showing 0 items</span>
+              <div class="flex items-center gap-1.5">
+                <button onclick="prevPrintPage()" id="print-prev-btn" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-30 disabled:pointer-events-none">◀</button>
+                <span id="print-page-badge" class="font-mono text-teal-300">1/1</span>
+                <button onclick="nextPrintPage()" id="print-next-btn" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-30 disabled:pointer-events-none">▶</button>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div>
-            <label class="block text-slate-300 font-medium mb-1">Barcode String (Numeric / Code128)</label>
-            <div class="flex gap-2">
-              <input type="text" id="print-item-barcode" value="8901234560012" oninput="updatePrintPreview()"
-                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-teal-300 font-mono font-bold focus:outline-none focus:border-teal-500">
-              <button onclick="generateRandomBarcodeForPrint()" class="px-3 bg-slate-800 hover:bg-slate-700 text-teal-300 rounded-xl text-xs font-bold whitespace-nowrap">
-                ⚡ Auto-Gen
+        <!-- RIGHT: Live A4 Sheet Preview & Printing (7 Cols on XL) -->
+        <div class="xl:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 flex flex-col items-center">
+          <!-- Preview Actions Header -->
+          <div class="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-extrabold text-sm text-slate-100">2. Live A4 Sticker Sheet Preview</span>
+                <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                  High-Fidelity SVG
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-0.5" id="print-sheet-summary-text">
+                0 items selected • 0 A4 Sheets required
+              </p>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <!-- Sheet Navigator if multiple sheets -->
+              <div id="print-sheet-nav-wrap" class="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-xl px-2 py-1 text-xs">
+                <button onclick="prevPreviewSheet()" id="btn-prev-sheet" class="px-1.5 py-0.5 rounded text-slate-300 hover:text-white disabled:opacity-30">◀</button>
+                <span id="print-sheet-nav-label" class="font-mono font-bold text-teal-300 px-1">Sheet 1/1</span>
+                <button onclick="nextPreviewSheet()" id="btn-next-sheet" class="px-1.5 py-0.5 rounded text-slate-300 hover:text-white disabled:opacity-30">▶</button>
+              </div>
+
+              <!-- Main Print Button -->
+              <button onclick="printA4StickerSheet()" id="btn-print-a4"
+                class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-teal-500/25 flex items-center gap-2 transition-all">
+                <span>🖨️</span> <span>Print A4 Sticker Sheet (Epson L380)</span>
               </button>
             </div>
           </div>
 
-          <div>
-            <label class="block text-slate-300 font-medium mb-1">Sticker Code Type</label>
-            <select id="print-code-type" onchange="updatePrintPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none">
-              <option value="QR" selected>QR Code — payload MARG:&lt;Item_Code&gt; (recommended, price-proof)</option>
-              <option value="BARCODE">Code128 Barcode (legacy)</option>
-            </select>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <div>
-              <label class="block text-slate-300 font-medium mb-1">Label Paper Format</label>
-              <select id="print-label-format" onchange="updatePrintPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none">
-                <option value="50x25" selected>Thermal Roll: 50mm x 25mm (2" x 1") [Standard Shoe Box]</option>
-                <option value="50x38">Thermal Roll: 50mm x 38mm (2" x 1.5")</option>
-                <option value="a4_24">A4 Sticker Sheet (24 labels: 3x8)</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-slate-300 font-medium mb-1">Sticker Copies to Print</label>
-              <select id="print-label-qty" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none">
-                <option value="1">1 Sticker (Single Box)</option>
-                <option value="6">6 Stickers (Half Dozen)</option>
-                <option value="12" selected>12 Stickers (1 Dozen Box)</option>
-                <option value="24">24 Stickers (2 Dozen / 1 Carton)</option>
-                <option value="48">48 Stickers (4 Dozen)</option>
-                <option value="100">100 Stickers (Bulk)</option>
-              </select>
-            </div>
-          </div>
-
-          <button onclick="printBarcodeLabels()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-teal-500/20 flex items-center justify-center gap-2">
-            <span>🖨️ Print Barcode Labels Now</span>
-          </button>
-        </div>
-
-        <!-- Right: Live Sticker Visual Preview -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 flex flex-col items-center justify-center">
-          <div class="w-full flex justify-between items-center pb-2 border-b border-slate-800 text-xs">
-            <span class="font-bold text-slate-200">Live Thermal Label Preview (50mm x 25mm)</span>
-            <span class="text-[11px] text-teal-400">High-Contrast Scannable SVG</span>
-          </div>
-
-          <!-- White Background Sticker Container -->
-          <div class="w-full max-w-[340px] bg-white text-black p-3.5 rounded-lg border-2 border-slate-300 shadow-2xl space-y-1 font-sans">
-            <div class="flex justify-between items-center text-[11px] font-black tracking-tight border-b border-black pb-0.5">
-              <span id="preview-shop" class="uppercase truncate">ANCHAR SHOE HOUSE</span>
-              <span id="preview-code" class="font-mono font-bold">CODE: 3046</span>
-            </div>
-
-            <div class="text-[12px] font-extrabold leading-tight truncate mt-1" id="preview-title">
-              028 GRY 2X5 (NEW)
-            </div>
-
-            <div class="flex justify-between items-center text-[10px] font-bold text-slate-800">
-              <span id="preview-brand" class="truncate">AJANTA • Size: 2X5</span>
-              <span id="preview-mrp" class="font-black text-[12px]">MRP: ₹129.00</span>
-            </div>
-
-            <!-- QR (left) + text (right) dual-mode layout; barcode shown only in legacy mode -->
-            <div class="flex gap-2 items-center pt-1">
-              <div id="preview-qr" class="w-20 h-20 shrink-0 bg-white"></div>
-              <div class="flex-1 min-w-0 text-[10px] font-bold text-slate-800 space-y-0.5">
-                <div id="preview-qr-code" class="font-mono text-[13px] font-black">MARG:3046</div>
-                <div id="preview-qr-title" class="truncate"></div>
-                <div id="preview-qr-brand" class="truncate"></div>
+          <!-- White Background A4 Sheet Display Container -->
+          <div class="w-full flex justify-center py-2 overflow-x-auto">
+            <div id="a4-preview-viewport" class="bg-slate-950/70 p-4 rounded-2xl border border-slate-800/80 shadow-inner flex justify-center w-full">
+              <!-- The A4 Sheet Paper Model -->
+              <div id="a4-preview-page"
+                class="bg-white text-black shadow-2xl rounded-sm box-border font-sans transition-all"
+                style="width: 100%; max-width: 580px; min-height: 800px; padding: 12px; box-sizing: border-box;">
+                <!-- Dynamically generated sticker cells render here -->
               </div>
             </div>
-            <div id="preview-barcode-wrap" class="w-full flex flex-col items-center justify-center pt-1 hidden">
-              <svg id="preview-barcode-svg" class="w-full max-h-[52px]"></svg>
-            </div>
           </div>
 
-          <p class="text-[11px] text-slate-400 text-center max-w-sm mt-2">
-            Compatible with any thermal printer (TSC, Zebra, TVS, Xprinter) via USB/Network and regular laser printers.
-          </p>
+          <!-- Epson L380 Print Guidelines -->
+          <div class="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 space-y-1">
+            <div class="flex items-center gap-1.5 text-amber-300 font-bold">
+              <span>💡</span> <span>Epson L380 Inkjet Setup Instructions for Sticker Paper:</span>
+            </div>
+            <ul class="list-disc list-inside space-y-0.5 text-slate-300 pl-1">
+              <li>In the Chrome/Edge print dialog, choose <strong class="text-teal-300">Destination: EPSON L380 Series</strong>.</li>
+              <li>Paper size: <strong class="text-teal-300">A4</strong> | Margins: <strong class="text-teal-300">None (or Minimum 5mm)</strong> | Scale: <strong class="text-teal-300">100%</strong> (Do NOT fit to page).</li>
+              <li>Ensure printer feed is straight. Stickers are formatted with safe cut borders for clean peeling.</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -1168,7 +1260,11 @@
         loadEventSchemes();
       }
       if (tabName === 'print') {
-        updatePrintPreview();
+        if (!masterItemsLoaded) {
+          loadMasterItems().then(() => initPrintStudio());
+        } else {
+          initPrintStudio();
+        }
       }
     }
 
@@ -1278,6 +1374,9 @@
 
         masterItemsLoaded = true;
         renderMasterItems(1);
+        if (typeof updatePrintSelectionCounts === 'function') {
+          updatePrintSelectionCounts();
+        }
       } catch (e) {
         console.error("Master items error:", e);
       }
@@ -1901,181 +2000,670 @@
       renderSchemes();
     }
 
-    function openPrintStudioForItem(itemCode) {
-      const item = masterItems.find(i => i.code === itemCode);
-      if (!item) return;
-
-      if (activeShopOwnerSession) {
-        document.getElementById('print-shop-name').value = activeShopOwnerSession.shopName;
+    // =========================================================================
+    // A4 INKJET QR STICKER STUDIO (EPSON L380) STATE & FUNCTIONS
+    // =========================================================================
+    const A4_STICKER_PRESETS = {
+      a4_24: {
+        id: 'a4_24',
+        name: '24 Labels / A4 (3 cols × 8 rows) — ~70×37mm [Shoe Box]',
+        cols: 3,
+        rows: 8,
+        perSheet: 24,
+        qrSizeMm: 18,
+        labelTitle: 'Fill 1 Sheet (Next 24)'
+      },
+      a4_40: {
+        id: 'a4_40',
+        name: '40 Labels / A4 (4 cols × 10 rows) — ~52.5×29.7mm [Compact]',
+        cols: 4,
+        rows: 10,
+        perSheet: 40,
+        qrSizeMm: 14,
+        labelTitle: 'Fill 1 Sheet (Next 40)'
+      },
+      a4_65: {
+        id: 'a4_65',
+        name: '65 Labels / A4 (5 cols × 13 rows) — ~38×21mm [Mini QR]',
+        cols: 5,
+        rows: 13,
+        perSheet: 65,
+        qrSizeMm: 12,
+        labelTitle: 'Fill 1 Sheet (Next 65)'
+      },
+      a4_12: {
+        id: 'a4_12',
+        name: '12 Labels / A4 (2 cols × 6 rows) — ~105×48mm [Large Carton]',
+        cols: 2,
+        rows: 6,
+        perSheet: 12,
+        qrSizeMm: 24,
+        labelTitle: 'Fill 1 Sheet (Next 12)'
       }
-      document.getElementById('print-item-code').value = item.code;
-      document.getElementById('print-item-title').value = item.product;
-      document.getElementById('print-item-brand').value = `${item.company || 'FOOTWEAR'} • ${item.group || item.category || 'STD'}`;
-      document.getElementById('print-item-mrp').value = `₹${item.mrp.toFixed(2)}`;
-      
-      const effectiveBarcode = item.barcode && item.barcode.length > 0 
-        ? item.barcode 
-        : ("890" + item.code.padEnd(6, '0') + "1234");
-      document.getElementById('print-item-barcode').value = effectiveBarcode;
+    };
 
-      switchOwnerTab('print');
-    }
+    let currentPrintLayout = 'a4_24';
+    let selectedPrintCodes = new Set();
+    let printedQrCodes = new Set();
+    let printSearchQuery = '';
+    let printStatusFilter = 'ALL'; // 'ALL' | 'PENDING' | 'PRINTED'
+    let printCurrentPage = 1;
+    const PRINT_PAGE_SIZE = 50;
+    let focusedPrintIndex = 0;
+    let currentPreviewSheetIndex = 0;
+    let printStudioInitialized = false;
 
-    function generateRandomBarcodeForPrint() {
-      const num = Math.floor(1000000000 + Math.random() * 9000000000);
-      document.getElementById('print-item-barcode').value = `890${num}`.slice(0, 13);
-      updatePrintPreview();
-    }
-
-    function updatePrintPreview() {
-      const shopName = document.getElementById('print-shop-name').value.trim() || "FOOTWEAR STORE";
-      const itemCode = document.getElementById('print-item-code').value.trim() || "0000";
-      const itemTitle = document.getElementById('print-item-title').value.trim() || "FOOTWEAR ITEM";
-      const itemBrand = document.getElementById('print-item-brand').value.trim() || "BRAND • Size: STD";
-      const itemMrp = document.getElementById('print-item-mrp').value.trim() || "₹0.00";
-      const barcodeVal = document.getElementById('print-item-barcode').value.trim() || "8901234560012";
-
-      document.getElementById('preview-shop').innerText = shopName;
-      document.getElementById('preview-code').innerText = `CODE: ${itemCode}`;
-      document.getElementById('preview-title').innerText = itemTitle;
-      document.getElementById('preview-brand').innerText = itemBrand;
-      document.getElementById('preview-mrp').innerText = itemMrp.startsWith('₹') ? itemMrp : `₹${itemMrp}`;
-
-      const isQr = document.getElementById('print-code-type').value === 'QR';
-      document.getElementById('preview-qr').parentElement.classList.toggle('hidden', !isQr);
-      document.getElementById('preview-barcode-wrap').classList.toggle('hidden', isQr);
-      if (isQr) {
-        document.getElementById('preview-qr').innerHTML = buildQrSvg(itemCode);
-        document.getElementById('preview-qr-code').innerText = `MARG:${itemCode}`;
-        document.getElementById('preview-qr-title').innerText = itemTitle;
-        document.getElementById('preview-qr-brand').innerText = itemBrand;
-      } else {
-        renderBarcodeSvg('#preview-barcode-svg', barcodeVal);
+    function loadPrintedQrCodes() {
+      try {
+        const raw = localStorage.getItem('anchar_printed_qr_codes');
+        if (raw) {
+          const arr = JSON.parse(raw);
+          if (Array.isArray(arr)) {
+            printedQrCodes = new Set(arr);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not load printed QR codes from storage:', e);
       }
     }
 
-    // Decoupled dynamic reference key: QR holds only the immutable Marg item code,
-    // so price/pack changes never require reprinting. ISO/IEC 18004, ECC level M.
+    function savePrintedQrCodes() {
+      try {
+        localStorage.setItem('anchar_printed_qr_codes', JSON.stringify(Array.from(printedQrCodes)));
+      } catch (e) {
+        console.warn('Could not save printed QR codes to storage:', e);
+      }
+    }
+
     function buildQrSvg(itemCode) {
       if (typeof qrcode === 'undefined') {
-        return `<div class="text-[9px] text-red-600">QR library failed to load (check internet).</div>`;
+        return `<div style="font-size:8px;color:#c00;">QR Error</div>`;
       }
-      const qr = qrcode(0, 'M');
-      qr.addData(`MARG:${itemCode}`);
-      qr.make();
-      return qr.createSvgTag({ cellSize: 4, margin: 1, scalable: true });
+      try {
+        const qr = qrcode(0, 'M');
+        qr.addData(`MARG:${itemCode}`);
+        qr.make();
+        return qr.createSvgTag({ cellSize: 3, margin: 1, scalable: true });
+      } catch (e) {
+        return `<div style="font-size:8px;color:#c00;">QR Error</div>`;
+      }
     }
 
-    function renderBarcodeSvg(targetSelector, text) {
-      const cleanText = (text || "8901234560012").trim();
-      const el = document.querySelector(targetSelector);
-      if (!el) return;
+    function initPrintStudio() {
+      loadPrintedQrCodes();
+      if (activeShopOwnerSession && document.getElementById('print-shop-name')) {
+        document.getElementById('print-shop-name').value = activeShopOwnerSession.shopName;
+      }
+      if (!printStudioInitialized) {
+        document.addEventListener('keydown', handlePrintGlobalKeyDown);
+        printStudioInitialized = true;
+      }
+      renderPrintItemsList();
+      renderA4PreviewSheet();
+    }
 
-      if (window.JsBarcode) {
-        try {
-          JsBarcode(targetSelector, cleanText, {
-            format: "CODE128",
-            width: 1.8,
-            height: 48,
-            displayValue: true,
-            fontSize: 11,
-            margin: 2
-          });
-          return;
-        } catch (e) {
-          console.warn("JsBarcode fallback:", e);
+    function getFilteredPrintItems() {
+      const q = printSearchQuery.toLowerCase();
+      return masterItems.filter(item => {
+        const isPrinted = printedQrCodes.has(item.code);
+        if (printStatusFilter === 'PENDING' && isPrinted) return false;
+        if (printStatusFilter === 'PRINTED' && !isPrinted) return false;
+
+        if (!q) return true;
+        return (item.product && item.product.toLowerCase().includes(q)) ||
+               (item.code && item.code.toLowerCase().includes(q)) ||
+               (item.company && item.company.toLowerCase().includes(q)) ||
+               (item.category && item.category.toLowerCase().includes(q)) ||
+               (item.group && item.group.toLowerCase().includes(q));
+      });
+    }
+
+    function updatePrintSelectionCounts() {
+      const totalAll = masterItems.length;
+      let totalPrinted = 0;
+      masterItems.forEach(i => {
+        if (printedQrCodes.has(i.code)) totalPrinted++;
+      });
+      const totalPending = totalAll - totalPrinted;
+
+      const elAll = document.getElementById('print-count-all');
+      if (elAll) elAll.innerText = totalAll;
+      const elPend = document.getElementById('print-count-pending');
+      if (elPend) elPend.innerText = totalPending;
+      const elPrt = document.getElementById('print-count-printed');
+      if (elPrt) elPrt.innerText = totalPrinted;
+      const elBadge = document.getElementById('print-selected-badge');
+      if (elBadge) elBadge.innerText = `${selectedPrintCodes.size} Selected`;
+    }
+
+    function renderPrintItemsList() {
+      updatePrintSelectionCounts();
+
+      const filtered = getFilteredPrintItems();
+      const total = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(total / PRINT_PAGE_SIZE));
+
+      if (printCurrentPage > totalPages) printCurrentPage = totalPages;
+      if (printCurrentPage < 1) printCurrentPage = 1;
+
+      const startIdx = (printCurrentPage - 1) * PRINT_PAGE_SIZE;
+      const endIdx = Math.min(startIdx + PRINT_PAGE_SIZE, total);
+      const pageSlice = filtered.slice(startIdx, endIdx);
+
+      const tbody = document.getElementById('print-items-tbody');
+      if (!tbody) return;
+
+      if (pageSlice.length === 0) {
+        tbody.innerHTML = `
+          <div class="py-12 text-center text-slate-500 text-xs">
+            No footwear items match your search or filter.
+          </div>
+        `;
+      } else {
+        tbody.innerHTML = pageSlice.map((item, idx) => {
+          const isSelected = selectedPrintCodes.has(item.code);
+          const isPrinted = printedQrCodes.has(item.code);
+          const isFocused = idx === focusedPrintIndex;
+
+          const rowBg = isSelected
+            ? 'bg-teal-500/15 border-l-4 border-l-teal-400'
+            : (isFocused ? 'bg-slate-850 border-l-4 border-l-amber-400 ring-1 ring-amber-400' : 'hover:bg-slate-900/80 border-l-4 border-l-transparent');
+
+          return `
+            <div id="print-row-${idx}"
+              onclick="handlePrintRowClick('${item.code}', ${idx})"
+              class="px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors text-xs select-none ${rowBg}">
+              <div class="w-6 text-center">
+                <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); togglePrintSelection('${item.code}')"
+                  class="rounded bg-slate-950 border-slate-700 text-teal-500 focus:ring-0 cursor-pointer">
+              </div>
+              <div class="w-16 font-mono font-bold text-amber-300 truncate">${escHtml(item.code)}</div>
+              <div class="flex-1 min-w-0 pr-1">
+                <div class="font-bold text-slate-100 truncate">${escHtml(item.product)}</div>
+                <div class="text-[10px] text-slate-400 truncate">${escHtml(item.company || 'FOOTWEAR')} • ${escHtml(item.group || item.category || 'STD')}</div>
+              </div>
+              <div class="w-16 text-right font-bold text-emerald-400 shrink-0">₹${item.mrp.toFixed(2)}</div>
+              <div class="w-20 text-center shrink-0">
+                ${isPrinted
+                  ? `<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-500/15 text-teal-300 border border-teal-500/30">✅ Printed</span>`
+                  : `<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">⏳ Pending</span>`
+                }
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const infoEl = document.getElementById('print-pagination-info');
+      if (infoEl) {
+        infoEl.innerText = total > 0 ? `Showing ${startIdx + 1}-${endIdx} of ${total} items` : `0 items`;
+      }
+      const pageEl = document.getElementById('print-page-badge');
+      if (pageEl) {
+        pageEl.innerText = `${printCurrentPage} / ${totalPages}`;
+      }
+      const prevBtn = document.getElementById('print-prev-btn');
+      if (prevBtn) prevBtn.disabled = printCurrentPage <= 1;
+      const nextBtn = document.getElementById('print-next-btn');
+      if (nextBtn) nextBtn.disabled = printCurrentPage >= totalPages;
+    }
+
+    function handlePrintRowClick(code, idx) {
+      focusedPrintIndex = idx;
+      togglePrintSelection(code);
+      updateFocusedPrintRow();
+    }
+
+    function updateFocusedPrintRow() {
+      const tbody = document.getElementById('print-items-tbody');
+      if (!tbody) return;
+      const rows = tbody.children;
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const isFocused = i === focusedPrintIndex;
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        const isSelected = checkbox ? checkbox.checked : false;
+
+        if (isSelected) {
+          row.className = `px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors text-xs select-none bg-teal-500/15 border-l-4 border-l-teal-400 ${isFocused ? 'ring-1 ring-amber-400' : ''}`;
+        } else if (isFocused) {
+          row.className = `px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors text-xs select-none bg-slate-850 border-l-4 border-l-amber-400 ring-1 ring-amber-400`;
+        } else {
+          row.className = `px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors text-xs select-none hover:bg-slate-900/80 border-l-4 border-l-transparent`;
         }
       }
 
-      // Offline SVG Barcode Fallback (Simulated high-contrast Code128 pattern)
-      el.innerHTML = "";
-      el.setAttribute("viewBox", "0 0 240 50");
-      let barsHtml = `<rect width="100%" height="100%" fill="white"/>`;
-      let x = 12;
-      for (let i = 0; i < cleanText.length; i++) {
-        const code = cleanText.charCodeAt(i);
-        const w1 = ((code % 3) + 1.2).toFixed(1);
-        const w2 = (((code >> 1) % 3) + 1.2).toFixed(1);
-        barsHtml += `<rect x="${x}" y="2" width="${w1}" height="32" fill="black"/>`;
-        x += parseFloat(w1) + 2.0;
-        barsHtml += `<rect x="${x}" y="2" width="${w2}" height="32" fill="black"/>`;
-        x += parseFloat(w2) + 2.5;
+      const targetRow = document.getElementById(`print-row-${focusedPrintIndex}`);
+      if (targetRow) {
+        targetRow.scrollIntoView({ block: 'nearest' });
       }
-      barsHtml += `<text x="120" y="44" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="black">${cleanText}</text>`;
-      el.innerHTML = barsHtml;
     }
 
-    function printBarcodeLabels() {
-      const shopName = document.getElementById('print-shop-name').value.trim() || "FOOTWEAR STORE";
-      const itemCode = document.getElementById('print-item-code').value.trim() || "0000";
-      const itemTitle = document.getElementById('print-item-title').value.trim() || "FOOTWEAR ITEM";
-      const itemBrand = document.getElementById('print-item-brand').value.trim() || "BRAND • Size: STD";
-      const itemMrp = document.getElementById('print-item-mrp').value.trim() || "₹0.00";
-      const barcodeVal = document.getElementById('print-item-barcode').value.trim() || "8901234560012";
-      const qty = parseInt(document.getElementById('print-label-qty').value) || 1;
-      const format = document.getElementById('print-label-format').value;
-      const isQr = document.getElementById('print-code-type').value === 'QR';
-      const qrSvg = isQr ? buildQrSvg(itemCode) : '';
+    function togglePrintSelection(code) {
+      if (selectedPrintCodes.has(code)) {
+        selectedPrintCodes.delete(code);
+      } else {
+        selectedPrintCodes.add(code);
+      }
+      renderPrintItemsList();
+      renderA4PreviewSheet();
+    }
+
+    function handlePrintGlobalKeyDown(e) {
+      const printTab = document.getElementById('owner-tab-print');
+      if (!printTab || printTab.classList.contains('hidden')) return;
+
+      const isSearchInput = document.activeElement && document.activeElement.id === 'print-search-input';
+      if (isSearchInput) {
+        if (e.key === 'ArrowDown' || e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('print-items-list-container')?.focus();
+          focusedPrintIndex = 0;
+          updateFocusedPrintRow();
+        }
+        return;
+      }
+
+      const activeTag = document.activeElement ? document.activeElement.tagName : '';
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') {
+        return;
+      }
+
+      const filtered = getFilteredPrintItems();
+      if (filtered.length === 0) return;
+
+      const totalOnPage = Math.min(PRINT_PAGE_SIZE, Math.max(0, filtered.length - (printCurrentPage - 1) * PRINT_PAGE_SIZE));
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (focusedPrintIndex < totalOnPage - 1) {
+          focusedPrintIndex++;
+          updateFocusedPrintRow();
+        } else {
+          const totalPages = Math.ceil(filtered.length / PRINT_PAGE_SIZE);
+          if (printCurrentPage < totalPages) {
+            printCurrentPage++;
+            focusedPrintIndex = 0;
+            renderPrintItemsList();
+          }
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (focusedPrintIndex > 0) {
+          focusedPrintIndex--;
+          updateFocusedPrintRow();
+        } else {
+          if (printCurrentPage > 1) {
+            printCurrentPage--;
+            focusedPrintIndex = PRINT_PAGE_SIZE - 1;
+            renderPrintItemsList();
+          }
+        }
+      } else if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter') {
+        e.preventDefault();
+        const startIdx = (printCurrentPage - 1) * PRINT_PAGE_SIZE;
+        const targetItem = filtered[startIdx + focusedPrintIndex];
+        if (targetItem) {
+          togglePrintSelection(targetItem.code);
+        }
+      }
+    }
+
+    function handlePrintSearch(val) {
+      printSearchQuery = (val || "").trim();
+      const clearBtn = document.getElementById('print-search-clear-btn');
+      if (clearBtn) clearBtn.classList.toggle('hidden', printSearchQuery.length === 0);
+      printCurrentPage = 1;
+      focusedPrintIndex = 0;
+      renderPrintItemsList();
+    }
+
+    function clearPrintSearch() {
+      const input = document.getElementById('print-search-input');
+      if (input) input.value = '';
+      handlePrintSearch('');
+    }
+
+    function filterPrintItems(status) {
+      printStatusFilter = status;
+      ['all', 'pending', 'printed'].forEach(s => {
+        const btn = document.getElementById(`print-filter-${s}`);
+        if (!btn) return;
+        if (s === status.toLowerCase()) {
+          btn.className = "flex-1 py-1 px-2 rounded-lg text-[11px] font-bold bg-teal-500 text-slate-950 transition-all text-center";
+        } else {
+          btn.className = "flex-1 py-1 px-2 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all text-center";
+        }
+      });
+      printCurrentPage = 1;
+      focusedPrintIndex = 0;
+      renderPrintItemsList();
+    }
+
+    function selectNextUnprintedBatch() {
+      const preset = A4_STICKER_PRESETS[currentPrintLayout] || A4_STICKER_PRESETS.a4_24;
+      const targetCount = preset.perSheet;
+      const unprinted = masterItems.filter(i => !printedQrCodes.has(i.code));
+
+      if (unprinted.length === 0) {
+        alert("All footwear items have already been printed! You can reset printed status if you need to reprint.");
+        return;
+      }
+
+      let added = 0;
+      for (const item of unprinted) {
+        if (!selectedPrintCodes.has(item.code)) {
+          selectedPrintCodes.add(item.code);
+          added++;
+          if (selectedPrintCodes.size % targetCount === 0 || added >= targetCount) {
+            break;
+          }
+        }
+      }
+
+      renderPrintItemsList();
+      renderA4PreviewSheet();
+    }
+
+    function selectAllFilteredPrintItems() {
+      const filtered = getFilteredPrintItems();
+      filtered.forEach(i => selectedPrintCodes.add(i.code));
+      renderPrintItemsList();
+      renderA4PreviewSheet();
+    }
+
+    function clearPrintSelection() {
+      selectedPrintCodes.clear();
+      renderPrintItemsList();
+      renderA4PreviewSheet();
+    }
+
+    function markSelectedAsPrinted() {
+      if (selectedPrintCodes.size === 0) {
+        alert("Please select items first to mark them as printed.");
+        return;
+      }
+      selectedPrintCodes.forEach(code => printedQrCodes.add(code));
+      savePrintedQrCodes();
+      renderPrintItemsList();
+      alert(`✅ Marked ${selectedPrintCodes.size} items as Printed!`);
+    }
+
+    function resetAllPrintedStatus() {
+      if (printedQrCodes.size === 0) {
+        alert("No items are currently marked as printed.");
+        return;
+      }
+      if (confirm(`Are you sure you want to reset all printed status? All ${printedQrCodes.size} items will become 'Pending' again.`)) {
+        printedQrCodes.clear();
+        savePrintedQrCodes();
+        renderPrintItemsList();
+        renderA4PreviewSheet();
+      }
+    }
+
+    function changePrintLayout(layoutKey) {
+      if (A4_STICKER_PRESETS[layoutKey]) {
+        currentPrintLayout = layoutKey;
+        const preset = A4_STICKER_PRESETS[layoutKey];
+        const labelEl = document.getElementById('print-fill-sheet-label');
+        if (labelEl) labelEl.innerText = preset.labelTitle;
+        currentPreviewSheetIndex = 0;
+        renderA4PreviewSheet();
+      }
+    }
+
+    function renderStickerCellHtml(item, shopName, preset, isPrint = false) {
+      const qrSvg = buildQrSvg(item.code);
+      const isCompact = preset.cols >= 4 && preset.cols < 5;
+      const isMini = preset.cols >= 5;
+      const isLarge = preset.cols <= 2;
+
+      const borderStyle = isPrint ? 'border: 0.5pt dashed #999;' : 'border: 1px dashed #cbd5e1;';
+      const cellPadding = isMini ? 'padding: 1.5px 2px;' : (isCompact ? 'padding: 2px 3px;' : 'padding: 3px 4px;');
+
+      if (isMini) {
+        return `
+          <div class="a4-sticker-cell bg-white text-black rounded-sm flex items-center gap-1.5 overflow-hidden"
+            style="${borderStyle} ${cellPadding} box-sizing: border-box; min-height: 48px; line-height: 1.1;">
+            <div style="width: 12mm; height: 12mm; flex-shrink: 0;">${qrSvg}</div>
+            <div style="min-width: 0; flex: 1; overflow: hidden;">
+              <div style="font-family: monospace; font-size: 8px; font-weight: 900;">${escHtml(item.code)}</div>
+              <div style="font-size: 7.5px; font-weight: 800; max-height: 18px; overflow: hidden;">${escHtml(item.product)}</div>
+              <div style="font-size: 8px; font-weight: 900; margin-top: 1px;">₹${item.mrp.toFixed(2)}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (isCompact) {
+        return `
+          <div class="a4-sticker-cell bg-white text-black rounded-sm flex flex-col justify-between overflow-hidden"
+            style="${borderStyle} ${cellPadding} box-sizing: border-box; min-height: 60px; line-height: 1.15;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 7.5px; font-weight: 900; border-bottom: 0.5pt solid black; padding-bottom: 1px;">
+              <span style="text-transform: uppercase; max-width: 28mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escHtml(shopName)}</span>
+              <span style="font-family: monospace;">CODE: ${escHtml(item.code)}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 2mm; margin-top: 1px; flex: 1;">
+              <div style="width: 14mm; height: 14mm; flex-shrink: 0;">${qrSvg}</div>
+              <div style="min-width: 0; flex: 1; overflow: hidden;">
+                <div style="font-size: 8px; font-weight: 800; max-height: 20px; overflow: hidden;">${escHtml(item.product)}</div>
+                <div style="font-size: 7px; font-weight: 700; color: #444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escHtml(item.company || 'FOOTWEAR')}</div>
+                <div style="font-size: 8.5px; font-weight: 900; margin-top: 1px;">MRP ₹${item.mrp.toFixed(2)}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (isLarge) {
+        return `
+          <div class="a4-sticker-cell bg-white text-black rounded-sm flex flex-col justify-between overflow-hidden"
+            style="${borderStyle} ${cellPadding} box-sizing: border-box; min-height: 110px; line-height: 1.25;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; font-weight: 900; border-bottom: 1pt solid black; padding-bottom: 2px;">
+              <span style="text-transform: uppercase; font-size: 12px; font-weight: 900;">${escHtml(shopName)}</span>
+              <span style="font-family: monospace; font-size: 12px;">CODE: ${escHtml(item.code)}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4mm; margin-top: 2px; flex: 1;">
+              <div style="width: 24mm; height: 24mm; flex-shrink: 0;">${qrSvg}</div>
+              <div style="min-width: 0; flex: 1; overflow: hidden;">
+                <div style="font-size: 12px; font-weight: 900; max-height: 32px; overflow: hidden;">${escHtml(item.product)}</div>
+                <div style="font-size: 9.5px; font-weight: 700; color: #333; margin-top: 1px;">${escHtml(item.company || 'FOOTWEAR')} • Size: ${escHtml(item.group || item.category || 'STD')}</div>
+                <div style="font-size: 13px; font-weight: 900; margin-top: 2px;">MRP: ₹${item.mrp.toFixed(2)}</div>
+                <div style="font-family: monospace; font-size: 9px; color: #555;">SCAN: MARG:${escHtml(item.code)}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Default: 24 labels (70x37mm)
+      return `
+        <div class="a4-sticker-cell bg-white text-black rounded-sm flex flex-col justify-between overflow-hidden"
+          style="${borderStyle} ${cellPadding} box-sizing: border-box; min-height: 78px; line-height: 1.15;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 8.5px; font-weight: 900; border-bottom: 0.5pt solid black; padding-bottom: 1px;">
+            <span style="text-transform: uppercase; max-width: 38mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escHtml(shopName)}</span>
+            <span style="font-family: monospace; font-size: 9px;">CODE: ${escHtml(item.code)}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 2.5mm; margin-top: 1.5px; flex: 1;">
+            <div style="width: 18mm; height: 18mm; flex-shrink: 0;">${qrSvg}</div>
+            <div style="min-width: 0; flex: 1; overflow: hidden;">
+              <div style="font-size: 8.5px; font-weight: 900; max-height: 22px; overflow: hidden;">${escHtml(item.product)}</div>
+              <div style="font-size: 7.5px; font-weight: 700; color: #444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escHtml(item.company || 'FOOTWEAR')}</div>
+              <div style="font-size: 9.5px; font-weight: 900; margin-top: 1px;">MRP: ₹${item.mrp.toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderA4PreviewSheet() {
+      const preset = A4_STICKER_PRESETS[currentPrintLayout] || A4_STICKER_PRESETS.a4_24;
+      const shopName = document.getElementById('print-shop-name')?.value.trim() || "ANCHAR SHOE HOUSE";
+
+      const selectedCodes = Array.from(selectedPrintCodes);
+      const totalSelected = selectedCodes.length;
+      const totalSheets = Math.max(1, Math.ceil(totalSelected / preset.perSheet));
+
+      if (currentPreviewSheetIndex >= totalSheets) {
+        currentPreviewSheetIndex = totalSheets - 1;
+      }
+      if (currentPreviewSheetIndex < 0) currentPreviewSheetIndex = 0;
+
+      const summaryEl = document.getElementById('print-sheet-summary-text');
+      if (summaryEl) {
+        summaryEl.innerHTML = `<strong>${totalSelected}</strong> items selected • <strong>${totalSheets}</strong> A4 Sheet(s) required`;
+      }
+      const navLabel = document.getElementById('print-sheet-nav-label');
+      if (navLabel) {
+        navLabel.innerText = `Sheet ${currentPreviewSheetIndex + 1} of ${totalSheets}`;
+      }
+      const prevBtn = document.getElementById('btn-prev-sheet');
+      if (prevBtn) prevBtn.disabled = currentPreviewSheetIndex <= 0;
+      const nextBtn = document.getElementById('btn-next-sheet');
+      if (nextBtn) nextBtn.disabled = currentPreviewSheetIndex >= totalSheets - 1;
+
+      const badgeEl = document.getElementById('print-selected-badge');
+      if (badgeEl) {
+        badgeEl.innerText = `${totalSelected} Selected`;
+      }
+
+      const startIdx = currentPreviewSheetIndex * preset.perSheet;
+      const sheetCodes = selectedCodes.slice(startIdx, startIdx + preset.perSheet);
+
+      const pageEl = document.getElementById('a4-preview-page');
+      if (!pageEl) return;
+
+      pageEl.style.display = 'grid';
+      pageEl.style.gridTemplateColumns = `repeat(${preset.cols}, 1fr)`;
+      pageEl.style.gridTemplateRows = `repeat(${preset.rows}, 1fr)`;
+      pageEl.style.gap = preset.cols >= 5 ? '4px' : '6px';
+
+      let html = '';
+      for (let i = 0; i < preset.perSheet; i++) {
+        if (i < sheetCodes.length) {
+          const itemCode = sheetCodes[i];
+          const item = masterItems.find(m => m.code === itemCode) || {
+            code: itemCode,
+            product: 'FOOTWEAR ITEM',
+            company: 'AJANTA',
+            mrp: 0
+          };
+          html += renderStickerCellHtml(item, shopName, preset);
+        } else {
+          html += `
+            <div class="border border-dashed border-slate-300 rounded p-1.5 flex flex-col items-center justify-center text-slate-300 min-h-[64px] select-none bg-slate-50/50">
+              <span class="text-[9px] font-mono font-semibold">[Slot ${i + 1}]</span>
+            </div>
+          `;
+        }
+      }
+      pageEl.innerHTML = html;
+    }
+
+    function prevPreviewSheet() {
+      if (currentPreviewSheetIndex > 0) {
+        currentPreviewSheetIndex--;
+        renderA4PreviewSheet();
+      }
+    }
+
+    function nextPreviewSheet() {
+      const preset = A4_STICKER_PRESETS[currentPrintLayout] || A4_STICKER_PRESETS.a4_24;
+      const totalSheets = Math.ceil(selectedPrintCodes.size / preset.perSheet);
+      if (currentPreviewSheetIndex < totalSheets - 1) {
+        currentPreviewSheetIndex++;
+        renderA4PreviewSheet();
+      }
+    }
+
+    function prevPrintPage() {
+      if (printCurrentPage > 1) {
+        printCurrentPage--;
+        focusedPrintIndex = 0;
+        renderPrintItemsList();
+      }
+    }
+
+    function nextPrintPage() {
+      const filtered = getFilteredPrintItems();
+      const totalPages = Math.ceil(filtered.length / PRINT_PAGE_SIZE);
+      if (printCurrentPage < totalPages) {
+        printCurrentPage++;
+        focusedPrintIndex = 0;
+        renderPrintItemsList();
+      }
+    }
+
+    function printA4StickerSheet() {
+      const selectedCodes = Array.from(selectedPrintCodes);
+      if (selectedCodes.length === 0) {
+        alert("Please select at least one footwear item to print!");
+        return;
+      }
+
+      const preset = A4_STICKER_PRESETS[currentPrintLayout] || A4_STICKER_PRESETS.a4_24;
+      const shopName = document.getElementById('print-shop-name')?.value.trim() || "ANCHAR SHOE HOUSE";
+      const totalSheets = Math.ceil(selectedCodes.length / preset.perSheet);
+
       const container = document.getElementById('printable-labels-container');
       container.innerHTML = "";
 
-      // Render sticker items
       let html = "";
-      if (format === 'a4_24') {
-        html += `<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; font-family: sans-serif;">`;
-      } else {
-        html += `<div style="display:flex; flex-direction:column; align-items:center; font-family: sans-serif;">`;
-      }
+      for (let s = 0; s < totalSheets; s++) {
+        const sheetStart = s * preset.perSheet;
+        const sheetEnd = Math.min(sheetStart + preset.perSheet, selectedCodes.length);
+        const sheetItems = selectedCodes.slice(sheetStart, sheetEnd);
 
-      const isThermal = format.startsWith('50x');
-      const heightCss = format === '50x38' ? '38mm' : '25mm';
-      const boxStyle = `width: 50mm; height: ${heightCss}; padding: 2mm 3mm; box-sizing: border-box; background: white; color: black; border: 1px dashed #ccc; margin: 2mm auto; page-break-inside: avoid; overflow: hidden;`;
+        const gridGap = preset.cols >= 5 ? '1mm' : (preset.cols >= 4 ? '1.5mm' : '2mm');
+        html += `
+          <div class="a4-print-sheet" style="display: grid; grid-template-columns: repeat(${preset.cols}, 1fr); grid-template-rows: repeat(${preset.rows}, 1fr); gap: ${gridGap};">
+        `;
 
-      for (let i = 0; i < qty; i++) {
-        const svgId = `print-barcode-${i}`;
-        if (isQr) {
-          // Dual-mode: left 20x20mm QR (MARG:<code>), right human-readable fallback text
-          html += `
-          <div class="${isThermal ? 'label-sticker-thermal' : ''}" style="${boxStyle} display:flex; align-items:center; gap:2mm;">
-            <div style="width:20mm; height:20mm; flex-shrink:0;">${qrSvg}</div>
-            <div style="min-width:0; flex:1; overflow:hidden; line-height:1.15;">
-              <div style="font-family:monospace; font-size:11px; font-weight:900;">${escHtml(itemCode)}</div>
-              <div style="font-size:8px; font-weight:800; max-height:20px; overflow:hidden;">${escHtml(itemTitle)}</div>
-              <div style="font-size:7px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escHtml(itemBrand)}</div>
-              <div style="font-size:9px; font-weight:900;">${escHtml(itemMrp)}</div>
-            </div>
-          </div>`;
-        } else {
-          html += `
-          <div class="${isThermal ? 'label-sticker-thermal' : ''}" style="${boxStyle}">
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size: 8px; font-weight: 900; border-bottom: 1px solid black; padding-bottom: 1px;">
-              <span style="text-transform:uppercase; max-width: 32mm; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(shopName)}</span>
-              <span style="font-family: monospace;">CODE: ${escHtml(itemCode)}</span>
-            </div>
-            <div style="font-size: 9px; font-weight: 800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top: 1px;">${escHtml(itemTitle)}</div>
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size: 7.5px; font-weight: 700;">
-              <span style="max-width: 30mm; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(itemBrand)}</span>
-              <span style="font-size: 8.5px; font-weight: 900;">${escHtml(itemMrp)}</span>
-            </div>
-            <div style="display:flex; justify-content:center; align-items:center; margin-top: 1px;">
-              <svg id="${svgId}" style="width: 100%; max-height: 12mm;"></svg>
-            </div>
-          </div>`;
+        for (let i = 0; i < preset.perSheet; i++) {
+          if (i < sheetItems.length) {
+            const itemCode = sheetItems[i];
+            const item = masterItems.find(m => m.code === itemCode) || {
+              code: itemCode,
+              product: 'FOOTWEAR ITEM',
+              company: 'AJANTA',
+              mrp: 0
+            };
+            html += renderStickerCellHtml(item, shopName, preset, true);
+          } else {
+            html += `<div style="box-sizing: border-box;"></div>`;
+          }
         }
+        html += `</div>`;
       }
-      html += `</div>`;
+
       container.innerHTML = html;
 
-      // Render barcode lines into each SVG (legacy mode only)
-      if (!isQr) {
-        for (let i = 0; i < qty; i++) {
-          renderBarcodeSvg(`#print-barcode-${i}`, barcodeVal);
-        }
-      }
+      // Automatically mark all selected items as PRINTED!
+      selectedCodes.forEach(code => printedQrCodes.add(code));
+      savePrintedQrCodes();
+
+      renderPrintItemsList();
 
       setTimeout(() => {
         window.print();
       }, 250);
+    }
+
+    function openPrintStudioForItem(itemCode) {
+      loadPrintedQrCodes();
+      selectedPrintCodes.clear();
+      selectedPrintCodes.add(itemCode);
+      printSearchQuery = itemCode;
+
+      switchOwnerTab('print');
+
+      const searchInput = document.getElementById('print-search-input');
+      if (searchInput) {
+        searchInput.value = itemCode;
+      }
+      renderPrintItemsList();
+      renderA4PreviewSheet();
     }
 
     function getRetailerSchemeBadge(pairs) {

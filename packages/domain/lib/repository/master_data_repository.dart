@@ -383,7 +383,10 @@ class MasterDataRepository {
   }
 
   FootwearItemEntity? findItemByBarcodeOrCode(String rawInput) {
-    final clean = rawInput.trim();
+    var clean = rawInput.trim();
+    if (clean.toUpperCase().startsWith('MARG:')) {
+      clean = clean.substring(5).trim();
+    }
     final mappedCode = _barcodeToItemCode[clean];
     for (final item in _cachedItems) {
       if (item.barcode == clean ||
