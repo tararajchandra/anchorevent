@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dealer Connect Cloud • Footwear Portal</title>
+  <title>Anchar Shoe House • Event Order Portal</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <!-- Load JsBarcode for generating crisp scannable SVG barcodes -->
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
@@ -49,92 +49,67 @@
 <body class="bg-slate-950 text-slate-100 antialiased font-sans min-h-screen p-3 sm:p-6">
 
   <!-- ===================================================================== -->
-  <!-- VIEW 0: LOCKED AUTHENTICATION GATE (LOGIN SCREEN)                     -->
+  <!-- VIEW 0: DEALER AUTHENTICATION GATE (ANCHAR SHOE HOUSE ONLY)           -->
   <!-- ===================================================================== -->
   <div id="auth-gate-screen" class="min-h-[85vh] flex flex-col items-center justify-center">
     <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
       <!-- Brand Header -->
       <div class="flex items-center gap-3">
         <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-500 text-slate-950 flex items-center justify-center font-extrabold text-xl shadow-lg shadow-teal-500/20">
-          M
+          A
         </div>
         <div>
-          <h1 class="text-lg font-extrabold text-slate-100">Dealer Connect Cloud Portal</h1>
-          <p class="text-xs text-slate-400">B2B Footwear Event Booking &amp; ERP Sync</p>
+          <h1 class="text-lg font-extrabold text-slate-100">ANCHAR SHOE HOUSE</h1>
+          <p class="text-xs text-slate-400">Event Order Portal &amp; Marg ERP Sync</p>
         </div>
       </div>
 
-      <!-- Login Role Selector Tabs -->
-      <div class="grid grid-cols-2 gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
-        <button onclick="selectLoginMode('SHOP_OWNER')" id="login-tab-owner" class="py-2.5 rounded-xl text-xs font-extrabold bg-teal-500 text-slate-950 transition-all">
-          🏪 Shop Owner Login
-        </button>
-        <button onclick="selectLoginMode('SUPER_ADMIN')" id="login-tab-admin" class="py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all">
-          🛡️ Super Admin Login
-        </button>
+      <div class="p-3 rounded-2xl bg-teal-500/10 border border-teal-500/25 flex items-center justify-between text-xs">
+        <span class="font-bold text-teal-300">🏪 Dealer Event Login</span>
+        <span class="text-[11px] text-slate-400">Retailers book orders via App</span>
       </div>
 
       <!-- Error Alert Box -->
       <div id="login-error-box" class="hidden p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-300 font-semibold"></div>
 
-      <!-- FORM A: SHOP OWNER LOGIN -->
-      <div id="form-shop-owner" class="space-y-4 text-xs">
+      <!-- DEALER LOGIN FORM -->
+      <form onsubmit="event.preventDefault(); handleDealerLogin();" class="space-y-4 text-xs">
         <div>
-          <label class="block text-slate-300 font-semibold mb-1.5">Shop License Key</label>
-          <input type="text" id="owner-login-key" value="" placeholder="e.g. SHOP-2026-XXXX" 
+          <label class="block text-slate-300 font-semibold mb-1.5">Dealer ID / License Key</label>
+          <input type="text" id="owner-login-key" value="ANCHAR-2026-PRO" placeholder="e.g. ANCHAR-2026-PRO"
             class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-teal-300 font-mono focus:outline-none focus:border-teal-500">
         </div>
         <div>
-          <label class="block text-slate-300 font-semibold mb-1.5">Shop Owner Password</label>
-          <input type="password" id="owner-login-pass" value="" placeholder="Enter shop password" 
+          <label class="block text-slate-300 font-semibold mb-1.5">Dealer Password</label>
+          <input type="password" id="owner-login-pass" value="" placeholder="Enter Anchar Shoe password"
             class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-slate-100 focus:outline-none focus:border-teal-500">
         </div>
-        <button onclick="handleShopOwnerLogin()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-teal-500/20">
-          Login to Shop Dashboard &rarr;
+        <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-teal-500/20">
+          Login to Anchar Shoe Dashboard &rarr;
         </button>
         <p class="text-[11px] text-slate-500 text-center">
-          Use the license key and password issued by your vendor.
+          Dedicated event portal for Anchar Shoe House. All retailer orders sync live as Orders.
         </p>
-      </div>
-
-      <!-- FORM B: SUPER ADMIN LOGIN -->
-      <div id="form-super-admin" class="space-y-4 text-xs hidden">
-        <div>
-          <label class="block text-slate-300 font-semibold mb-1.5">Super Admin ID / Email</label>
-          <input type="text" id="admin-login-id" value="" placeholder="Enter Super Admin ID" 
-            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-slate-100 focus:outline-none focus:border-indigo-500">
-        </div>
-        <div>
-          <label class="block text-slate-300 font-semibold mb-1.5">Master Password</label>
-          <input type="password" id="admin-login-pass" value="" placeholder="Enter master password" 
-            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-slate-100 focus:outline-none focus:border-indigo-500">
-        </div>
-        <button onclick="handleSuperAdminLogin()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-teal-500 hover:from-indigo-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-indigo-500/20">
-          Unlock Super Admin Control Center &rarr;
-        </button>
-        <p class="text-[11px] text-slate-500 text-center">
-          Configured via <code>.env</code> / Netlify Environment Variables
-        </p>
-      </div>
+      </form>
     </div>
   </div>
 
   <!-- ===================================================================== -->
-  <!-- AUTHENTICATED TOP BAR (SHOWN ONLY AFTER LOGIN)                        -->
+  <!-- AUTHENTICATED TOP BAR (SHOWN ONLY AFTER DEALER LOGIN)                 -->
   <!-- ===================================================================== -->
   <div id="authenticated-top-bar" class="max-w-6xl mx-auto mb-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl hidden flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-500 text-slate-950 flex items-center justify-center font-extrabold text-lg">
-        M
+        A
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <h1 class="text-base font-bold text-slate-100" id="session-header-title">Dealer Connect Cloud</h1>
+          <h1 class="text-base font-bold text-slate-100" id="session-header-title">ANCHAR SHOE HOUSE</h1>
           <span id="session-role-badge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-teal-500/15 text-teal-300 border border-teal-500/30 font-bold">
-            Authenticated
+            🏪 Dealer Event Portal
           </span>
         </div>
-        <p class="text-xs text-slate-400" id="session-header-subtitle">Connected via Secure Environment Config</p>
+        <p class="text-xs text-slate-400" id="session-header-subtitle">Connected to Real-Time Retailer Orders</p>
       </div>
     </div>
 
@@ -144,154 +119,45 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- PORTAL 1: SUPER ADMIN PANEL (ONLY VISIBLE TO VENDOR AFTER LOGIN)      -->
-  <!-- ===================================================================== -->
-  <div id="portal-super-admin" class="max-w-6xl mx-auto space-y-6 hidden">
-    <!-- KPI Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-        <span class="text-xs text-slate-400">Total Licensed Shops</span>
-        <p class="text-2xl font-extrabold text-slate-100 mt-1" id="kpi-total-shops">3</p>
-        <span class="text-[11px] text-emerald-400">Multi-tenant active</span>
-      </div>
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-        <span class="text-xs text-slate-400">Active Devices / Quota</span>
-        <p class="text-2xl font-extrabold text-teal-400 mt-1" id="kpi-total-devices">5 / 8</p>
-        <span class="text-[11px] text-slate-400">Hardware UUID locked</span>
-      </div>
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-        <span class="text-xs text-slate-400">Blocked / Piracy Attempts</span>
-        <p class="text-2xl font-extrabold text-amber-400 mt-1" id="kpi-blocked-devices">1</p>
-        <span class="text-[11px] text-amber-300/80">Prevented unauthorized APK</span>
-      </div>
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-        <span class="text-xs text-slate-400">Today's Synced Bills</span>
-        <p class="text-2xl font-extrabold text-indigo-400 mt-1">4</p>
-        <span class="text-[11px] text-slate-400">Real-time Supabase sync</span>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Left: Register New Shopkeeper Form -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 h-fit">
-        <div>
-          <span class="text-[11px] font-bold uppercase tracking-wider text-teal-400">Vendor Onboarding</span>
-          <h2 class="text-base font-bold text-slate-100">Register New Shopkeeper</h2>
-          <p class="text-xs text-slate-400 mt-0.5">Issue License Key, Shop Dashboard Password &amp; Device Limit.</p>
-        </div>
-
-        <div class="space-y-3 text-xs">
-          <div>
-            <label class="block text-slate-300 font-medium mb-1">Shop / Business Name</label>
-            <input type="text" id="new-shop-name" placeholder="e.g. BARDHAMAN SHOE AGENCY" 
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-teal-500">
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-slate-300 font-medium mb-1">License Key</label>
-              <div class="flex gap-1">
-                <input type="text" id="new-shop-key" value="SHOE-2026-889" 
-                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-teal-300 font-mono text-xs focus:outline-none">
-                <button onclick="generateRandomKey()" class="px-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300">🎲</button>
-              </div>
-            </div>
-            <div>
-              <label class="block text-slate-300 font-medium mb-1">Shop Login Password</label>
-              <input type="text" id="new-shop-pass" value="" placeholder="Min 6 chars (set a unique password)" 
-                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-amber-300 font-mono text-xs focus:outline-none">
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-slate-300 font-medium mb-1">Allowed Devices</label>
-              <select id="new-shop-max-devices" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-100 focus:outline-none">
-                <option value="1">1 Device</option>
-                <option value="2">2 Devices</option>
-                <option value="3" selected>3 Devices</option>
-                <option value="5">5 Devices</option>
-                <option value="10">10 Devices</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-slate-300 font-medium mb-1">Valid Until</label>
-              <input type="date" id="new-shop-expiry" value="2027-11-02" 
-                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-100 focus:outline-none">
-            </div>
-          </div>
-
-          <button onclick="createNewShop()" class="w-full py-3 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-teal-500/20">
-            + Create Shop &amp; Save Credentials
-          </button>
-        </div>
-      </div>
-
-      <!-- Right: Shops & Hardware Devices Management -->
-      <div class="lg:col-span-2 space-y-6">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div>
-            <h2 class="text-base font-bold text-slate-100">Licensed Shops &amp; Device Quotas</h2>
-            <p class="text-xs text-slate-400">Click any shop to manage its salesman devices and PINs</p>
-          </div>
-          <div class="space-y-3" id="shops-table-container"></div>
-        </div>
-
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
-            <div>
-              <span class="text-[11px] text-teal-400 font-bold uppercase tracking-wider">Salesman Accounts &amp; Auto-Detected Devices</span>
-              <h3 class="text-base font-bold text-slate-100">
-                Salesmen for: <span id="selected-admin-shop-title" class="text-teal-300">ANCHAR SHOE HOUSE</span>
-              </h3>
-              <p class="text-[11px] text-slate-400">Device UUID is auto-detected &amp; locked automatically when salesman logs in from the Android App</p>
-            </div>
-            <button onclick="promptAddDevice()" class="px-3 py-2 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 text-xs font-bold">
-              + Pre-Create Salesman Email / PIN
-            </button>
-          </div>
-          <div class="space-y-2.5" id="shop-devices-list"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- PORTAL 2: SHOP OWNER DASHBOARD (WITH LIVE DATA, ITEM MASTER & PRINT)  -->
+  <!-- DEALER DASHBOARD: ANCHAR SHOE HOUSE (RETAILER ORDERS, ITEMS & PRINT)  -->
   <!-- ===================================================================== -->
   <div id="portal-shop-owner" class="max-w-6xl mx-auto space-y-6 hidden">
-    <!-- Shop Banner & Top Bar -->
+    <!-- Dealer Banner & Top Bar -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
       <div>
-        <span class="text-xs font-bold text-teal-400 uppercase tracking-wider">Shop Owner Dashboard • Real-Time Marg ERP Cloud</span>
-        <h2 class="text-xl font-extrabold text-slate-100 mt-0.5" id="owner-shop-title">SHOP NAME</h2>
-        <p class="text-xs text-slate-400 mt-0.5" id="owner-shop-meta">License: - • Active Salesmen: -</p>
+        <span class="text-xs font-bold text-teal-400 uppercase tracking-wider">Anchar Shoe House • Live Event Order Portal &amp; Marg ERP Sync</span>
+        <h2 class="text-xl font-extrabold text-slate-100 mt-0.5" id="owner-shop-title">ANCHAR SHOE HOUSE</h2>
+        <p class="text-xs text-slate-400 mt-0.5" id="owner-shop-meta">Dealer ID: ANCHAR-2026-PRO • Registered Retailers: 0</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
         <button onclick="downloadConsolidatedMargCsv()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-teal-500/20 flex items-center gap-2">
-          <span>⬇ Download Merged Marg CSV</span>
+          <span>⬇ Download Consolidated Orders CSV</span>
         </button>
       </div>
     </div>
 
-    <!-- Shop Owner Navigation Tabs -->
+    <!-- Dealer Navigation Tabs -->
     <div class="flex items-center gap-2 border-b border-slate-800 pb-3 flex-wrap">
-      <button onclick="switchOwnerTab('orders')" id="tab-btn-orders" 
+      <button onclick="switchOwnerTab('orders')" id="tab-btn-orders"
         class="px-4 py-2 rounded-xl text-xs font-bold bg-teal-500 text-slate-950 transition-all flex items-center gap-2">
         <span>📊</span> <span>Live Orders &amp; Marg Export</span>
       </button>
-      <button onclick="switchOwnerTab('items')" id="tab-btn-items" 
+      <button onclick="switchOwnerTab('retailers')" id="tab-btn-retailers"
+        class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800 transition-all flex items-center gap-2">
+        <span>👥</span> <span>Retailers &amp; PINs</span>
+      </button>
+      <button onclick="switchOwnerTab('items')" id="tab-btn-items"
         class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800 transition-all flex items-center gap-2">
         <span>📦</span> <span>Master Items &amp; Barcodes (4,774)</span>
       </button>
-      <button onclick="switchOwnerTab('schemes')" id="tab-btn-schemes" 
+      <button onclick="switchOwnerTab('schemes')" id="tab-btn-schemes"
         class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800 transition-all flex items-center gap-2">
         <span>🎁</span> <span>Event Schemes &amp; Slabs</span>
       </button>
-      <button onclick="switchOwnerTab('print')" id="tab-btn-print" 
+      <button onclick="switchOwnerTab('print')" id="tab-btn-print"
         class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800 transition-all flex items-center gap-2">
-        <span>🖨️</span> <span>Barcode Sticker Printing Studio</span>
+        <span>🖨️</span> <span>QR / Barcode Sticker Studio</span>
       </button>
     </div>
 
@@ -299,22 +165,27 @@
     <div id="owner-tab-orders" class="space-y-6">
       <!-- Filter Bar & KPI Row -->
       <div class="flex justify-between items-center flex-wrap gap-2">
-        <span class="text-xs text-slate-400 font-medium">Filter by Salesman Terminal:</span>
-        <select id="owner-salesman-filter" onchange="renderOwnerPortal()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 font-medium focus:outline-none">
-          <option value="ALL">All Salesmen (Consolidated)</option>
+        <span class="text-xs text-slate-400 font-medium">Filter by Retailer:</span>
+        <select id="owner-retailer-filter" onchange="renderOwnerPortal()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 font-medium focus:outline-none">
+          <option value="ALL">All Retailers (Consolidated)</option>
         </select>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-          <span class="text-xs text-slate-400">Total Synced Bills Today</span>
-          <p class="text-2xl font-extrabold text-slate-100 mt-1" id="owner-bill-count">0 Bills</p>
-          <span class="text-[11px] text-teal-400" id="owner-bill-sub">Real data synced from app</span>
+          <span class="text-xs text-slate-400">Total Synced Orders</span>
+          <p class="text-2xl font-extrabold text-slate-100 mt-1" id="owner-order-count">0 Orders</p>
+          <span class="text-[11px] text-teal-400" id="owner-order-sub">Live orders booked by retailers</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <span class="text-xs text-slate-400">Ordering Retailers</span>
+          <p class="text-2xl font-extrabold text-indigo-400 mt-1" id="owner-retailer-count">0 Retailers</p>
+          <span class="text-[11px] text-slate-400">Unique retailers at event</span>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
           <span class="text-xs text-slate-400">Total Footwear Pairs</span>
           <p class="text-2xl font-extrabold text-teal-400 mt-1" id="owner-pair-count">0 Pairs</p>
-          <span class="text-[11px] text-slate-400">Ready for Marg stock deduction</span>
+          <span class="text-[11px] text-slate-400">Ready for Marg ERP import</span>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
           <span class="text-xs text-slate-400">Total Order Value</span>
@@ -323,24 +194,27 @@
         </div>
       </div>
 
-      <!-- SALESMAN-WISE PERFORMANCE BREAKDOWN -->
+      <!-- RETAILER-WISE ORDER PERFORMANCE BREAKDOWN -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-        <div>
-          <h3 class="text-sm font-bold text-slate-100">Salesman-Wise Billing Performance (Today)</h3>
-          <p class="text-xs text-slate-400">Track real-time orders created by each salesman terminal</p>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 class="text-sm font-bold text-slate-100">🏪 Retailer-Wise Order Performance (Event Live)</h3>
+            <p class="text-xs text-slate-400">Track real-time orders, total pairs, and scheme qualification for each retailer</p>
+          </div>
+          <span class="text-[11px] text-slate-400">Click any retailer card to filter orders</span>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="salesman-summary-cards">
-          <!-- Dynamically populated or empty state -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="retailer-summary-cards">
+          <!-- Dynamically populated -->
         </div>
       </div>
 
-      <!-- LIVE HALL MONITOR: TOP ARTICLES + ACTIVE TERMINALS -->
+      <!-- LIVE HALL MONITOR: TOP ARTICLES + ACTIVE EVENT RETAILERS -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
           <div class="flex justify-between items-center">
             <div>
               <h3 class="text-sm font-bold text-slate-100">🔥 Top Booked Articles</h3>
-              <p class="text-xs text-slate-400">Fast-selling inventory by pairs booked</p>
+              <p class="text-xs text-slate-400">Fast-selling footwear inventory by pairs ordered</p>
             </div>
             <span class="text-[11px] text-slate-400" id="live-last-updated">Live: --</span>
           </div>
@@ -348,34 +222,64 @@
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
           <div>
-            <h3 class="text-sm font-bold text-slate-100">📡 Active Dealer Terminals</h3>
-            <p class="text-xs text-slate-400">Latest bill activity per device (auto-refresh every 10s)</p>
+            <h3 class="text-sm font-bold text-slate-100">🛍️ Active Event Retailers</h3>
+            <p class="text-xs text-slate-400">Latest order activity per retailer (auto-refresh every 10s)</p>
           </div>
-          <div class="space-y-2 max-h-80 overflow-y-auto" id="active-terminals-list"></div>
+          <div class="space-y-2 max-h-80 overflow-y-auto" id="active-retailers-list"></div>
         </div>
       </div>
 
-      <!-- Bills List + Consolidated CSV Preview -->
+      <!-- Orders List + Consolidated CSV Preview -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
           <div class="flex justify-between items-center">
-            <h3 class="text-sm font-bold text-slate-100">Synced Bills Breakdown</h3>
+            <h3 class="text-sm font-bold text-slate-100">Synced Orders Breakdown</h3>
             <span class="text-xs text-slate-400">Real-Time Supabase Sync</span>
           </div>
-          <div class="space-y-2.5 max-h-80 overflow-y-auto" id="owner-bills-list"></div>
+          <div class="space-y-2.5 max-h-80 overflow-y-auto" id="owner-orders-list"></div>
         </div>
 
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
           <div class="flex justify-between items-center">
             <div>
-              <h3 class="text-sm font-bold text-slate-100">MARG_CONSOLIDATED_EXPORT.csv</h3>
-              <p class="text-[11px] text-slate-400">RFC-4180 CSV with Marg <code>Item_Code</code> &amp; <code>Salesman</code></p>
+              <h3 class="text-sm font-bold text-slate-100">MARG_CONSOLIDATED_ORDERS.csv</h3>
+              <p class="text-[11px] text-slate-400">RFC-4180 CSV with Marg <code>Item_Code</code> &amp; <code>Retailer</code></p>
             </div>
             <button onclick="copyMergedCsv()" id="copy-merged-btn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 font-semibold border border-slate-700">
               Copy CSV
             </button>
           </div>
           <pre id="owner-csv-box" class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-[11px] font-mono text-slate-200 overflow-x-auto leading-relaxed max-h-72 overflow-y-auto"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: REGISTERED RETAILERS & PIN MANAGEMENT -->
+    <div id="owner-tab-retailers" class="space-y-4 hidden">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-teal-400">Anchar Shoe House • Retailer Directory</span>
+            <h3 class="text-base font-extrabold text-slate-100 mt-0.5">Registered Event Retailers &amp; 5-Digit PINs</h3>
+            <p class="text-xs text-slate-400 mt-0.5" id="retailers-count-badge">View retailer accounts registered on the mobile app, reset forgotten PINs, or pre-register a retailer.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="loadCloudRetailersForShop(activeShopOwnerSession?.id).then(renderRetailersTab)" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold">
+              🔄 Refresh
+            </button>
+            <button onclick="openRetailerEditorModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-teal-500/20">
+              + Register / Reset Retailer PIN
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <input type="text" id="retailer-search-input" oninput="renderRetailersTab()" placeholder="Search retailer by Shop Name, Mobile Number, or Address..."
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500">
+        </div>
+
+        <div class="space-y-2.5" id="retailers-list-container">
+          <p class="text-xs text-slate-400 py-8 text-center">Loading registered retailers...</p>
         </div>
       </div>
     </div>
@@ -590,7 +494,7 @@
         <div>
           <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Module B • Live Event Gamification</span>
           <h3 class="text-base font-extrabold text-slate-100 mt-0.5">Seasonal Event Schemes &amp; Reward Slabs</h3>
-          <p class="text-xs text-slate-400 mt-0.5">Configure target pair milestones, gift prizes &amp; extra discount rebates shown in dealer apps in real-time.</p>
+          <p class="text-xs text-slate-400 mt-0.5">Configure target pair milestones, gift prizes &amp; extra discount rebates shown in retailer apps in real-time.</p>
         </div>
         <div class="flex items-center gap-2">
           <button onclick="openSchemeEditorModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-teal-500 hover:from-amber-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 flex items-center gap-2">
@@ -613,7 +517,7 @@
           </div>
         </div>
         <div class="shrink-0">
-          <span class="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40">Active in Dealer APKs</span>
+          <span class="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40">Active in Retailer Apps</span>
         </div>
       </div>
 
@@ -627,13 +531,60 @@
   <!-- Hidden Container rendered during window.print() -->
   <div id="printable-labels-container" class="hidden"></div>
 
+  <!-- Modal: Register / Reset Retailer PIN -->
+  <div id="modal-retailer-editor" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-sm font-extrabold text-slate-100" id="retailer-modal-title">👥 Register / Reset Retailer PIN</h3>
+          <p class="text-[11px] text-slate-400">Retailer uses their 10-digit mobile number &amp; 5-digit PIN in the mobile app</p>
+        </div>
+        <button onclick="closeRetailerEditorModal()" class="text-slate-400 hover:text-slate-200 text-lg font-bold">&times;</button>
+      </div>
+
+      <input type="hidden" id="retailer-edit-id" value="">
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">10-Digit Mobile Number</label>
+          <input type="tel" id="retailer-edit-phone" maxlength="10" placeholder="e.g. 9876543210"
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono font-bold text-teal-300 focus:outline-none focus:border-teal-500">
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Retailer Shop Name</label>
+          <input type="text" id="retailer-edit-shop" placeholder="e.g. A.R. SHOE COLLECTION"
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500">
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Market / Address (Optional)</label>
+          <input type="text" id="retailer-edit-address" placeholder="e.g. Bhanderhati, Hooghly"
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500">
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">5-Digit App Login PIN</label>
+          <input type="text" id="retailer-edit-pin" maxlength="5" placeholder="e.g. 12345"
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono font-bold text-amber-300 focus:outline-none focus:border-teal-500">
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeRetailerEditorModal()" class="w-1/2 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs">
+          Cancel
+        </button>
+        <button onclick="saveRetailerEditorModal()" class="w-1/2 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-teal-500/20">
+          Save Retailer Account &rarr;
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: Quick Rate & Pack Size Editor (Module A) -->
   <div id="modal-edit-item-rate" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <div>
           <h3 class="text-sm font-extrabold text-slate-100">✏️ Edit Wholesale Rate &amp; Pack Size</h3>
-          <p class="text-[11px] text-slate-400">Updates Cloud Catalog and pushes new price to all phones</p>
+          <p class="text-[11px] text-slate-400">Updates Cloud Catalog and pushes new price to all retailer apps</p>
         </div>
         <button onclick="closeRateEditModal()" class="text-slate-400 hover:text-slate-200 text-lg font-bold">&times;</button>
       </div>
@@ -687,7 +638,7 @@
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <div>
           <h3 class="text-sm font-extrabold text-slate-100" id="scheme-modal-title">🎁 Add Event Scheme Tier</h3>
-          <p class="text-[11px] text-slate-400">Configure target milestone &amp; incentives for attending dealers</p>
+          <p class="text-[11px] text-slate-400">Configure target milestone &amp; incentives for attending retailers</p>
         </div>
         <button onclick="closeSchemeEditorModal()" class="text-slate-400 hover:text-slate-200 text-lg font-bold">&times;</button>
       </div>
@@ -757,94 +708,99 @@
       return h;
     }
 
-    async function loadCloudDataForAdmin() {
-      if (!IS_CLOUD) return;
-      try {
-        const [shopsRes, devsRes] = await Promise.all([
-          fetch(`${SUPABASE_URL}/rest/v1/shops?select=*&order=created_at.desc`, { headers: sbHeaders() }),
-          fetch(`${SUPABASE_URL}/rest/v1/devices?select=*&order=created_at.desc`, { headers: sbHeaders() })
-        ]);
-        if (shopsRes.ok) {
-          const rows = await shopsRes.json();
-          if (Array.isArray(rows) && rows.length > 0) {
-            shops = rows.map(r => ({
-              id: r.id,
-              shopName: r.shop_name,
-              licenseKey: r.license_key,
-              shopPassword: r.shop_password || "",
-              maxDevices: r.max_devices || 3,
-              subscriptionEnd: r.subscription_end || "2027-10-31",
-              isActive: r.is_active !== false
-            }));
-            selectedShopId = shops[0].id;
-          }
-        }
-        if (devsRes.ok) {
-          const dRows = await devsRes.json();
-          if (Array.isArray(dRows)) {
-            devices = dRows.map(d => ({
-              id: d.id,
-              shopId: d.shop_id,
-              deviceUuid: d.device_uuid,
-              salesmanName: d.salesman_name,
-              salesmanPin: d.salesman_pin || "1234",
-              isBlocked: d.is_blocked === true,
-              lastSync: d.last_sync_at ? new Date(d.last_sync_at).toLocaleString() : "Synced"
-            }));
-          }
-        }
-      } catch (e) {
-        console.warn("Supabase fetch fallback:", e);
-      }
-    }
-
-    async function loadCloudBillsForShop(shopId) {
-      syncedBills = [];
+    async function loadCloudOrdersForShop(shopId) {
+      syncedOrders = [];
       if (!IS_CLOUD || !shopId) return;
       try {
-        const billsRes = await fetch(
+        const ordersRes = await fetch(
           `${SUPABASE_URL}/rest/v1/bills?shop_id=eq.${shopId}&select=*,bill_items(*)&order=created_at.desc`,
           { headers: sbHeaders() }
         );
-        if (billsRes.ok) {
-          const rows = await billsRes.json();
+        if (ordersRes.ok) {
+          const rows = await ordersRes.json();
           if (Array.isArray(rows)) {
-            syncedBills = rows.map(b => ({
-              billNo: b.bill_no,
-              billDate: b.bill_date,
-              createdTime: b.created_time || "",
-              partyName: b.party_name,
-              deviceUuid: b.device_uuid,
-              salesman: b.salesman_name || "Salesman",
-              items: Array.isArray(b.bill_items) && b.bill_items.length > 0
-                ? b.bill_items.map(it => ({
-                    itemCode: it.item_code,
-                    productName: it.product_name,
-                    qty: Number(it.qty || 1),
-                    unit: it.unit || "PAIR",
-                    rate: Number(it.rate || 0),
-                    mrp: Number(it.mrp || 0)
-                  }))
-                : [{
-                    itemCode: "MARG-SYNC",
-                    productName: "CONSOLIDATED BILL ITEMS",
-                    qty: Number(b.total_pairs || 1),
-                    unit: "PAIR",
-                    rate: Number(b.total_pairs ? (b.total_amount / b.total_pairs) : b.total_amount || 0),
-                    mrp: Number(b.total_pairs ? (b.total_amount / b.total_pairs) : b.total_amount || 0)
-                  }]
-            }));
+            syncedOrders = rows.map(b => {
+              const dUuid = (b.device_uuid || "").trim();
+              const rawSalesman = (b.salesman_name || "").trim();
+              const retailerPhone = dUuid.startsWith("PHONE-")
+                ? dUuid.slice(6).trim()
+                : (/^\d{10,}$/.test(rawSalesman) ? rawSalesman : (rawSalesman || dUuid || "App User"));
+
+              return {
+                orderNo: b.bill_no,
+                orderDate: b.bill_date,
+                createdTime: b.created_time || "",
+                partyName: b.party_name || "RETAILER",
+                deviceUuid: dUuid,
+                retailerPhone: retailerPhone,
+                items: Array.isArray(b.bill_items) && b.bill_items.length > 0
+                  ? b.bill_items.map(it => ({
+                      itemCode: it.item_code || "",
+                      productName: it.product_name || "",
+                      company: it.company || "",
+                      qty: Number(it.qty_pairs ?? it.qty ?? 1),
+                      unit: it.unit || "PAIR",
+                      rate: Number(it.rate || 0),
+                      mrp: Number(it.mrp || 0)
+                    }))
+                  : [{
+                      itemCode: "MARG-SYNC",
+                      productName: "CONSOLIDATED ORDER ITEMS",
+                      company: "",
+                      qty: Number(b.total_pairs || 1),
+                      unit: "PAIR",
+                      rate: Number(b.total_pairs ? (b.total_amount / b.total_pairs) : b.total_amount || 0),
+                      mrp: Number(b.total_pairs ? (b.total_amount / b.total_pairs) : b.total_amount || 0)
+                    }]
+              };
+            });
           }
         }
       } catch (e) {
-        console.warn("Supabase bills fetch fallback:", e);
+        console.warn("Supabase orders fetch fallback:", e);
       }
     }
 
-    let shops = [];
-    let devices = [];
-    let syncedBills = [];
-    let selectedShopId = null;
+    async function loadCloudRetailersForShop(shopId) {
+      retailerAccounts = [];
+      if (!IS_CLOUD || !shopId) return;
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/devices?shop_id=eq.${shopId}&select=*&order=created_at.desc`,
+          { headers: sbHeaders() }
+        );
+        if (res.ok) {
+          const rows = await res.json();
+          if (Array.isArray(rows)) {
+            retailerAccounts = rows.map(d => {
+              const dUuid = (d.device_uuid || "").trim();
+              const isPhoneUser = dUuid.startsWith("PHONE-");
+              const phone = isPhoneUser ? dUuid.slice(6).trim() : "";
+              const rawName = (d.salesman_name || "").trim();
+              const parts = rawName.split("|");
+              const shopName = parts[0] ? parts[0].trim() : (phone || "Registered Retailer");
+              const address = parts.length > 1 ? parts.slice(1).join("|").trim() : "";
+              return {
+                id: d.id,
+                shopId: d.shop_id,
+                deviceUuid: dUuid,
+                phone: phone,
+                shopName: shopName,
+                address: address,
+                pin: (d.salesman_pin || "").trim(),
+                isBlocked: d.is_blocked === true,
+                lastSync: d.last_sync_at ? new Date(d.last_sync_at).toLocaleString() : "App Registered"
+              };
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("Supabase retailers fetch fallback:", e);
+      }
+    }
+
+    let retailerAccounts = [];
+    let syncedOrders = [];
     let activeShopOwnerSession = null;
 
     // Master items state
@@ -865,45 +821,25 @@
     let eventSchemes = [];
     let schemesLoaded = false;
 
-    // Pre-load cloud shops on page load so Shop Owner login has access to data immediately
-    if (IS_CLOUD) {
-      loadCloudDataForAdmin().catch(() => {});
-    }
-
-    function selectLoginMode(mode) {
-      document.getElementById('login-error-box').classList.add('hidden');
-      const ownerForm = document.getElementById('form-shop-owner');
-      const adminForm = document.getElementById('form-super-admin');
-      const ownerTab = document.getElementById('login-tab-owner');
-      const adminTab = document.getElementById('login-tab-admin');
-
-      if (mode === 'SHOP_OWNER') {
-        ownerForm.classList.remove('hidden');
-        adminForm.classList.add('hidden');
-        ownerTab.className = "py-2.5 rounded-xl text-xs font-extrabold bg-teal-500 text-slate-950 transition-all";
-        adminTab.className = "py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all";
-      } else {
-        ownerForm.classList.add('hidden');
-        adminForm.classList.remove('hidden');
-        adminTab.className = "py-2.5 rounded-xl text-xs font-extrabold bg-indigo-500 text-slate-950 transition-all";
-        ownerTab.className = "py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all";
-      }
-    }
-
     function showLoginError(msg) {
       const box = document.getElementById('login-error-box');
       box.innerText = msg;
       box.classList.remove('hidden');
     }
 
-    async function handleShopOwnerLogin() {
-      const key = document.getElementById('owner-login-key').value.trim().toUpperCase();
+    async function handleDealerLogin() {
+      document.getElementById('login-error-box').classList.add('hidden');
+      const rawKey = document.getElementById('owner-login-key').value.trim().toUpperCase();
       const pass = document.getElementById('owner-login-pass').value.trim();
+
+      // Allow typing "ANCHAR SHOE HOUSE" or "ANCHAR" as an alias for the Anchar Shoe dealer key
+      const key = (rawKey === "ANCHAR SHOE HOUSE" || rawKey === "ANCHAR" || rawKey === "ANCHAR SHOE")
+        ? "ANCHAR-2026-PRO"
+        : rawKey;
 
       let matchedShop = null;
       if (IS_CLOUD) {
         try {
-          // 1. Primary: Verify via Supabase RPC (matches PostgreSQL parameter p_shop_password)
           const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/verify_shop_owner_login`, {
             method: "POST",
             headers: sbHeaders(),
@@ -916,7 +852,6 @@
                 id: rpcData.shopId,
                 shopName: rpcData.shopName,
                 licenseKey: rpcData.licenseKey,
-                maxDevices: rpcData.maxDevices,
                 subscriptionEnd: rpcData.subscriptionEnd,
                 isActive: true
               };
@@ -928,381 +863,288 @@
         } catch (e) {
           console.warn("RPC login fallback:", e);
         }
-
       }
 
       if (!matchedShop) {
-        showLoginError("Invalid Shop License Key or Shop Password!");
-        return;
-      }
-      if (!matchedShop.isActive) {
-        showLoginError("This shop license is currently suspended. Contact Super Admin.");
+        showLoginError("Invalid Dealer License Key or Password!");
         return;
       }
 
       activeShopOwnerSession = matchedShop;
-      await loadCloudBillsForShop(matchedShop.id);
+      await Promise.all([
+        loadCloudOrdersForShop(matchedShop.id),
+        loadCloudRetailersForShop(matchedShop.id),
+        loadEventSchemes()
+      ]);
+
       document.getElementById('auth-gate-screen').classList.add('hidden');
       const topBar = document.getElementById('authenticated-top-bar');
       topBar.classList.remove('hidden');
       topBar.classList.add('flex');
 
       document.getElementById('session-header-title').innerText = matchedShop.shopName;
-      document.getElementById('session-role-badge').innerText = "🏪 Shop Owner Session";
-      document.getElementById('session-header-subtitle').innerText = `License: ${matchedShop.licenseKey} • Valid Until: ${matchedShop.subscriptionEnd}`;
+      document.getElementById('session-role-badge').innerText = "🏪 Dealer Event Portal";
+      document.getElementById('session-header-subtitle').innerText = `Dealer ID: ${matchedShop.licenseKey} • Valid Until: ${matchedShop.subscriptionEnd}`;
 
-      document.getElementById('portal-super-admin').classList.add('hidden');
       document.getElementById('portal-shop-owner').classList.remove('hidden');
       switchOwnerTab('orders');
       renderOwnerPortal();
       loadMasterItems();
     }
 
-    async function handleSuperAdminLogin() {
-      const id = document.getElementById('admin-login-id').value.trim();
-      const pass = document.getElementById('admin-login-pass').value.trim();
-
-      if (!IS_CLOUD) {
-        showLoginError("Cloud is not configured. Super Admin login requires the server.");
-        return;
-      }
-      // Verified server-side (bcrypt in Postgres). No admin credentials ship to the browser.
-      let verified = false;
-      try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/verify_super_admin_login`, {
-          method: "POST",
-          headers: sbHeaders(),
-          body: JSON.stringify({ p_email: id, p_password: pass })
-        });
-        const data = res.ok ? await res.json() : null;
-        if (data && data.success) {
-          verified = true;
-        } else {
-          showLoginError((data && data.message) || "Invalid Super Admin ID or Master Password!");
-          return;
-        }
-      } catch (e) {
-        console.warn("Admin login error:", e);
-      }
-      if (!verified) {
-        showLoginError("Could not verify admin login. Check connection / run supabase_admin_auth.sql.");
-        return;
-      }
-
-      await loadCloudDataForAdmin();
-      document.getElementById('auth-gate-screen').classList.add('hidden');
-      const topBar = document.getElementById('authenticated-top-bar');
-      topBar.classList.remove('hidden');
-      topBar.classList.add('flex');
-
-      document.getElementById('session-header-title').innerText = "Dealer Connect Admin Control Center";
-      document.getElementById('session-role-badge').innerText = "🛡️ Super Admin (Vendor)";
-      document.getElementById('session-header-subtitle').innerText = `Logged in as ${id}`;
-
-      document.getElementById('portal-shop-owner').classList.add('hidden');
-      document.getElementById('portal-super-admin').classList.remove('hidden');
-      renderSuperAdmin();
-    }
-
     function logoutPortal() {
       activeShopOwnerSession = null;
       document.getElementById('authenticated-top-bar').classList.add('hidden');
       document.getElementById('authenticated-top-bar').classList.remove('flex');
-      document.getElementById('portal-super-admin').classList.add('hidden');
       document.getElementById('portal-shop-owner').classList.add('hidden');
       document.getElementById('auth-gate-screen').classList.remove('hidden');
     }
 
-    function generateRandomKey() {
-      const num = Math.floor(100 + Math.random() * 900);
-      document.getElementById('new-shop-key').value = `MARG-2026-${num}`;
-    }
-
-    async function createNewShop() {
-      const name = document.getElementById('new-shop-name').value.trim().toUpperCase();
-      const key = document.getElementById('new-shop-key').value.trim().toUpperCase();
-      const pass = document.getElementById('new-shop-pass').value.trim();
-      const maxDevs = parseInt(document.getElementById('new-shop-max-devices').value);
-      const exp = document.getElementById('new-shop-expiry').value;
-
-      if (!name) {
-        alert("Please enter a Shop Name!");
-        return;
-      }
-      if (pass.length < 6) {
-        alert("Please set a shop password of at least 6 characters.");
-        return;
-      }
-
-      let createdId = "shop-" + Date.now();
-      let savedToCloud = false;
-
-      if (IS_CLOUD) {
-        try {
-          // 1. Try RPC create_shop first (bypasses RLS)
-          const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_shop`, {
-            method: "POST",
-            headers: sbHeaders(),
-            body: JSON.stringify({
-              p_name: name,
-              p_license_key: key,
-              p_password: pass,
-              p_max_devices: maxDevs,
-              p_valid_until: exp
-            })
-          });
-          if (rpcRes.ok) {
-            const rpcData = await rpcRes.json();
-            if (rpcData && rpcData.success && rpcData.shop) {
-              createdId = rpcData.shop.id || createdId;
-              savedToCloud = true;
-            }
-          }
-
-          // 2. If RPC not available, try direct table POST
-          if (!savedToCloud) {
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/shops`, {
-              method: "POST",
-              headers: sbHeaders({ "Prefer": "return=representation" }),
-              body: JSON.stringify({
-                shop_name: name,
-                license_key: key,
-                shop_password: pass,
-                max_devices: maxDevs,
-                subscription_end: exp,
-                is_active: true
-              })
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (Array.isArray(data) && data[0] && data[0].id) {
-                createdId = data[0].id;
-                savedToCloud = true;
-              }
-            } else {
-              const errJson = await res.json().catch(() => ({}));
-              console.error("Supabase shop insert failed:", errJson);
-              if (errJson && errJson.code === "42501") {
-                alert("Supabase RLS Error: Row-Level Security is blocking shop creation. Please run the SQL in .agents/supabase_setup.sql in your Supabase SQL Editor!");
-              }
-            }
-          }
-        } catch (e) {
-          console.warn("Create shop cloud fallback:", e);
+    function getRetailerOrderStats() {
+      const stats = {};
+      syncedOrders.forEach(order => {
+        const key = (order.partyName || "RETAILER").trim();
+        if (!stats[key]) {
+          stats[key] = {
+            partyName: key,
+            phone: order.retailerPhone,
+            orders: 0,
+            pairs: 0,
+            amount: 0,
+            lastTime: `${order.orderDate || ''} ${order.createdTime || ''}`.trim()
+          };
         }
-      }
-
-      const newShop = {
-        id: createdId,
-        shopName: name,
-        licenseKey: key,
-        shopPassword: pass,
-        maxDevices: maxDevs,
-        subscriptionEnd: exp,
-        isActive: true
-      };
-
-      shops = shops.filter(s => s.licenseKey !== key);
-      shops.unshift(newShop);
-      selectedShopId = newShop.id;
-      document.getElementById('new-shop-name').value = "";
-      generateRandomKey();
-      renderSuperAdmin();
-
-      if (IS_CLOUD && savedToCloud) {
-        alert(`Shop "${name}" (Key: ${key}) successfully registered and saved to Cloud Database!`);
-      }
-    }
-
-    async function adjustDeviceQuota(shopId, delta, event) {
-      event.stopPropagation();
-      const shop = shops.find(s => s.id === shopId);
-      if (shop) {
-        shop.maxDevices = Math.max(1, shop.maxDevices + delta);
-        if (IS_CLOUD) {
-          fetch(`${SUPABASE_URL}/rest/v1/shops?id=eq.${shopId}`, {
-            method: "PATCH",
-            headers: sbHeaders(),
-            body: JSON.stringify({ max_devices: shop.maxDevices })
-          }).catch(() => {});
+        stats[key].orders += 1;
+        if (!stats[key].phone && order.retailerPhone) {
+          stats[key].phone = order.retailerPhone;
         }
-        renderSuperAdmin();
-      }
-    }
-
-    async function toggleShopActive(shopId, event) {
-      event.stopPropagation();
-      const shop = shops.find(s => s.id === shopId);
-      if (shop) {
-        shop.isActive = !shop.isActive;
-        if (IS_CLOUD) {
-          fetch(`${SUPABASE_URL}/rest/v1/shops?id=eq.${shopId}`, {
-            method: "PATCH",
-            headers: sbHeaders(),
-            body: JSON.stringify({ is_active: shop.isActive })
-          }).catch(() => {});
-        }
-        renderSuperAdmin();
-      }
-    }
-
-    async function toggleDeviceBlock(deviceId) {
-      const dev = devices.find(d => d.id === deviceId);
-      if (dev) {
-        dev.isBlocked = !dev.isBlocked;
-        if (IS_CLOUD) {
-          fetch(`${SUPABASE_URL}/rest/v1/devices?id=eq.${deviceId}`, {
-            method: "PATCH",
-            headers: sbHeaders(),
-            body: JSON.stringify({ is_blocked: dev.isBlocked })
-          }).catch(() => {});
-        }
-        renderSuperAdmin();
-      }
-    }
-
-    async function promptAddDevice() {
-      const shop = shops.find(s => s.id === selectedShopId);
-      if (!shop) return;
-      const activeCount = devices.filter(d => d.shopId === shop.id && !d.isBlocked).length;
-      if (activeCount >= shop.maxDevices) {
-        alert(`Device limit reached (${activeCount}/${shop.maxDevices}) for ${shop.shopName}! Increase Allowed Devices quota first.`);
-        return;
-      }
-
-      const salesman = prompt("Enter Salesman Email ID (or Name):", "kartick@shop.com");
-      if (!salesman) return;
-      const pin = prompt("Set Salesman Password / 4-Digit PIN:", "4444");
-      if (!pin) return;
-      const autoPlaceholder = "PENDING-AUTO-" + Math.floor(1000 + Math.random() * 9000);
-
-      let devId = "dev-" + Date.now();
-      if (IS_CLOUD) {
-        try {
-          const res = await fetch(`${SUPABASE_URL}/rest/v1/devices`, {
-            method: "POST",
-            headers: sbHeaders({ "Prefer": "return=representation" }),
-            body: JSON.stringify({
-              shop_id: shop.id,
-              device_uuid: autoPlaceholder,
-              salesman_name: salesman.trim(),
-              salesman_pin: pin.trim(),
-              is_blocked: false
-            })
-          });
-          if (res.ok) {
-            const rows = await res.json();
-            if (Array.isArray(rows) && rows[0] && rows[0].id) {
-              devId = rows[0].id;
-            }
-          }
-        } catch (e) {
-          console.warn("Add device cloud fallback:", e);
-        }
-      }
-
-      devices.push({
-        id: devId,
-        shopId: shop.id,
-        deviceUuid: autoPlaceholder,
-        salesmanName: salesman.trim(),
-        salesmanPin: pin.trim(),
-        isBlocked: false,
-        lastSync: "Waiting for 1st App Login (Auto-Bind)"
+        order.items.forEach(i => {
+          stats[key].pairs += i.qty;
+          stats[key].amount += i.qty * i.rate;
+        });
       });
-      renderSuperAdmin();
+      return stats;
     }
 
-    function renderSuperAdmin() {
-      const totalQuota = shops.reduce((acc, s) => acc + s.maxDevices, 0);
-      const activeDevs = devices.filter(d => !d.isBlocked).length;
-      const blockedDevs = devices.filter(d => d.isBlocked).length;
+    function renderRetailersTab() {
+      const container = document.getElementById('retailers-list-container');
+      const badge = document.getElementById('retailers-count-badge');
+      if (!container) return;
 
-      document.getElementById('kpi-total-shops').innerText = shops.length;
-      document.getElementById('kpi-total-devices').innerText = `${activeDevs} / ${totalQuota}`;
-      document.getElementById('kpi-blocked-devices').innerText = blockedDevs;
+      const query = (document.getElementById('retailer-search-input')?.value || "").trim().toLowerCase();
+      const statsMap = getRetailerOrderStats();
 
-      const container = document.getElementById('shops-table-container');
-      container.innerHTML = shops.map(shop => {
-        const shopDevs = devices.filter(d => d.shopId === shop.id && !d.isBlocked);
-        const isSelected = shop.id === selectedShopId;
+      const filtered = retailerAccounts.filter(r => {
+        if (!query) return true;
+        return r.shopName.toLowerCase().includes(query)
+          || r.phone.toLowerCase().includes(query)
+          || r.address.toLowerCase().includes(query)
+          || r.deviceUuid.toLowerCase().includes(query);
+      });
+
+      if (badge) {
+        const activeCount = retailerAccounts.filter(r => !r.isBlocked).length;
+        badge.innerText = `${activeCount} Active Retailers Registered • ${retailerAccounts.length} Total Accounts`;
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 py-8 text-center">No registered retailers found matching your filter.</p>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(r => {
+        const matchedStats = statsMap[r.shopName.toUpperCase()] || statsMap[r.shopName] ||
+          Object.values(statsMap).find(st =>
+            (r.phone && st.phone === r.phone) ||
+            (st.partyName && st.partyName.toUpperCase() === r.shopName.toUpperCase())
+          );
+        const orderCount = matchedStats ? matchedStats.orders : 0;
+        const pairCount = matchedStats ? matchedStats.pairs : 0;
+        const contactDisplay = r.phone ? `📱 ${escHtml(r.phone)}` : `ID: ${escHtml(r.deviceUuid)}`;
+
         return `
-          <div onclick="selectedShopId = '${shop.id}'; renderSuperAdmin();" 
-            class="p-3.5 rounded-xl border ${isSelected ? 'border-teal-500 bg-slate-950/90 ring-1 ring-teal-500/30' : 'border-slate-800 bg-slate-950/40'} cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
+          <div class="p-3.5 rounded-xl bg-slate-950 border ${r.isBlocked ? 'border-red-500/40 opacity-75' : 'border-slate-800'} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="space-y-1">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm font-bold text-slate-100">${shop.shopName}</span>
-                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-teal-500/15 text-teal-300 border border-teal-500/30">Key: ${shop.licenseKey}</span>
-                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30">Pass: ${shop.shopPassword}</span>
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${shop.isActive ? 'bg-emerald-500/15 text-emerald-300' : 'bg-red-500/20 text-red-300'}">
-                  ${shop.isActive ? 'ACTIVE' : 'SUSPENDED'}
+                <span class="text-xs font-extrabold text-slate-100">${escHtml(r.shopName)}</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-900 text-teal-300 border border-slate-800">${contactDisplay}</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-900 text-amber-300 border border-slate-800">PIN: ${escHtml(r.pin || '----')}</span>
+                <span class="text-[10px] px-2 py-0.5 rounded font-bold ${r.isBlocked ? 'bg-red-500/20 text-red-300' : 'bg-emerald-500/15 text-emerald-300'}">
+                  ${r.isBlocked ? 'BLOCKED' : 'ACTIVE'}
                 </span>
               </div>
-              <p class="text-xs text-slate-400 mt-1">Valid Until: <strong>${shop.subscriptionEnd}</strong></p>
+              <p class="text-[11px] text-slate-400">
+                ${r.address ? `📍 ${escHtml(r.address)} • ` : ''}Orders: <strong class="text-slate-200">${orderCount}</strong> • Booked: <strong class="text-teal-300">${pairCount} Pairs</strong>
+              </p>
             </div>
-
-            <div class="text-right">
-              <span class="text-xs font-bold ${shopDevs.length >= shop.maxDevices ? 'text-amber-400' : 'text-teal-400'}">
-                ${shopDevs.length} / ${shop.maxDevices} Devices Used
-              </span>
-              <div class="flex items-center gap-1 mt-1 justify-end">
-                <button onclick="adjustDeviceQuota('${shop.id}', -1, event)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-300">-1 Slot</button>
-                <button onclick="adjustDeviceQuota('${shop.id}', 1, event)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-xs text-teal-300">+1 Slot</button>
-                <button onclick="toggleShopActive('${shop.id}', event)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-xs ${shop.isActive ? 'text-amber-300' : 'text-emerald-300'}">
-                  ${shop.isActive ? 'Suspend' : 'Activate'}
-                </button>
-              </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="openRetailerEditorModal('${escHtml(r.id)}')" class="px-3 py-1.5 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 text-xs font-bold">
+                🔑 Reset PIN
+              </button>
+              <button onclick="toggleRetailerBlock('${escHtml(r.id)}')" class="px-3 py-1.5 rounded-lg text-xs font-bold ${r.isBlocked ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-red-500/15 text-red-300 border border-red-500/30'}">
+                ${r.isBlocked ? 'Unblock' : 'Block'}
+              </button>
             </div>
           </div>
         `;
       }).join('');
+    }
 
-      const currentShop = shops.find(s => s.id === selectedShopId) || shops[0];
-      document.getElementById('selected-admin-shop-title').innerText = currentShop.shopName;
-
-      const shopDevices = devices.filter(d => d.shopId === currentShop.id);
-      const devListEl = document.getElementById('shop-devices-list');
-
-      if (shopDevices.length === 0) {
-        devListEl.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">No salesman devices registered yet.</p>`;
+    function openRetailerEditorModal(retailerId = null) {
+      const modal = document.getElementById('modal-retailer-editor');
+      const title = document.getElementById('retailer-modal-title');
+      if (retailerId) {
+        const r = retailerAccounts.find(x => String(x.id) === String(retailerId));
+        if (!r) return;
+        title.innerText = "🔑 Edit Retailer / Reset 5-Digit PIN";
+        document.getElementById('retailer-edit-id').value = r.id;
+        document.getElementById('retailer-edit-phone').value = r.phone || "";
+        document.getElementById('retailer-edit-shop').value = r.shopName || "";
+        document.getElementById('retailer-edit-address').value = r.address || "";
+        document.getElementById('retailer-edit-pin').value = r.pin || "";
       } else {
-        devListEl.innerHTML = shopDevices.map(d => `
-          <div class="p-3 rounded-xl bg-slate-950 border ${d.isBlocked ? 'border-red-500/40' : 'border-slate-800'} flex items-center justify-between">
-            <div>
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-xs font-bold text-slate-100">${d.salesmanName}</span>
-                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-900 text-teal-300 border border-slate-800">${d.deviceUuid}</span>
-                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-900 text-amber-300 border border-slate-800">PIN: ${d.salesmanPin}</span>
-              </div>
-              <span class="text-[11px] text-slate-400">Last Sync: ${d.lastSync}</span>
-            </div>
-            <button onclick="toggleDeviceBlock('${d.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold ${d.isBlocked ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-red-500/15 text-red-300 border border-red-500/30'}">
-              ${d.isBlocked ? 'Unblock' : 'Block Device'}
-            </button>
-          </div>
-        `).join('');
+        title.innerText = "👥 Register New Event Retailer";
+        document.getElementById('retailer-edit-id').value = "";
+        document.getElementById('retailer-edit-phone').value = "";
+        document.getElementById('retailer-edit-shop').value = "";
+        document.getElementById('retailer-edit-address').value = "";
+        document.getElementById('retailer-edit-pin').value = "";
       }
+      modal.classList.remove('hidden');
     }
 
-    function getFilteredOwnerBills() {
-      const sFilter = document.getElementById('owner-salesman-filter').value;
-      if (sFilter === 'ALL') return syncedBills;
-      return syncedBills.filter(b => b.salesman === sFilter);
+    function closeRetailerEditorModal() {
+      document.getElementById('modal-retailer-editor').classList.add('hidden');
     }
 
-    function buildConsolidatedCsv(billsList) {
-      let lines = ["Bill_No,Bill_Date,Party_Name,Item_Code,Item_Name,Qty,Unit,Rate,MRP,Amount,Salesman"];
-      billsList.forEach(bill => {
-        bill.items.forEach(item => {
+    async function saveRetailerEditorModal() {
+      if (!activeShopOwnerSession) return;
+      const editId = document.getElementById('retailer-edit-id').value.trim();
+      const rawPhone = document.getElementById('retailer-edit-phone').value.replace(/\D/g, '');
+      const phone = rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone;
+      const shopName = document.getElementById('retailer-edit-shop').value.trim().toUpperCase();
+      const address = document.getElementById('retailer-edit-address').value.trim();
+      const pin = document.getElementById('retailer-edit-pin').value.trim();
+
+      if (phone.length !== 10) {
+        alert("Please enter a valid 10-digit mobile number.");
+        return;
+      }
+      if (!shopName) {
+        alert("Please enter the Retailer Shop Name.");
+        return;
+      }
+      if (!/^\d{5}$/.test(pin)) {
+        alert("Please enter a 5-digit numeric PIN (e.g. 12345).");
+        return;
+      }
+
+      const deviceUuid = `PHONE-${phone}`;
+      const combinedName = address ? `${shopName}|${address}` : `${shopName}|`;
+
+      if (IS_CLOUD) {
+        try {
+          const existing = editId
+            ? retailerAccounts.find(x => String(x.id) === editId)
+            : retailerAccounts.find(x => x.deviceUuid === deviceUuid);
+
+          if (existing && existing.id) {
+            await fetch(`${SUPABASE_URL}/rest/v1/devices?id=eq.${existing.id}`, {
+              method: "PATCH",
+              headers: sbHeaders(),
+              body: JSON.stringify({
+                device_uuid: existing.deviceUuid.startsWith("PHONE-") ? deviceUuid : existing.deviceUuid,
+                salesman_name: combinedName,
+                salesman_pin: pin
+              })
+            });
+          } else {
+            await fetch(`${SUPABASE_URL}/rest/v1/devices`, {
+              method: "POST",
+              headers: sbHeaders({ "Prefer": "return=representation" }),
+              body: JSON.stringify({
+                shop_id: activeShopOwnerSession.id,
+                device_uuid: deviceUuid,
+                salesman_name: combinedName,
+                salesman_pin: pin,
+                is_blocked: false
+              })
+            });
+          }
+          await loadCloudRetailersForShop(activeShopOwnerSession.id);
+        } catch (e) {
+          console.warn("Save retailer cloud error:", e);
+        }
+      }
+
+      closeRetailerEditorModal();
+      renderRetailersTab();
+      renderOwnerPortal();
+      alert(`Retailer "${shopName}" (${phone}) saved with PIN ${pin}!`);
+    }
+
+    async function toggleRetailerBlock(retailerId) {
+      const r = retailerAccounts.find(x => String(x.id) === String(retailerId));
+      if (!r) return;
+      r.isBlocked = !r.isBlocked;
+      if (IS_CLOUD) {
+        try {
+          await fetch(`${SUPABASE_URL}/rest/v1/devices?id=eq.${retailerId}`, {
+            method: "PATCH",
+            headers: sbHeaders(),
+            body: JSON.stringify({ is_blocked: r.isBlocked })
+          });
+        } catch (e) {}
+      }
+      renderRetailersTab();
+    }
+
+    function getFilteredOwnerOrders() {
+      const rFilter = document.getElementById('owner-retailer-filter').value;
+      if (rFilter === 'ALL') return syncedOrders;
+      return syncedOrders.filter(o => o.partyName === rFilter);
+    }
+
+    function selectRetailerFilter(partyName) {
+      const filterSelect = document.getElementById('owner-retailer-filter');
+      if (!filterSelect) return;
+      filterSelect.value = filterSelect.value === partyName ? 'ALL' : partyName;
+      renderOwnerPortal();
+    }
+
+    function csvEsc(value) {
+      const s = String(value ?? '');
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    }
+
+    function buildConsolidatedCsv(ordersList) {
+      let lines = ["Order_No,Order_Date,Retailer_Name,Retailer_Phone,Item_Code,Item_Name,Qty,Unit,Rate,MRP,Amount"];
+      ordersList.forEach(order => {
+        order.items.forEach(item => {
           const amt = (item.qty * item.rate).toFixed(2);
-          lines.push(`${bill.billNo},${bill.billDate},${bill.partyName},${item.itemCode},${item.productName},${item.qty},${item.unit},${item.rate.toFixed(2)},${item.mrp.toFixed(2)},${amt},${bill.salesman}`);
+          lines.push([
+            csvEsc(order.orderNo),
+            csvEsc(order.orderDate),
+            csvEsc(order.partyName),
+            csvEsc(order.retailerPhone),
+            csvEsc(item.itemCode),
+            csvEsc(item.productName),
+            item.qty,
+            csvEsc(item.unit),
+            item.rate.toFixed(2),
+            item.mrp.toFixed(2),
+            amt
+          ].join(","));
         });
       });
       return lines.join("\n");
     }
 
     function switchOwnerTab(tabName) {
-      const tabs = ['orders', 'items', 'schemes', 'print'];
+      const tabs = ['orders', 'retailers', 'items', 'schemes', 'print'];
       tabs.forEach(t => {
         const btn = document.getElementById(`tab-btn-${t}`);
         const panel = document.getElementById(`owner-tab-${t}`);
@@ -1316,6 +1158,9 @@
         }
       });
 
+      if (tabName === 'retailers') {
+        loadCloudRetailersForShop(activeShopOwnerSession?.id).then(renderRetailersTab);
+      }
       if (tabName === 'items' && !masterItemsLoaded) {
         loadMasterItems();
       }
@@ -1600,7 +1445,7 @@
       }
 
       renderMasterItems(masterCurrentPage);
-      alert(`Barcode ${generated} generated and mapped to "${item.product}"! All salesman mobile devices will now scan it instantly.`);
+      alert(`Barcode ${generated} generated and mapped to "${item.product}"! All retailer mobile apps will now scan it instantly.`);
     }
 
     // =========================================================================
@@ -1686,7 +1531,7 @@
 
     async function publishCatalogVersion() {
       await incrementCloudCatalogVersion("Manual Publish");
-      alert(`Catalog version incremented to ${currentCatalogVersion}! All dealer mobile devices will now download these prices upon opening.`);
+      alert(`Catalog version incremented to ${currentCatalogVersion}! All retailer mobile apps will now download these prices upon opening.`);
     }
 
     async function handleMargCsvUpload(event) {
@@ -1907,7 +1752,7 @@
             </div>
 
             <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-1">
-              <span class="text-[10px] text-slate-400 block font-medium">Dealer App Reward Message:</span>
+              <span class="text-[10px] text-slate-400 block font-medium">Retailer App Reward Message:</span>
               <p class="text-xs font-bold text-teal-300">${escHtml(s.rewardDescription)}</p>
               ${s.discountPercent > 0 ? `
                 <span class="text-[11px] text-emerald-400 font-bold block pt-0.5">
@@ -2023,7 +1868,7 @@
 
       closeSchemeEditorModal();
       renderSchemes();
-      alert(`Scheme "${name}" saved! All dealer phones will now track the ${pairs} pairs target.`);
+      alert(`Scheme "${name}" saved! All retailer mobile apps will now track the ${pairs} pairs target.`);
     }
 
     async function toggleSchemeActive(schemeId) {
@@ -2233,90 +2078,124 @@
       }, 250);
     }
 
+    function getRetailerSchemeBadge(pairs) {
+      const activeSchemes = eventSchemes.filter(s => s.isActive).sort((a, b) => a.minPairs - b.minPairs);
+      if (activeSchemes.length === 0) return "";
+      let unlocked = null;
+      let nextTier = null;
+      for (const s of activeSchemes) {
+        if (pairs >= s.minPairs) {
+          unlocked = s;
+        } else if (!nextTier) {
+          nextTier = s;
+        }
+      }
+      if (unlocked) {
+        return `<span class="inline-block mt-1 px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-bold">🏆 ${escHtml(unlocked.schemeName)}</span>`;
+      }
+      if (nextTier) {
+        const rem = nextTier.minPairs - pairs;
+        return `<span class="inline-block mt-1 px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800 text-[10px]">🎯 ${rem} Prs to ${escHtml(nextTier.schemeName)}</span>`;
+      }
+      return "";
+    }
+
     function renderOwnerPortal() {
       if (activeShopOwnerSession) {
         document.getElementById('owner-shop-title').innerText = activeShopOwnerSession.shopName;
-        document.getElementById('owner-shop-meta').innerText = `License: ${activeShopOwnerSession.licenseKey} • Subscription Valid Until: ${activeShopOwnerSession.subscriptionEnd}`;
+        document.getElementById('owner-shop-meta').innerText =
+          `Dealer ID: ${activeShopOwnerSession.licenseKey} • Registered Retailers: ${retailerAccounts.length} • Valid Until: ${activeShopOwnerSession.subscriptionEnd}`;
         document.getElementById('print-shop-name').value = activeShopOwnerSession.shopName;
       }
 
-      // Compute Salesman-wise Analytics across real synced bills
-      const salesmanStats = {};
-      syncedBills.forEach(b => {
-        if (!salesmanStats[b.salesman]) {
-          salesmanStats[b.salesman] = { bills: 0, pairs: 0, amount: 0 };
-        }
-        salesmanStats[b.salesman].bills += 1;
-        b.items.forEach(i => {
-          salesmanStats[b.salesman].pairs += i.qty;
-          salesmanStats[b.salesman].amount += i.qty * i.rate;
-        });
-      });
+      // Compute Retailer-wise Order Performance across synced orders
+      const retailerStats = getRetailerOrderStats();
+      const retailerNames = Object.keys(retailerStats).sort((a, b) => retailerStats[b].amount - retailerStats[a].amount);
+      const filterSelect = document.getElementById('owner-retailer-filter');
+      const currentSelected = filterSelect.value;
 
-      const salesmanNames = Object.keys(salesmanStats);
-      if (salesmanNames.length === 0) {
-        document.getElementById('salesman-summary-cards').innerHTML = `
-          <div class="col-span-1 sm:col-span-3 text-center py-6 text-slate-500 text-xs bg-slate-950 rounded-xl border border-slate-800">
-            No synced orders yet today. Bills created on salesman devices will appear here in real-time.
+      if (retailerNames.length === 0) {
+        document.getElementById('retailer-summary-cards').innerHTML = `
+          <div class="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-6 text-slate-500 text-xs bg-slate-950 rounded-xl border border-slate-800">
+            No retailer orders synced yet. Orders booked by retailers on the mobile app will appear here in real-time.
           </div>
         `;
       } else {
-        document.getElementById('salesman-summary-cards').innerHTML = salesmanNames.map(smName => {
-          const st = salesmanStats[smName];
+        document.getElementById('retailer-summary-cards').innerHTML = retailerNames.map(rName => {
+          const st = retailerStats[rName];
+          const isSelected = currentSelected === rName;
+          const schemeBadge = getRetailerSchemeBadge(st.pairs);
           return `
-            <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-extrabold text-teal-300">${smName}</span>
-                <span class="px-2 py-0.5 rounded bg-teal-500/15 text-teal-300 text-[10px] font-bold">${st.bills} Bills</span>
+            <div onclick="selectRetailerFilter(decodeURIComponent('${encodeURIComponent(rName)}'))"
+              class="p-3.5 rounded-xl bg-slate-950 border ${isSelected ? 'border-teal-500 ring-1 ring-teal-500/30' : 'border-slate-800 hover:border-slate-700'} cursor-pointer transition-all space-y-1">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-extrabold text-teal-300 truncate">${escHtml(rName)}</span>
+                <span class="px-2 py-0.5 rounded bg-teal-500/15 text-teal-300 text-[10px] font-bold shrink-0">${st.orders} ${st.orders === 1 ? 'Order' : 'Orders'}</span>
               </div>
+              <p class="text-[11px] text-slate-400 font-mono truncate">${st.phone ? `📱 ${escHtml(st.phone)}` : 'App Retailer'}</p>
               <p class="text-lg font-extrabold text-slate-100">₹${st.amount.toFixed(2)}</p>
-              <span class="text-[11px] text-slate-400">Total Sold: <strong>${st.pairs} Pairs</strong></span>
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <span class="text-[11px] text-slate-400">Total Booked: <strong class="text-emerald-400">${st.pairs} Pairs</strong></span>
+              </div>
+              ${schemeBadge}
             </div>
           `;
         }).join('');
       }
 
-      // Populate filter dropdown with real active salesmen
-      const filterSelect = document.getElementById('owner-salesman-filter');
-      const currentSelected = filterSelect.value;
-      filterSelect.innerHTML = `<option value="ALL">All Salesmen (Consolidated)</option>` +
-        salesmanNames.map(name => `<option value="${name}" ${name === currentSelected ? 'selected' : ''}>${name}</option>`).join('');
+      // Populate filter dropdown with active ordering retailers
+      filterSelect.innerHTML = `<option value="ALL">All Retailers (Consolidated)</option>` +
+        retailerNames.map(name => `<option value="${escHtml(name)}" ${name === currentSelected ? 'selected' : ''}>${escHtml(name)}</option>`).join('');
+      if (currentSelected !== 'ALL' && !retailerNames.includes(currentSelected)) {
+        filterSelect.value = 'ALL';
+      }
 
-      const filtered = getFilteredOwnerBills();
+      const filtered = getFilteredOwnerOrders();
       let totalPairs = 0;
       let totalValue = 0;
 
       if (filtered.length === 0) {
-        document.getElementById('owner-bills-list').innerHTML = `
+        document.getElementById('owner-orders-list').innerHTML = `
           <div class="text-center py-10 text-slate-500 text-xs">
-            No synced bills yet. Waiting for salesman sync...
+            No synced orders yet. Waiting for retailer orders...
           </div>
         `;
       } else {
-        document.getElementById('owner-bills-list').innerHTML = filtered.map(b => {
-          let billPairs = 0;
-          let billAmt = 0;
-          b.items.forEach(i => {
-            billPairs += i.qty;
-            billAmt += i.qty * i.rate;
+        document.getElementById('owner-orders-list').innerHTML = filtered.map(o => {
+          let orderPairs = 0;
+          let orderAmt = 0;
+          o.items.forEach(i => {
+            orderPairs += i.qty;
+            orderAmt += i.qty * i.rate;
           });
-          totalPairs += billPairs;
-          totalValue += billAmt;
+          totalPairs += orderPairs;
+          totalValue += orderAmt;
+
+          const itemsPreview = o.items
+            .slice(0, 3)
+            .map(it => `<span class="inline-block mr-2">• ${escHtml(it.productName)} (${it.qty} Prs)</span>`)
+            .join('');
+          const moreText = o.items.length > 3 ? `<span class="text-teal-400">+${o.items.length - 3} more</span>` : '';
 
           return `
-            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex justify-between items-center">
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-bold text-slate-100">${b.partyName}</span>
-                  <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-teal-300 font-mono">${b.billNo}</span>
+            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+              <div class="flex justify-between items-center gap-2">
+                <div>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs font-bold text-slate-100">${escHtml(o.partyName)}</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-teal-300 font-mono">${escHtml(o.orderNo)}</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-0.5">
+                    Retailer Phone: <strong class="text-teal-300">${escHtml(o.retailerPhone)}</strong> &bull; ${escHtml(o.orderDate)} ${escHtml(o.createdTime)}
+                  </p>
                 </div>
-                <p class="text-[11px] text-slate-400 mt-0.5">
-                  Salesman: <strong class="text-teal-300">${b.salesman}</strong> &bull; ${b.createdTime}
-                </p>
+                <div class="text-right shrink-0">
+                  <span class="text-sm font-extrabold text-emerald-400">₹${orderAmt.toFixed(2)}</span>
+                  <span class="block text-[10px] text-slate-400">${orderPairs} Pairs</span>
+                </div>
               </div>
-              <div class="text-right">
-                <span class="text-sm font-extrabold text-emerald-400">₹${billAmt.toFixed(2)}</span>
-                <span class="block text-[10px] text-slate-400">${billPairs} Pairs</span>
+              <div class="text-[10px] text-slate-400 border-t border-slate-800/70 pt-1.5 truncate">
+                ${itemsPreview}${moreText}
               </div>
             </div>
           `;
@@ -2324,12 +2203,13 @@
       }
 
       renderLiveInsights();
-      document.getElementById('owner-bill-count').innerText = `${filtered.length} Bills`;
+      document.getElementById('owner-order-count').innerText = `${filtered.length} ${filtered.length === 1 ? 'Order' : 'Orders'}`;
+      document.getElementById('owner-retailer-count').innerText = `${retailerNames.length} ${retailerNames.length === 1 ? 'Retailer' : 'Retailers'}`;
       document.getElementById('owner-pair-count').innerText = `${totalPairs} Pairs`;
       document.getElementById('owner-total-amount').innerText = `₹${totalValue.toFixed(2)}`;
       document.getElementById('owner-csv-box').innerText = filtered.length > 0
         ? buildConsolidatedCsv(filtered)
-        : "Bill_No,Bill_Date,Party_Name,Item_Code,Item_Name,Qty,Unit,Rate,MRP,Amount,Salesman\n(No bills created yet)";
+        : "Order_No,Order_Date,Retailer_Name,Retailer_Phone,Item_Code,Item_Name,Qty,Unit,Rate,MRP,Amount\n(No orders placed yet)";
     }
 
     function escHtml(v) {
@@ -2339,7 +2219,7 @@
     function renderLiveInsights() {
       // Top booked articles leaderboard
       const articles = {};
-      syncedBills.forEach(b => b.items.forEach(i => {
+      syncedOrders.forEach(o => o.items.forEach(i => {
         const k = i.itemCode;
         if (!articles[k]) articles[k] = { name: i.productName, pairs: 0, amount: 0 };
         articles[k].pairs += i.qty;
@@ -2362,40 +2242,52 @@
             <span class="text-[10px] text-slate-400">₹${a.amount.toFixed(2)}</span>
           </div>`).join('');
 
-      // Active terminals (latest bill per device)
-      const terms = {};
-      syncedBills.forEach(b => {
-        const k = b.deviceUuid || b.salesman;
-        if (!terms[k]) terms[k] = { salesman: b.salesman, last: `${b.billDate || ''} ${b.createdTime || ''}`.trim(), bills: 0, pairs: 0 };
-        terms[k].bills += 1;
-        b.items.forEach(i => { terms[k].pairs += i.qty; });
+      // Active event retailers (latest order per retailer)
+      const retailers = {};
+      syncedOrders.forEach(o => {
+        const k = o.partyName || o.retailerPhone || "Retailer";
+        if (!retailers[k]) {
+          retailers[k] = {
+            partyName: k,
+            phone: o.retailerPhone,
+            last: `${o.orderDate || ''} ${o.createdTime || ''}`.trim(),
+            orders: 0,
+            pairs: 0
+          };
+        }
+        retailers[k].orders += 1;
+        o.items.forEach(i => { retailers[k].pairs += i.qty; });
       });
-      const termList = Object.entries(terms);
-      document.getElementById('active-terminals-list').innerHTML = termList.length === 0
-        ? `<div class="text-center py-8 text-slate-500 text-xs">No terminals active yet.</div>`
-        : termList.map(([id, t]) => `
+      const retList = Object.values(retailers);
+      document.getElementById('active-retailers-list').innerHTML = retList.length === 0
+        ? `<div class="text-center py-8 text-slate-500 text-xs">No retailer orders received yet.</div>`
+        : retList.map(r => `
           <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex justify-between items-center">
             <div>
-              <span class="text-xs font-bold text-teal-300">🟢 ${escHtml(t.salesman)}</span>
-              <p class="text-[10px] text-slate-500 font-mono">${escHtml(String(id).slice(0, 12))}</p>
-              <p class="text-[10px] text-slate-400">Last: ${escHtml(t.last)}</p>
+              <span class="text-xs font-bold text-teal-300">🟢 ${escHtml(r.partyName)}</span>
+              <p class="text-[10px] text-slate-400 font-mono">📱 ${escHtml(r.phone)}</p>
+              <p class="text-[10px] text-slate-400">Last Order: ${escHtml(r.last)}</p>
             </div>
-            <div class="text-right text-[11px] text-slate-300">${t.bills} Bills<br>${t.pairs} Pairs</div>
+            <div class="text-right text-[11px] text-slate-300">${r.orders} ${r.orders === 1 ? 'Order' : 'Orders'}<br>${r.pairs} Pairs</div>
           </div>`).join('');
 
       document.getElementById('live-last-updated').innerText = `Live: ${new Date().toLocaleTimeString()}`;
     }
 
-    // Auto-refresh live orders for the logged-in shop owner (every 10s)
+    // Auto-refresh live orders for Anchar Shoe House (every 10s)
     setInterval(async () => {
       if (!activeShopOwnerSession || !IS_CLOUD) return;
       if (document.getElementById('portal-shop-owner').classList.contains('hidden')) return;
-      await loadCloudBillsForShop(activeShopOwnerSession.id);
+      await loadCloudOrdersForShop(activeShopOwnerSession.id);
       renderOwnerPortal();
+      if (!document.getElementById('owner-tab-retailers').classList.contains('hidden')) {
+        await loadCloudRetailersForShop(activeShopOwnerSession.id);
+        renderRetailersTab();
+      }
     }, 10000);
 
     function downloadConsolidatedMargCsv() {
-      const filtered = getFilteredOwnerBills();
+      const filtered = getFilteredOwnerOrders();
       const csvContent = buildConsolidatedCsv(filtered);
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);

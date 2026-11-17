@@ -80,6 +80,9 @@ class BillingRepository {
       salesmanName: newBill.salesmanName,
       totalPairs: newBill.totalPairs,
       totalAmount: newBill.totalAmount,
+      items: newBill.items
+          .map((BillItemEntity item) => item.toJson())
+          .toList(),
     );
 
     return ServiceResponse<SalesBillEntity>.success(data: newBill);

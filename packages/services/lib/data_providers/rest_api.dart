@@ -162,11 +162,12 @@ class RestApi {
     required String salesmanName,
     required int totalPairs,
     required double totalAmount,
+    List<Map<String, dynamic>>? items,
   }) async {
     if (isCloudConfigured) {
-      await _postSupabaseJson(
+      final billRow = await _postSupabaseJson(
         path: '/rest/v1/bills?on_conflict=shop_id,bill_no',
-        preferHeader: 'resolution=merge-duplicates',
+        preferHeader: 'resolution=merge-duplicates,return=representation',
         body: <String, dynamic>{
           'shop_id': _activeShopUuid,
           'bill_no': billNo,
@@ -179,6 +180,29 @@ class RestApi {
           'total_amount': totalAmount,
         },
       );
+      final billId = billRow?['id']?.toString() ?? '';
+      if (billId.isNotEmpty && items != null && items.isNotEmpty) {
+        final itemRows = items
+            .map(
+              (item) => <String, dynamic>{
+                'bill_id': billId,
+                'item_code': item['item_code'] ?? item['itemCode'] ?? '',
+                'barcode': item['barcode'] ?? '',
+                'product_name':
+                    item['product_name'] ?? item['productName'] ?? '',
+                'company': item['company'] ?? '',
+                'unit': item['unit'] ?? 'PAIR',
+                'qty_pairs': item['qty_pairs'] ?? item['qtyPairs'] ?? 1,
+                'rate': item['rate'] ?? 0.0,
+                'mrp': item['mrp'] ?? 0.0,
+              },
+            )
+            .toList();
+        await _postSupabaseList(
+          path: '/rest/v1/bill_items',
+          body: itemRows,
+        );
+      }
     }
     return ServiceResponse<bool>.success(data: true);
   }
@@ -474,9 +498,9 @@ class RestApi {
     }
   }
 
-  Future<Map<String, dynamic>?> _postSupabaseJson({
+  Future<dynamic> _postSupabaseRaw({
     required String path,
-    required Map<String, dynamic> body,
+    required Object body,
     String? preferHeader,
   }) async {
     final client = HttpClient();
@@ -490,10 +514,7 @@ class RestApi {
       if (response.statusCode >= 200 &&
           response.statusCode < 300 &&
           responseBody.isNotEmpty) {
-        final decoded = jsonDecode(responseBody);
-        if (decoded is Map<String, dynamic>) {
-          return decoded;
-        }
+        return jsonDecode(responseBody);
       }
     } catch (_) {
       return null;
@@ -501,6 +522,38 @@ class RestApi {
       client.close();
     }
     return null;
+  }
+
+  Future<Map<String, dynamic>?> _postSupabaseJson({
+    required String path,
+    required Map<String, dynamic> body,
+    String? preferHeader,
+  }) async {
+    final decoded = await _postSupabaseRaw(
+      path: path,
+      body: body,
+      preferHeader: preferHeader,
+    );
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+    if (decoded is List<dynamic> && decoded.isNotEmpty) {
+      final first = decoded.first;
+      if (first is Map<String, dynamic>) {
+        return first;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _postSupabaseList({
+    required String path,
+    required List<Map<String, dynamic>> body,
+  }) async {
+    await _postSupabaseRaw(
+      path: path,
+      body: body,
+    );
   }
 
   Future<void> _patchSupabaseJson({
