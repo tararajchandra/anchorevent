@@ -22,15 +22,27 @@ class ScannerBillingView extends StatelessWidget {
         ReactiveBuilder<bool>(
           reactiv: controller.isLiveCameraActive,
           builder: (context, isCameraOn) {
-            return ScannerViewfinderCard(
-              isCameraActive: isCameraOn,
-              onToggleCamera: () =>
-                  controller.isLiveCameraActive.value = !isCameraOn,
-              onBarcodeDetected: controller.handleBarcodeInput,
-              onSimulateKnownScan: controller.simulateKnownBarcodeScan,
-              onSimulateUnlinkedScan: controller.simulateUnlinkedBarcodeScan,
-              knownBtnLabel: GraphicsStringConsts.scanKnownSampleBtn,
-              unlinkedBtnLabel: GraphicsStringConsts.scanUnlinkedSampleBtn,
+            return ReactiveBuilder<FootwearItemEntity?>(
+              reactiv: controller.activeScannedItem,
+              builder: (context, scannedItem) {
+                final label = scannedItem != null
+                    ? '${scannedItem.company} • ${scannedItem.product}'
+                    : '';
+                return ScannerViewfinderCard(
+                  isCameraActive: isCameraOn,
+                  isShutterClosed: scannedItem != null,
+                  scannedProductLabel: label,
+                  onToggleCamera: () =>
+                      controller.isLiveCameraActive.value = !isCameraOn,
+                  onBarcodeDetected: controller.handleCameraBarcodeDetected,
+                  onSimulateKnownScan: controller.simulateKnownBarcodeScan,
+                  onSimulateUnlinkedScan:
+                      controller.simulateUnlinkedBarcodeScan,
+                  onRescanTap: controller.clearActiveScannedItem,
+                  knownBtnLabel: GraphicsStringConsts.scanKnownSampleBtn,
+                  unlinkedBtnLabel: GraphicsStringConsts.scanUnlinkedSampleBtn,
+                );
+              },
             );
           },
         ),

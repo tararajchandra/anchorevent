@@ -1,9 +1,12 @@
 import 'package:domain/domain.dart';
+import 'package:flutter/services.dart';
 import 'package:graphics/graphics.dart';
 import 'package:reactiv/reactiv.dart';
 import 'package:services/services.dart';
 
 class MargAppController extends ReactiveController {
+  static const MethodChannel _beepChannel =
+      MethodChannel('com.margsync.marg_sync_pro/beep');
   final Reactive<AppTabEnum> currentTab =
       Reactive<AppTabEnum>(AppTabEnum.home);
 
@@ -401,14 +404,43 @@ class MargAppController extends ReactiveController {
     }
   }
 
+  Future<void> _playScanBeep() async {
+    try {
+      await HapticFeedback.mediumImpact();
+      await SystemSound.play(SystemSoundType.click);
+      await _beepChannel.invokeMethod<bool>('playScanBeep');
+    } catch (_) {}
+  }
+
+  Future<void> _playShutterClick() async {
+    try {
+      await HapticFeedback.lightImpact();
+      await SystemSound.play(SystemSoundType.click);
+      await _beepChannel.invokeMethod<bool>('playShutterClick');
+    } catch (_) {}
+  }
+
+  void handleCameraBarcodeDetected(String rawBarcode) {
+    if (activeScannedItem.value != null) {
+      return;
+    }
+    handleBarcodeInput(rawBarcode);
+  }
+
   void handleBarcodeInput(String rawBarcode) {
     final found = MasterDataHandler.instance.lookupByBarcodeOrCode(rawBarcode);
     if (found != null) {
       activeScannedItem.value = found;
       scannedPairQty.value = 12;
+      _playScanBeep();
     } else {
       activeScannedItem.value = null;
     }
+  }
+
+  void clearActiveScannedItem() {
+    activeScannedItem.value = null;
+    _playShutterClick();
   }
 
   void simulateKnownBarcodeScan() {
@@ -437,6 +469,8 @@ class MargAppController extends ReactiveController {
         BillItemEntity.fromFootwearItem(item: item, qtyPairs: qty),
       );
     }
+    activeScannedItem.value = null;
+    _playShutterClick();
     recalculateSchemeProgress();
   }
 

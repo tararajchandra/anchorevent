@@ -129,4 +129,60 @@ void main() {
       expect(find.text('Create 5-Digit Security PIN'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'scanner closes shutter on product detection and reopens on Add Pairs',
+    (WidgetTester tester) async {
+      await LocalStorage.instance.writeBool(
+        StorageKeyConsts.isDealerLoggedIn,
+        true,
+      );
+      await LocalStorage.instance.writeString(
+        StorageKeyConsts.activeShopName,
+        'DEMO1',
+      );
+      await LocalStorage.instance.writeString(
+        StorageKeyConsts.activeDealerPhone,
+        '9830450252',
+      );
+
+      await tester.pumpWidget(const DealerConnectApp());
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 250)),
+      );
+      await tester.pumpAndSettle();
+
+      // Navigate to Scan & Book tab
+      final scanTab = find.text(GraphicsStringConsts.navScan);
+      await tester.tap(scanTab);
+      await tester.pumpAndSettle();
+
+      // Shutter should initially be open
+      expect(find.text(GraphicsStringConsts.shutterScannedBadge), findsNothing);
+
+      // Simulate scanning a known shoe box
+      final testScanBtn = find.text(GraphicsStringConsts.scanKnownSampleBtn);
+      await tester.ensureVisible(testScanBtn);
+      await tester.tap(testScanBtn);
+      await tester.pumpAndSettle();
+
+      // Shutter closes and shows scanned confirmation + rescan button
+      expect(
+        find.text(GraphicsStringConsts.shutterScannedBadge),
+        findsOneWidget,
+      );
+      expect(find.text(GraphicsStringConsts.shutterRescanBtn), findsOneWidget);
+      expect(find.text('Add Pairs'), findsOneWidget);
+
+      // Tap "+ Add Pairs" -> adds to cart, hides stepper card, reopens shutter
+      final addPairsBtn = find.text('Add Pairs');
+      await tester.ensureVisible(addPairsBtn);
+      await tester.tap(addPairsBtn);
+      await tester.pumpAndSettle();
+
+      expect(find.text(GraphicsStringConsts.shutterScannedBadge), findsNothing);
+      expect(find.text('Add Pairs'), findsNothing);
+      expect(find.textContaining('1 Items (12 Pairs)'), findsOneWidget);
+    },
+  );
 }

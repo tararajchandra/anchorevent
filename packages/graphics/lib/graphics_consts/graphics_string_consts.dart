@@ -31,6 +31,11 @@ class GraphicsStringConsts {
   static const String viewAllExportCta = 'View All Orders →';
   static const String scanKnownSampleBtn = 'Test Scan: Ajanta 028';
   static const String scanUnlinkedSampleBtn = 'Test Unlinked Box';
+  static const String shutterScannedBadge =
+      '✓ Product Scanned • Shutter Paused';
+  static const String shutterReadyHint =
+      'Select pairs below & tap "+ Add Pairs" to open camera';
+  static const String shutterRescanBtn = 'Tap to Re-scan Another Box';
   static const String currentCartHeader = 'CURRENT BOOKING CART';
   static const String emptyCartHint =
       'Scan a shoe box barcode or tap a test scan button above to add pairs.';
