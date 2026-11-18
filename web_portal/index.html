@@ -2375,25 +2375,56 @@
         if (csvText.length > 0) {
           const lines = csvText.split(/\r?\n/);
           masterItems = [];
+
+          // Dynamically detect column indexes from header row (Marg ERP standard)
+          const headers = lines[0] ? parseCsvLine(lines[0]).map(h => h.trim().toLowerCase()) : [];
+          const idxCode = headers.findIndex(h => h === 'code' || h === 'item_code' || h === 'item');
+          const idxBarcode = headers.findIndex(h => h === 'barcode');
+          const idxProduct = headers.findIndex(h => h === 'product' || h === 'item_name' || h === 'name');
+          const idxUnit = headers.findIndex(h => h === 'unit');
+          const idxCompany = headers.findIndex(h => h === 'company' || h === 'brand');
+          const idxGroup = headers.findIndex(h => h === 'group');
+          const idxCategory = headers.findIndex(h => h === 'category');
+          const idxMrp = headers.findIndex(h => h === 'mrp');
+          const idxRate = headers.findIndex(h => h === 'ratea' || h === 'rate' || h === 'wholesale_rate' || h === 'price');
+
+          const colCode = idxCode >= 0 ? idxCode : 0;
+          const colBarcode = idxBarcode >= 0 ? idxBarcode : 1;
+          const colProduct = idxProduct >= 0 ? idxProduct : 2;
+          const colUnit = idxUnit >= 0 ? idxUnit : 4;
+          const colCompany = idxCompany >= 0 ? idxCompany : 5;
+          const colGroup = idxGroup >= 0 ? idxGroup : 6;
+          const colCategory = idxCategory >= 0 ? idxCategory : 7;
+          const colMrp = idxMrp >= 0 ? idxMrp : 15;
+          const colRate = idxRate >= 0 ? idxRate : 17;
+
           for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
             const parts = parseCsvLine(line);
-            if (parts.length >= 6) {
-              const code = parts[0] ? parts[0].trim() : "";
-              const mappedBarcode = cloudBarcodeMappings[code] || (parts[1] ? parts[1].trim() : "");
+            if (parts.length >= 3) {
+              const code = parts[colCode] ? parts[colCode].trim() : "";
+              if (!code) continue;
+              const mappedBarcode = cloudBarcodeMappings[code] || (parts[colBarcode] ? parts[colBarcode].trim() : "");
               const override = rateOverrides[code];
-              const baseMrp = parts[10] ? parseFloat(parts[10]) || 0 : 0;
-              const baseRate = parts[11] ? parseFloat(parts[11]) || 0 : 0;
+              const parsedMrp = (colMrp < parts.length && parts[colMrp]) ? parseFloat(parts[colMrp]) || 0 : 0;
+              const parsedRate = (colRate < parts.length && parts[colRate]) ? parseFloat(parts[colRate]) || 0 : 0;
+              const baseMrp = parsedMrp > 0 ? parsedMrp : (parsedRate > 0 ? parsedRate : 0);
+              const baseRate = parsedRate > 0 ? parsedRate : (parsedMrp > 0 ? parsedMrp : 0);
+
+              const rawUnit = (colUnit < parts.length && parts[colUnit]) ? parts[colUnit].trim() : "";
+              const rawCompany = (colCompany < parts.length && parts[colCompany]) ? parts[colCompany].trim() : "";
+              const rawGroup = (colGroup < parts.length && parts[colGroup]) ? parts[colGroup].trim() : "";
+              const rawCat = (colCategory < parts.length && parts[colCategory]) ? parts[colCategory].trim() : "";
 
               masterItems.push({
                 code: code,
                 barcode: mappedBarcode,
-                product: parts[2] ? parts[2].trim() : "",
-                unit: parts[3] ? parts[3].trim() : "PAIR",
-                company: parts[4] ? parts[4].trim() : "",
-                group: parts[5] ? parts[5].trim() : "",
-                category: parts[6] ? parts[6].trim() : "",
+                product: parts[colProduct] ? parts[colProduct].trim() : "",
+                unit: rawUnit.length > 0 ? rawUnit : "PAIR",
+                company: rawCompany.length > 0 ? rawCompany : "FOOTWEAR",
+                group: rawGroup,
+                category: rawCat,
                 mrp: override && override.mrp != null ? override.mrp : baseMrp,
                 rate: override && override.wholesale_rate != null ? override.wholesale_rate : baseRate,
                 packSize: override && override.pack_size ? override.pack_size : 12
@@ -2695,8 +2726,8 @@
         const packIdx = headers.findIndex(h => h.includes('pack') || h.includes('carton') || h.includes('unit_qty'));
 
         const effectiveCodeIdx = codeIdx >= 0 ? codeIdx : 0;
-        const effectiveRateIdx = rateIdx >= 0 ? rateIdx : 11;
-        const effectiveMrpIdx = mrpIdx >= 0 ? mrpIdx : 10;
+        const effectiveRateIdx = rateIdx >= 0 ? rateIdx : 17;
+        const effectiveMrpIdx = mrpIdx >= 0 ? mrpIdx : 15;
 
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
