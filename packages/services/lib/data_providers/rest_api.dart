@@ -12,8 +12,10 @@ class RestApi {
     'SUPABASE_URL',
     defaultValue: 'https://obepjbdoicltdlqtbtlc.supabase.co',
   );
-  static const String _supabaseAnonKey =
-      String.fromEnvironment('SUPABASE_ANON_KEY');
+  static const String _supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: 'sb_publishable_NJKnS1oXBZzaXscD7n6jYQ_LaEK3DmA',
+  );
   static const String _defaultShopUuid = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
 
   String _activeShopUuid = _defaultShopUuid;
@@ -340,8 +342,8 @@ class RestApi {
       }
 
       await _postSupabaseJson(
-        path: '/rest/v1/devices',
-        preferHeader: 'return=representation',
+        path: '/rest/v1/devices?on_conflict=shop_id,device_uuid',
+        preferHeader: 'resolution=merge-duplicates,return=representation',
         body: <String, dynamic>{
           'shop_id': _activeShopUuid,
           'device_uuid': deviceKey,
@@ -489,7 +491,7 @@ class RestApi {
   void _attachSupabaseHeaders(HttpClientRequest request, String? preferHeader) {
     final key = _supabaseAnonKey.trim();
     request.headers.set('apikey', key);
-    if (key.startsWith('eyJ')) {
+    if (key.isNotEmpty) {
       request.headers.set('Authorization', 'Bearer $key');
     }
     request.headers.set('Content-Type', 'application/json');

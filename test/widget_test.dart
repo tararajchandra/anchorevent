@@ -94,4 +94,39 @@ void main() {
       expect(find.byType(NavigationBar), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'new dealer registration with manual shop name should proceed on single click',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const DealerConnectApp());
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 250)),
+      );
+      await tester.pumpAndSettle();
+
+      // Enter unknown new phone number
+      final phoneField = find.byKey(const ValueKey<String>('input_Mobile Number'));
+      await tester.enterText(phoneField, '9830450252');
+      await tester.pumpAndSettle();
+
+      expect(find.text('New Dealer Registration'), findsOneWidget);
+
+      // Enter manual shop name and address
+      final shopField = find.byKey(const ValueKey<String>('input_Shop / Business Name'));
+      final addrField = find.byKey(const ValueKey<String>('input_Shop Address / Market'));
+      await tester.enterText(shopField, 'demo1');
+      await tester.enterText(addrField, 'pandua');
+      await tester.pump();
+
+      // Tap Register on first click - should immediately proceed to Set 5-Digit PIN
+      final registerBtn = find.text('Register & Set 5-Digit PIN');
+      await tester.ensureVisible(registerBtn);
+      await tester.tap(registerBtn);
+      await tester.pumpAndSettle();
+
+      // Should NOT show the error banner "Please enter your Shop / Business Name."
+      expect(find.text('Please enter your Shop / Business Name.'), findsNothing);
+      expect(find.text('Create 5-Digit Security PIN'), findsOneWidget);
+    },
+  );
 }
