@@ -12,7 +12,11 @@ const {
   buildRetailerWiseCsv,
   buildCompanyWiseCsv,
   buildOrderValueCsv,
-  buildArticleWiseCsv
+  buildArticleWiseCsv,
+  calculateRetailerItemChallan,
+  calculateSingleRetailerConsolidatedItems,
+  buildRetailerItemChallanCsv,
+  sanitizeFilenamePart
 } = require('./web_reports_module.js');
 
 // Mock test data
@@ -161,3 +165,38 @@ const emptyCompanyCsv = buildCompanyWiseCsv(calculateCompanyWiseReport([], []));
 assert.strictEqual(emptyCompanyCsv, 'Company_Name,Total_Articles,Total_Pairs,Total_Amount,Share_Percent');
 
 console.log('✓ All Task 2 CSV generation & escaping tests passed!');
+
+console.log('--- Running Task 3: Retailer Item-Wise Challan & Breakdown Tests ---');
+assert(typeof calculateRetailerItemChallan === 'function', 'calculateRetailerItemChallan must be defined');
+assert(typeof calculateSingleRetailerConsolidatedItems === 'function', 'calculateSingleRetailerConsolidatedItems must be defined');
+assert(typeof buildRetailerItemChallanCsv === 'function', 'buildRetailerItemChallanCsv must be defined');
+assert(typeof sanitizeFilenamePart === 'function', 'sanitizeFilenamePart must be defined');
+
+// All retailers item challan lines
+const allChallanLines = calculateRetailerItemChallan(mockOrders, mockMasterItems, '');
+assert.strictEqual(allChallanLines.length, 4, 'Should have 4 total order item lines across all orders');
+
+// Filtered by retailer phone 9876543210
+const maaTaraLines = calculateRetailerItemChallan(mockOrders, mockMasterItems, '9876543210');
+assert.strictEqual(maaTaraLines.length, 3, 'Maa Tara should have 3 item lines across ORD-001 and ORD-002');
+assert.strictEqual(maaTaraLines.find(x => x.itemCode === '3019').company, 'AGRA SHOE', 'Should resolve company via masterItems fallback');
+
+// Consolidated items per retailer (groups same itemCode across multiple orders of the same retailer)
+const maaTaraConsolidated = calculateSingleRetailerConsolidatedItems(mockOrders, mockMasterItems, '9876543210');
+assert.strictEqual(maaTaraConsolidated.length, 2, 'Maa Tara ordered 2 distinct articles (3046 and 3019)');
+const c3046 = maaTaraConsolidated.find(x => x.itemCode === '3046');
+assert.strictEqual(c3046.totalPairs, 36, 'Item 3046 should sum 24 + 12 = 36 pairs for Maa Tara');
+assert.strictEqual(c3046.totalAmount, 2772, 'Item 3046 total amount should be 2772');
+assert(c3046.orderNos.includes('ORD-001') && c3046.orderNos.includes('ORD-002'), 'Should list both order numbers');
+
+// Challan CSV generation with GRAND TOTAL row
+const maaTaraChallanCsv = buildRetailerItemChallanCsv(maaTaraLines, true);
+assert(maaTaraChallanCsv.startsWith('Retailer_Name,Phone,Order_No,Order_Date,Item_Code,Product_Name,Company,Qty_Pairs,Unit,Rate,MRP,Amount'));
+assert(maaTaraChallanCsv.includes('3019,510-A-72 6X9,AGRA SHOE,12,PAIR,100.00,150.00,1200.00'));
+assert(maaTaraChallanCsv.includes('GRAND TOTAL,,,,,,,48,,,,3972.00'), 'Must include GRAND TOTAL summary row at bottom');
+
+// Filename sanitizer
+assert.strictEqual(sanitizeFilenamePart('MAA TARA, "SPECIAL"'), 'MAA_TARA_SPECIAL');
+assert.strictEqual(sanitizeFilenamePart('DEMO1'), 'DEMO1');
+
+console.log('✓ All Task 3 Retailer Item-Wise Challan tests passed!');

@@ -78,5 +78,21 @@ assert.strictEqual(artData.rows[0].itemCode, '1001');
 assert.strictEqual(artData.rows[0].totalPairs, 50);
 assert.strictEqual(artData.filename, 'ARTICLE_WISE_SALES.csv');
 
+const challanData = vm.runInContext("getReportDataAndCsv('retailer_items')", sandbox);
+assert.strictEqual(challanData.rows.length, 1);
+assert.strictEqual(challanData.rows[0].retailerName, 'ROY FOOTWEAR');
+assert.strictEqual(challanData.rows[0].itemCode, '1001');
+assert.strictEqual(challanData.rows[0].qtyPairs, 50);
+assert(challanData.csv.includes('GRAND TOTAL,,,,,,,50,,,,5000.00'));
+assert.strictEqual(challanData.filename, 'RETAILER_ITEM_CHALLAN_REGISTER.csv');
+
+const singleItems = vm.runInContext("calculateSingleRetailerConsolidatedItems(syncedOrders, masterItems, '9830012345')", sandbox);
+assert.strictEqual(singleItems.length, 1);
+assert.strictEqual(singleItems[0].totalPairs, 50);
+assert.strictEqual(singleItems[0].totalAmount, 5000);
+
+vm.runInContext("toggleRetailerItemsExpand('9830012345')", sandbox);
+assert.strictEqual(vm.runInContext("expandedRetailerPhones.has('9830012345')", sandbox), true);
+
 vm.runInContext("renderReportsTab()", sandbox);
 console.log('✓ Full web_portal end-to-end report calculations & table render passed 100%!');

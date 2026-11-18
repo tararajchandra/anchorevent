@@ -265,6 +265,134 @@ function buildArticleWiseCsv(rows) {
   return [header, ...lines].join('\n');
 }
 
+function sanitizeFilenamePart(str) {
+  return String(str ?? '')
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase() || 'RETAILER';
+}
+
+function calculateRetailerItemChallan(ordersList, masterItemsList, filterPhone = '') {
+  if (!Array.isArray(ordersList)) return [];
+  const cleanFilter = String(filterPhone ?? '').trim();
+  const rows = [];
+
+  for (const ord of ordersList) {
+    const phone = ord.retailerPhone || 'N/A';
+    if (cleanFilter && cleanFilter !== 'ALL' && phone !== cleanFilter) {
+      continue;
+    }
+    const retailerName = ord.partyName || 'RETAILER';
+    const orderNo = ord.orderNo || '';
+    const orderDate = ord.orderDate || '';
+
+    if (Array.isArray(ord.items)) {
+      for (const it of ord.items) {
+        const qty = Number(it.qty || 0);
+        const rate = Number(it.rate || 0);
+        const mrp = Number(it.mrp || 0);
+        const comp = resolveItemCompany(it, masterItemsList);
+        rows.push({
+          retailerName,
+          phone,
+          orderNo,
+          orderDate,
+          itemCode: it.itemCode || '',
+          productName: it.productName || '',
+          company: comp,
+          qtyPairs: qty,
+          unit: it.unit || 'PAIR',
+          rate: Math.round(rate * 100) / 100,
+          mrp: Math.round(mrp * 100) / 100,
+          lineAmount: Math.round(qty * rate * 100) / 100
+        });
+      }
+    }
+  }
+  return rows;
+}
+
+function calculateSingleRetailerConsolidatedItems(ordersList, masterItemsList, phone) {
+  const rawLines = calculateRetailerItemChallan(ordersList, masterItemsList, phone);
+  const map = new Map();
+
+  for (const line of rawLines) {
+    const code = line.itemCode || 'UNKNOWN';
+    if (!map.has(code)) {
+      map.set(code, {
+        itemCode: code,
+        productName: line.productName,
+        company: line.company,
+        unit: line.unit,
+        orderNoSet: new Set(),
+        totalPairs: 0,
+        rate: line.rate,
+        mrp: line.mrp,
+        totalAmount: 0
+      });
+    }
+    const acc = map.get(code);
+    if (line.orderNo) acc.orderNoSet.add(line.orderNo);
+    acc.totalPairs += line.qtyPairs;
+    acc.totalAmount += line.lineAmount;
+  }
+
+  const result = [];
+  for (const acc of map.values()) {
+    acc.orderNos = Array.from(acc.orderNoSet).join(', ');
+    delete acc.orderNoSet;
+    acc.totalAmount = Math.round(acc.totalAmount * 100) / 100;
+    result.push(acc);
+  }
+  result.sort((a, b) => b.totalPairs - a.totalPairs);
+  return result;
+}
+
+function buildRetailerItemChallanCsv(rows, includeGrandTotal = true) {
+  const header = ["Retailer_Name,Phone,Order_No,Order_Date,Item_Code,Product_Name,Company,Qty_Pairs,Unit,Rate,MRP,Amount"];
+  let totalPairs = 0;
+  let totalAmount = 0;
+
+  const lines = (rows || []).map(r => {
+    totalPairs += Number(r.qtyPairs || 0);
+    totalAmount += Number(r.lineAmount || 0);
+    return [
+      csvEsc(r.retailerName),
+      csvEsc(r.phone),
+      csvEsc(r.orderNo),
+      csvEsc(r.orderDate),
+      csvEsc(r.itemCode),
+      csvEsc(r.productName),
+      csvEsc(r.company),
+      r.qtyPairs,
+      csvEsc(r.unit),
+      Number(r.rate || 0).toFixed(2),
+      Number(r.mrp || 0).toFixed(2),
+      Number(r.lineAmount || 0).toFixed(2)
+    ].join(',');
+  });
+
+  if (includeGrandTotal && lines.length > 0) {
+    lines.push([
+      'GRAND TOTAL',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      totalPairs,
+      '',
+      '',
+      '',
+      totalAmount.toFixed(2)
+    ].join(','));
+  }
+
+  return [header, ...lines].join('\n');
+}
+
 module.exports = {
   csvEsc,
   resolveItemCompany,
@@ -276,5 +404,9 @@ module.exports = {
   buildRetailerWiseCsv,
   buildCompanyWiseCsv,
   buildOrderValueCsv,
-  buildArticleWiseCsv
+  buildArticleWiseCsv,
+  sanitizeFilenamePart,
+  calculateRetailerItemChallan,
+  calculateSingleRetailerConsolidatedItems,
+  buildRetailerItemChallanCsv
 };
