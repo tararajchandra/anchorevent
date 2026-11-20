@@ -480,35 +480,69 @@
             </button>
           </div>
 
-          <!-- ================= MODE 1: ARTICLE QR BUILDER ================= -->
+          <!-- ================= MODE 1: ARTICLE QR BUILDER (APPROACH 2) ================= -->
           <div id="print-article-mode-panel" class="space-y-3.5">
-            <div class="space-y-2">
+            <!-- Step 1: Searchable Company / Brand Dropdown -->
+            <div id="article-company-selector-wrap" class="space-y-2 relative">
               <div class="flex items-center justify-between gap-2">
-                <span class="font-bold text-slate-800">1. Enter Article Number</span>
-                <span class="text-[11px] text-teal-600 font-semibold">Master + JA Traders Fallback</span>
+                <span class="font-bold text-slate-800">1. Select Company / Brand</span>
+                <span class="text-[11px] text-teal-600 font-semibold">Master + JA Traders</span>
               </div>
-              <div class="flex gap-2">
-                <input type="text" id="article-search-input" placeholder="Enter Article No (e.g. 028, 440, 5210, 5221)..."
-                  onkeydown="if(event.key==='Enter') searchArticleVariants(this.value)"
-                  class="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-slate-900 font-bold focus:outline-none focus:border-teal-500 text-xs">
-                <button onclick="searchArticleVariants(document.getElementById('article-search-input').value)"
-                  class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-md">
-                  🔍 Search
+              <div class="relative">
+                <input type="text" id="company-search-input"
+                  placeholder="🏢 Search or select Company (e.g. AJANTA, PARAGON, N FASHION)..."
+                  onfocus="openCompanyDropdown()"
+                  oninput="handleCompanySearchInput(this.value)"
+                  autocomplete="off"
+                  class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-3.5 pr-9 py-2.5 text-slate-900 font-bold focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/30 text-xs">
+                <button type="button" onclick="toggleCompanyDropdown()"
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1">
+                  ▼
                 </button>
               </div>
-              <!-- Quick article chips -->
-              <div class="flex items-center gap-1.5 flex-wrap pt-0.5 text-[11px] text-slate-500">
-                <span class="font-semibold text-slate-600">Quick Samples:</span>
-                <button onclick="quickSearchArticle('028')" class="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono">028 (Ajanta)</button>
-                <button onclick="quickSearchArticle('440')" class="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono">440 (Ajanta)</button>
-                <button onclick="quickSearchArticle('5210')" class="px-2 py-0.5 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-mono border border-amber-200">5210 (JA Traders)</button>
-                <button onclick="quickSearchArticle('5221')" class="px-2 py-0.5 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-mono border border-amber-200">5221 (JA Traders)</button>
+              <!-- Floating Dropdown Menu -->
+              <div id="company-dropdown-menu"
+                class="hidden absolute z-30 w-full mt-1 bg-white border border-slate-300 rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100">
+                <!-- Populated dynamically by renderCompanyDropdownList() -->
               </div>
             </div>
 
-            <!-- Searched Variants Result Box -->
-            <div id="article-variants-result-box" class="hidden space-y-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-              <!-- Dynamically populated by renderSearchedArticleVariants() -->
+            <!-- Step 2: Filterable Article Accordion List -->
+            <div id="company-articles-panel" class="hidden space-y-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span id="selected-company-title" class="font-extrabold text-slate-900 text-xs truncate">Company</span>
+                    <span id="selected-company-source-badge"></span>
+                  </div>
+                  <p class="text-[10px] text-slate-500 mt-0.5">Click any article below to expand variants &amp; generate QR</p>
+                </div>
+                <span id="selected-company-count-badge"
+                  class="px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200 font-mono font-bold text-[10px] shrink-0">
+                  0 Articles
+                </span>
+              </div>
+
+              <!-- Quick Article Filter Input -->
+              <div class="relative">
+                <input type="text" id="company-article-filter-input"
+                  placeholder="🔍 Filter Article No within selected company..."
+                  oninput="handleCompanyArticleFilter(this.value)"
+                  class="w-full bg-white border border-slate-300 rounded-lg pl-3 pr-8 py-1.5 text-slate-900 font-semibold focus:outline-none focus:border-teal-500 text-xs">
+                <button id="company-article-filter-clear" onclick="clearCompanyArticleFilter()"
+                  class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs font-bold">✕</button>
+              </div>
+
+              <!-- Scrollable Accordion Container -->
+              <div id="company-articles-accordion-list" class="max-h-[420px] overflow-y-auto space-y-2 pr-1">
+                <!-- Dynamically populated by renderCompanyArticlesAccordion() -->
+              </div>
+            </div>
+
+            <!-- Empty prompt when no company selected yet -->
+            <div id="company-articles-empty-hint" class="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center space-y-1.5">
+              <p class="text-xs font-bold text-slate-700">👆 Choose a Company above to load its articles</p>
+              <p class="text-[11px] text-slate-500">All overlapping articles (like 5221 in PARAGON vs N FASHION (JA Traders)) are separated cleanly by Brand.</p>
             </div>
 
             <!-- Saved Event Article QRs Section -->
@@ -521,7 +555,7 @@
                 <span id="saved-articles-count-badge" class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono font-bold text-[10px]">0 Saved</span>
               </div>
               <div id="saved-articles-list-container" class="space-y-2 max-h-56 overflow-y-auto pr-1">
-                <p class="text-xs text-slate-400 py-4 text-center">No article QRs configured yet. Search and add an article above.</p>
+                <p class="text-xs text-slate-400 py-4 text-center">No article QRs configured yet. Expand an article above and click Save.</p>
               </div>
             </div>
           </div>
@@ -2429,6 +2463,12 @@
           const rows = await res.json();
           if (Array.isArray(rows)) {
             jaTradersMasterItems = rows;
+            if (typeof renderCompanyDropdownList === 'function') {
+              renderCompanyDropdownList();
+            }
+            if (selectedCompanyKey && typeof renderCompanyArticlesAccordion === 'function') {
+              renderCompanyArticlesAccordion();
+            }
           }
         }
       } catch (e) {
@@ -2446,7 +2486,12 @@
           const rows = await res.json();
           if (Array.isArray(rows)) {
             cloudArticleQrMappings = rows;
-            renderSavedArticleQrs();
+            if (typeof renderSavedArticleQrs === 'function') {
+              renderSavedArticleQrs();
+            }
+            if (selectedCompanyKey && typeof renderCompanyArticlesAccordion === 'function') {
+              renderCompanyArticlesAccordion();
+            }
           }
         }
       } catch (e) {
@@ -2598,6 +2643,12 @@
         renderMasterItems(1);
         if (typeof updatePrintSelectionCounts === 'function') {
           updatePrintSelectionCounts();
+        }
+        if (typeof renderCompanyDropdownList === 'function') {
+          renderCompanyDropdownList();
+        }
+        if (selectedCompanyKey && typeof renderCompanyArticlesAccordion === 'function') {
+          renderCompanyArticlesAccordion();
         }
       } catch (e) {
         console.error("Master items error:", e);
@@ -3317,7 +3368,13 @@
     }
     let selectedPrintCodes = new Set();
     let selectedArticleQrs = []; // Array of { isArticleQr: true, articleNo, brand, company, qrPayload, code }
-    let currentSearchedArticle = null;
+    let selectedCompanyKey = '';
+    let companySearchQuery = '';
+    let companyArticleFilterQuery = '';
+    let expandedArticleNo = null;
+    let companyDropdownOpen = false;
+    let currentCompanyArticles = [];
+    let companyOutsideClickBound = false;
     let printedQrCodes = new Set();
     let printSearchQuery = '';
     let printStatusFilter = 'ALL'; // 'ALL' | 'PENDING' | 'PRINTED'
@@ -3395,206 +3452,432 @@
       renderA4PreviewSheet();
     }
 
-    function quickSearchArticle(artNo) {
-      const input = document.getElementById('article-search-input');
-      if (input) input.value = artNo;
-      searchArticleVariants(artNo);
-    }
+    function getAllCompaniesSummary() {
+      const map = new Map();
 
-    function searchArticleVariants(query) {
-      const q = (query || "").trim().toUpperCase();
-      const box = document.getElementById('article-variants-result-box');
-      if (!q) {
-        if (box) {
-          box.classList.add('hidden');
-          box.innerHTML = '';
+      masterItems.forEach(item => {
+        const comp = (item.company || 'FOOTWEAR').trim();
+        if (!comp) return;
+        const upperKey = comp.toUpperCase();
+        const art = (item.articleNo || (item.product || '').split(' ')[0] || '').trim().toUpperCase();
+        if (!art) return;
+        if (!map.has(upperKey)) {
+          map.set(upperKey, { company: comp, source: 'master', articles: new Set() });
         }
-        return;
-      }
-
-      // 1. Search in primary masterItems
-      let matchedItems = masterItems.filter(m => {
-        const art = (m.articleNo || "").toUpperCase();
-        if (art === q) return true;
-        if (m.product && m.product.toUpperCase().startsWith(q + " ")) return true;
-        if (m.code && m.code.toUpperCase() === q) return true;
-        return false;
+        map.get(upperKey).articles.add(art);
       });
 
-      let source = 'master';
-      let brand = '';
-
-      if (matchedItems.length > 0) {
-        brand = matchedItems[0].company || 'AJANTA';
-      } else if (jaTradersMasterItems && jaTradersMasterItems.length > 0) {
-        // 2. Fallback search in jaTradersMasterItems
-        const jaMatches = jaTradersMasterItems.filter(j => {
-          const art = (j.article_no || "").trim().toUpperCase();
-          return art === q;
+      if (Array.isArray(jaTradersMasterItems)) {
+        jaTradersMasterItems.forEach(j => {
+          const comp = (j.company || 'JA Traders').trim();
+          if (!comp) return;
+          const upperKey = comp.toUpperCase();
+          const art = (j.article_no || '').trim().toUpperCase();
+          if (!art) return;
+          if (!map.has(upperKey)) {
+            map.set(upperKey, { company: comp, source: 'ja_traders', articles: new Set() });
+          } else {
+            map.get(upperKey).source = 'ja_traders';
+          }
+          map.get(upperKey).articles.add(art);
         });
-
-        if (jaMatches.length > 0) {
-          source = 'ja_traders';
-          brand = jaMatches[0].company || 'JA Traders';
-          matchedItems = jaMatches.map(j => ({
-            code: j.article_no + '-' + j.color + '-' + j.size,
-            articleNo: j.article_no,
-            product: `${j.article_no} ${j.color} ${j.size}`,
-            company: j.company,
-            color: j.color,
-            size: j.size,
-            rate: Number(j.rate) || 0,
-            mrp: Number(j.mrp) || 0,
-            group: j.color,
-            unit: 'PAIR'
-          }));
-        }
       }
 
-      if (matchedItems.length === 0) {
-        if (box) {
-          box.classList.remove('hidden');
-          box.innerHTML = `
-            <div class="py-4 text-center space-y-1">
-              <p class="text-amber-700 font-bold text-xs">⚠️ Article "${escHtml(q)}" not found</p>
-              <p class="text-slate-500 text-[11px]">Could not find matching variants in Primary Master or JA Traders catalog.</p>
-            </div>
-          `;
-        }
-        currentSearchedArticle = null;
+      return Array.from(map.values())
+        .map(entry => ({
+          company: entry.company,
+          source: entry.source,
+          articleCount: entry.articles.size
+        }))
+        .sort((a, b) => a.company.localeCompare(b.company));
+    }
+
+    function openCompanyDropdown() {
+      companyDropdownOpen = true;
+      renderCompanyDropdownList();
+      const menu = document.getElementById('company-dropdown-menu');
+      if (menu) menu.classList.remove('hidden');
+    }
+
+    function closeCompanyDropdown() {
+      companyDropdownOpen = false;
+      const menu = document.getElementById('company-dropdown-menu');
+      if (menu) menu.classList.add('hidden');
+    }
+
+    function toggleCompanyDropdown() {
+      if (companyDropdownOpen) {
+        closeCompanyDropdown();
+      } else {
+        const input = document.getElementById('company-search-input');
+        if (input) input.focus();
+        companySearchQuery = '';
+        openCompanyDropdown();
+      }
+    }
+
+    function handleCompanySearchInput(val) {
+      companySearchQuery = (val || '').trim();
+      openCompanyDropdown();
+    }
+
+    function renderCompanyDropdownList() {
+      const menu = document.getElementById('company-dropdown-menu');
+      if (!menu) return;
+
+      const allCompanies = getAllCompaniesSummary();
+      const q = companySearchQuery.toLowerCase();
+      const filtered = q
+        ? allCompanies.filter(c => c.company.toLowerCase().includes(q))
+        : allCompanies;
+
+      if (filtered.length === 0) {
+        menu.innerHTML = `
+          <div class="px-3.5 py-4 text-center text-xs text-slate-400">
+            No company matching "${escHtml(companySearchQuery)}".
+          </div>
+        `;
         return;
       }
 
-      // Deduplicate variants by (color + size)
-      const variantMap = new Map();
-      matchedItems.forEach(item => {
-        const color = (item.color || item.group || "STD").trim().toUpperCase();
-        const size = (item.size || "STD").trim().toUpperCase();
-        const key = `${color}__${size}`;
-        if (!variantMap.has(key)) {
-          variantMap.set(key, {
-            color: color,
-            size: size,
-            rate: item.rate || 0,
-            mrp: item.mrp || 0,
-            code: item.code || ""
+      menu.innerHTML = filtered.map(c => {
+        const isJa = c.source === 'ja_traders';
+        const badge = isJa
+          ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">JA Traders</span>`
+          : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">Master</span>`;
+        const isActive = selectedCompanyKey && selectedCompanyKey.toUpperCase() === c.company.toUpperCase();
+        return `
+          <button type="button" data-company="${escHtml(c.company)}" data-source="${escHtml(c.source)}"
+            onclick="selectArticleCompany(this.dataset.company)"
+            class="w-full px-3.5 py-2.5 text-left flex items-center justify-between gap-2 hover:bg-teal-50/70 transition-colors ${isActive ? 'bg-teal-50 font-bold' : ''}">
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+              <span class="text-xs font-bold text-slate-900 truncate">${escHtml(c.company)}</span>
+              ${badge}
+            </div>
+            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono font-bold text-[10px] shrink-0">
+              ${c.articleCount} Art.
+            </span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectArticleCompany(companyName) {
+      selectedCompanyKey = (companyName || '').trim();
+      companySearchQuery = '';
+      companyArticleFilterQuery = '';
+      expandedArticleNo = null;
+
+      const input = document.getElementById('company-search-input');
+      if (input) input.value = selectedCompanyKey;
+      const filterInput = document.getElementById('company-article-filter-input');
+      if (filterInput) filterInput.value = '';
+      const clearBtn = document.getElementById('company-article-filter-clear');
+      if (clearBtn) clearBtn.classList.add('hidden');
+
+      closeCompanyDropdown();
+
+      const panel = document.getElementById('company-articles-panel');
+      const hint = document.getElementById('company-articles-empty-hint');
+      if (panel) panel.classList.remove('hidden');
+      if (hint) hint.classList.add('hidden');
+
+      const titleEl = document.getElementById('selected-company-title');
+      if (titleEl) titleEl.innerText = selectedCompanyKey;
+
+      const isJa = selectedCompanyKey.toUpperCase().includes('JA TRADERS') ||
+        jaTradersMasterItems.some(j => (j.company || '').trim().toUpperCase() === selectedCompanyKey.toUpperCase());
+      const badgeEl = document.getElementById('selected-company-source-badge');
+      if (badgeEl) {
+        badgeEl.innerHTML = isJa
+          ? `<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[10px]">🏢 JA Traders</span>`
+          : `<span class="px-1.5 py-0.5 rounded bg-teal-100 text-teal-800 border border-teal-300 font-bold text-[10px]">✨ Master</span>`;
+      }
+
+      renderCompanyArticlesAccordion();
+    }
+
+    function getArticlesForCompany(companyName) {
+      const targetUpper = (companyName || '').trim().toUpperCase();
+      if (!targetUpper) return [];
+
+      const articleMap = new Map();
+
+      const addItemToMap = (artNo, source, variant) => {
+        if (!artNo) return;
+        if (!articleMap.has(artNo)) {
+          articleMap.set(artNo, {
+            articleNo: artNo,
+            brand: companyName,
+            source: source,
+            variantMap: new Map()
           });
         }
-      });
-
-      const variants = Array.from(variantMap.values());
-      currentSearchedArticle = {
-        articleNo: q,
-        brand: brand,
-        company: brand,
-        source: source,
-        variants: variants
+        const entry = articleMap.get(artNo);
+        const key = `${variant.color}__${variant.size}`;
+        if (!entry.variantMap.has(key)) {
+          entry.variantMap.set(key, variant);
+        }
       };
 
-      renderSearchedArticleVariants();
+      masterItems.forEach(item => {
+        const comp = (item.company || 'FOOTWEAR').trim().toUpperCase();
+        if (comp !== targetUpper) return;
+        const artNo = (item.articleNo || (item.product || '').split(' ')[0] || '').trim().toUpperCase();
+        const color = (item.color || item.group || 'STD').trim().toUpperCase();
+        const size = (item.size || 'STD').trim().toUpperCase();
+        addItemToMap(artNo, 'master', {
+          color: color,
+          size: size,
+          rate: item.rate || 0,
+          mrp: item.mrp || 0,
+          code: item.code || ''
+        });
+      });
+
+      if (Array.isArray(jaTradersMasterItems)) {
+        jaTradersMasterItems.forEach(j => {
+          const comp = (j.company || '').trim().toUpperCase();
+          if (comp !== targetUpper) return;
+          const artNo = (j.article_no || '').trim().toUpperCase();
+          const color = (j.color || 'STD').trim().toUpperCase();
+          const size = (j.size || 'STD').trim().toUpperCase();
+          addItemToMap(artNo, 'ja_traders', {
+            color: color,
+            size: size,
+            rate: Number(j.rate) || Number(j.default_rate) || 0,
+            mrp: Number(j.mrp) || 0,
+            code: `${artNo}-${color}-${size}`
+          });
+        });
+      }
+
+      return Array.from(articleMap.values())
+        .map(entry => ({
+          articleNo: entry.articleNo,
+          brand: entry.brand,
+          source: entry.source,
+          variants: Array.from(entry.variantMap.values())
+        }))
+        .sort((a, b) => a.articleNo.localeCompare(b.articleNo, undefined, { numeric: true }));
     }
 
-    function renderSearchedArticleVariants() {
-      const box = document.getElementById('article-variants-result-box');
-      if (!box || !currentSearchedArticle) return;
-
-      const isJa = currentSearchedArticle.source === 'ja_traders';
-      const sourceBadge = isJa
-        ? `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[10px]">🏢 JA Traders (Fallback)</span>`
-        : `<span class="px-2 py-0.5 rounded bg-teal-100 text-teal-800 border border-teal-300 font-bold text-[10px]">✨ Primary Master</span>`;
-
-      const existing = cloudArticleQrMappings.find(m => m.article_no === currentSearchedArticle.articleNo);
-      const existingNote = existing 
-        ? `<div class="p-2 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 text-[11px] flex items-center gap-1.5">
-             <span>ℹ️</span> <span>Already saved in Cloud (${existing.variants ? existing.variants.length : 0} variants active). Re-saving will update options.</span>
-           </div>`
-        : '';
-
-      box.classList.remove('hidden');
-      box.innerHTML = `
-        <div class="space-y-2.5">
-          <div class="flex items-start justify-between gap-2 pb-2 border-b border-slate-200">
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="font-mono font-black text-amber-700 text-sm">ART: ${escHtml(currentSearchedArticle.articleNo)}</span>
-                ${sourceBadge}
-              </div>
-              <p class="text-xs font-bold text-slate-900 mt-0.5">${escHtml(currentSearchedArticle.brand)}</p>
-            </div>
-            <span class="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[11px] font-bold">
-              ${currentSearchedArticle.variants.length} Variants
-            </span>
-          </div>
-
-          ${existingNote}
-
-          <div class="flex items-center justify-between text-[11px] text-slate-600 px-1">
-            <label class="flex items-center gap-1.5 cursor-pointer font-semibold">
-              <input type="checkbox" id="var-check-all" checked onchange="toggleAllSearchedVariants(this.checked)"
-                class="rounded bg-white border-slate-300 text-teal-600 focus:ring-0">
-              <span>Select All (${currentSearchedArticle.variants.length})</span>
-            </label>
-            <span class="text-[10px] text-slate-400">Edit wholesale rate (₹) if needed</span>
-          </div>
-
-          <!-- Variant list -->
-          <div class="max-h-56 overflow-y-auto space-y-1.5 pr-1 divide-y divide-slate-100">
-            ${currentSearchedArticle.variants.map((v, idx) => {
-              return `
-                <div class="pt-1.5 flex items-center justify-between gap-2 text-xs">
-                  <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
-                    <input type="checkbox" id="var-check-${idx}" checked
-                      class="rounded bg-white border-slate-300 text-teal-600 focus:ring-0">
-                    <div class="truncate">
-                      <span class="font-bold text-slate-800">${escHtml(v.color)}</span>
-                      <span class="ml-1 px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 text-[10px] font-mono font-bold">${escHtml(v.size)}</span>
-                    </div>
-                  </label>
-                  <div class="flex items-center gap-2 shrink-0">
-                    <div class="flex items-center gap-1">
-                      <span class="text-[10px] text-slate-500 font-bold">Rate: ₹</span>
-                      <input type="number" id="var-rate-${idx}" value="${v.rate || 0}" min="0" step="1"
-                        class="w-16 px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono font-bold text-teal-700 text-xs text-right focus:outline-none focus:border-teal-500">
-                    </div>
-                    <span class="text-[10px] text-slate-400 w-12 text-right">MRP ₹${(v.mrp || 0).toFixed(0)}</span>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-
-          <!-- Add to Sheet & Save Button -->
-          <button onclick="addArticleQrToA4Sheet()" id="btn-save-article-qr"
-            class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all">
-            <span>🏷️</span> <span>Save &amp; Add 1 QR Sticker to Sheet</span>
-          </button>
-        </div>
-      `;
+    function buildBrandArticlePayload(brand, articleNo) {
+      return `MARG_ART:${(brand || '').trim()}|${(articleNo || '').trim()}`;
     }
 
-    function toggleAllSearchedVariants(checked) {
-      if (!currentSearchedArticle) return;
-      currentSearchedArticle.variants.forEach((_, idx) => {
-        const el = document.getElementById(`var-check-${idx}`);
+    function findSavedArticleMapping(brand, articleNo) {
+      const targetBrand = (brand || '').trim().toUpperCase();
+      const targetArt = (articleNo || '').trim().toUpperCase();
+      const expectedPayload = buildBrandArticlePayload(brand, articleNo).toUpperCase();
+
+      return cloudArticleQrMappings.find(m => {
+        const p = (m.qr_payload || '').toUpperCase();
+        if (p === expectedPayload) return true;
+        const b = (m.brand || '').trim().toUpperCase();
+        const a = (m.article_no || '').trim().toUpperCase();
+        return b === targetBrand && a === targetArt;
+      }) || null;
+    }
+
+    function handleCompanyArticleFilter(val) {
+      companyArticleFilterQuery = (val || '').trim();
+      const clearBtn = document.getElementById('company-article-filter-clear');
+      if (clearBtn) clearBtn.classList.toggle('hidden', companyArticleFilterQuery.length === 0);
+      renderCompanyArticlesAccordion();
+    }
+
+    function clearCompanyArticleFilter() {
+      const input = document.getElementById('company-article-filter-input');
+      if (input) input.value = '';
+      handleCompanyArticleFilter('');
+    }
+
+    function toggleExpandCompanyArticle(artNo) {
+      if (expandedArticleNo === artNo) {
+        expandedArticleNo = null;
+      } else {
+        expandedArticleNo = artNo;
+      }
+      renderCompanyArticlesAccordion();
+    }
+
+    function toggleAllAccordionVariants(checked) {
+      const art = currentCompanyArticles.find(a => a.articleNo === expandedArticleNo);
+      if (!art) return;
+      art.variants.forEach((_, idx) => {
+        const el = document.getElementById(`acc-var-check-${idx}`);
         if (el) el.checked = checked;
       });
     }
 
-    async function addArticleQrToA4Sheet() {
-      if (!currentSearchedArticle) return;
+    function applyBulkRateToExpandedArticle(val) {
+      const art = currentCompanyArticles.find(a => a.articleNo === expandedArticleNo);
+      if (!art) return;
+      const numVal = val === '' ? '' : parseFloat(val);
+      if (val !== '' && (isNaN(numVal) || numVal < 0)) return;
+      art.variants.forEach((_, idx) => {
+        const rateInput = document.getElementById(`acc-var-rate-${idx}`);
+        if (rateInput && val !== '') {
+          rateInput.value = numVal;
+        }
+      });
+    }
 
+    function renderCompanyArticlesAccordion() {
+      const container = document.getElementById('company-articles-accordion-list');
+      const countBadge = document.getElementById('selected-company-count-badge');
+      if (!container) return;
+
+      currentCompanyArticles = getArticlesForCompany(selectedCompanyKey);
+      const q = companyArticleFilterQuery.toLowerCase();
+      const filtered = q
+        ? currentCompanyArticles.filter(a =>
+            a.articleNo.toLowerCase().includes(q) ||
+            a.variants.some(v => v.color.toLowerCase().includes(q) || v.size.toLowerCase().includes(q))
+          )
+        : currentCompanyArticles;
+
+      if (countBadge) {
+        countBadge.innerText = q
+          ? `${filtered.length} / ${currentCompanyArticles.length} Articles`
+          : `${currentCompanyArticles.length} Articles`;
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="py-6 text-center text-xs text-slate-400">
+            No articles found for "${escHtml(companyArticleFilterQuery || selectedCompanyKey)}".
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(article => {
+        const isExpanded = expandedArticleNo === article.articleNo;
+        const saved = findSavedArticleMapping(selectedCompanyKey, article.articleNo);
+        const expectedPayload = saved?.qr_payload || buildBrandArticlePayload(selectedCompanyKey, article.articleNo);
+        const onSheetCount = selectedArticleQrs.filter(item => item.qrPayload === expectedPayload).length;
+
+        const savedBadge = saved
+          ? `<span class="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[10px]">✅ Saved</span>`
+          : '';
+        const sheetBadge = onSheetCount > 0
+          ? `<span class="px-1.5 py-0.5 rounded bg-teal-600 text-white font-bold text-[10px]">On Sheet ×${onSheetCount}</span>`
+          : '';
+        const quickSheetBtn = saved
+          ? `<button type="button" data-payload="${escHtml(expectedPayload)}"
+               onclick="event.stopPropagation(); addSavedArticleToSheetByPayload(this.dataset.payload)"
+               class="px-2 py-0.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 font-bold text-[10px] shrink-0">
+               + Sheet
+             </button>`
+          : '';
+
+        let expandedHtml = '';
+        if (isExpanded) {
+          const savedMap = new Map();
+          if (saved && Array.isArray(saved.variants)) {
+            saved.variants.forEach(sv => {
+              const key = `${(sv.color || '').toUpperCase()}__${(sv.size || '').toUpperCase()}`;
+              savedMap.set(key, sv);
+            });
+          }
+
+          expandedHtml = `
+            <div class="border-t border-slate-200 bg-slate-50/70 p-2.5 space-y-2.5">
+              <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600">
+                <label class="flex items-center gap-1.5 cursor-pointer font-semibold">
+                  <input type="checkbox" id="acc-var-check-all" checked onchange="toggleAllAccordionVariants(this.checked)"
+                    class="rounded bg-white border-slate-300 text-teal-600 focus:ring-0">
+                  <span>Select All (${article.variants.length})</span>
+                </label>
+                <div class="flex items-center gap-1">
+                  <span class="text-[10px] font-bold text-slate-500">Apply Rate to All: ₹</span>
+                  <input type="number" id="acc-bulk-rate" min="0" step="1" placeholder="Rate"
+                    oninput="applyBulkRateToExpandedArticle(this.value)"
+                    class="w-16 px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono font-bold text-teal-700 text-xs text-right focus:outline-none focus:border-teal-500">
+                </div>
+              </div>
+
+              <div class="max-h-52 overflow-y-auto space-y-1.5 pr-1 divide-y divide-slate-200/70">
+                ${article.variants.map((v, idx) => {
+                  const key = `${v.color}__${v.size}`;
+                  const savedVar = savedMap.get(key);
+                  const isChecked = savedMap.size > 0 ? Boolean(savedVar) : true;
+                  const initRate = savedVar && savedVar.rate != null ? savedVar.rate : (v.rate || 0);
+
+                  return `
+                    <div class="pt-1.5 flex items-center justify-between gap-2 text-xs">
+                      <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                        <input type="checkbox" id="acc-var-check-${idx}" ${isChecked ? 'checked' : ''}
+                          class="rounded bg-white border-slate-300 text-teal-600 focus:ring-0">
+                        <div class="truncate">
+                          <span class="font-bold text-slate-800">${escHtml(v.color)}</span>
+                          <span class="ml-1 px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px] font-mono font-bold">${escHtml(v.size)}</span>
+                        </div>
+                      </label>
+                      <div class="flex items-center gap-2 shrink-0">
+                        <div class="flex items-center gap-1">
+                          <span class="text-[10px] text-slate-500 font-bold">₹</span>
+                          <input type="number" id="acc-var-rate-${idx}" value="${initRate}" min="0" step="1"
+                            class="w-16 px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono font-bold text-teal-700 text-xs text-right focus:outline-none focus:border-teal-500">
+                        </div>
+                        <span class="text-[10px] text-slate-400 w-12 text-right">MRP ₹${(v.mrp || 0).toFixed(0)}</span>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+
+              <button type="button" id="btn-acc-save-qr" data-art="${escHtml(article.articleNo)}"
+                onclick="saveAndAddExpandedArticleQr(this.dataset.art)"
+                class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all">
+                <span>🏷️</span> <span>Save &amp; Add 1 QR Sticker to Sheet</span>
+              </button>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="rounded-xl bg-white border ${isExpanded ? 'border-teal-500 ring-1 ring-teal-500/25 shadow-sm' : 'border-slate-200 hover:border-slate-300'} overflow-hidden transition-all">
+            <div data-art="${escHtml(article.articleNo)}" onclick="toggleExpandCompanyArticle(this.dataset.art)"
+              class="px-3 py-2.5 flex items-center justify-between gap-2 cursor-pointer select-none ${isExpanded ? 'bg-teal-50/50' : ''}">
+              <div class="flex items-center gap-2 min-w-0 flex-1">
+                <span class="text-[10px] font-bold text-slate-400">${isExpanded ? '▼' : '▶'}</span>
+                <span class="font-mono font-black text-amber-700 text-xs truncate">ART: ${escHtml(article.articleNo)}</span>
+                <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold shrink-0">${article.variants.length} Var.</span>
+                ${savedBadge}
+                ${sheetBadge}
+              </div>
+              ${quickSheetBtn}
+            </div>
+            ${expandedHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function saveAndAddExpandedArticleQr(articleNo) {
+      const articleObj = currentCompanyArticles.find(a => a.articleNo === articleNo);
+      if (!articleObj) return;
+
+      const brand = selectedCompanyKey || articleObj.brand;
       const selectedVariants = [];
-      currentSearchedArticle.variants.forEach((v, idx) => {
-        const checkEl = document.getElementById(`var-check-${idx}`);
+      articleObj.variants.forEach((v, idx) => {
+        const checkEl = document.getElementById(`acc-var-check-${idx}`);
         if (checkEl && checkEl.checked) {
-          const rateInput = document.getElementById(`var-rate-${idx}`);
-          const customRate = rateInput ? (parseFloat(rateInput.value) || 0) : v.rate;
+          const rateInput = document.getElementById(`acc-var-rate-${idx}`);
+          const customRate = rateInput ? (parseFloat(rateInput.value) || 0) : (v.rate || 0);
+          const itemCode = v.code || `${articleObj.articleNo}-${v.color}-${v.size}`;
           selectedVariants.push({
+            item_code: itemCode,
+            code: itemCode,
             color: v.color,
             size: v.size,
             rate: customRate,
             mrp: v.mrp || 0,
-            code: v.code || ""
+            company: brand,
+            product_name: `${articleObj.articleNo} ${v.color} ${v.size}`.trim()
           });
         }
       });
@@ -3604,24 +3887,25 @@
         return;
       }
 
-      const saveBtn = document.getElementById('btn-save-article-qr');
+      const saveBtn = document.getElementById('btn-acc-save-qr');
       if (saveBtn) {
         saveBtn.disabled = true;
         saveBtn.innerHTML = `<span>⏳</span> <span>Saving to Cloud...</span>`;
       }
 
+      const qrPayload = buildBrandArticlePayload(brand, articleObj.articleNo);
       const mapping = {
         shop_id: 'anchar',
-        article_no: currentSearchedArticle.articleNo,
-        brand: currentSearchedArticle.brand,
-        qr_payload: `MARG_ART:${currentSearchedArticle.articleNo}`,
+        article_no: articleObj.articleNo,
+        brand: brand,
+        qr_payload: qrPayload,
         variants: selectedVariants,
-        source: currentSearchedArticle.source
+        source: articleObj.source
       };
 
       if (IS_CLOUD) {
         try {
-          const res = await fetch(`${SUPABASE_URL}/rest/v1/article_qr_mappings`, {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/article_qr_mappings?on_conflict=qr_payload`, {
             method: 'POST',
             headers: {
               ...sbHeaders(),
@@ -3637,7 +3921,11 @@
         }
       }
 
-      const existIdx = cloudArticleQrMappings.findIndex(m => m.article_no === mapping.article_no);
+      const existIdx = cloudArticleQrMappings.findIndex(m =>
+        (m.qr_payload || '').toUpperCase() === qrPayload.toUpperCase() ||
+        ((m.brand || '').trim().toUpperCase() === brand.toUpperCase() &&
+          (m.article_no || '').trim().toUpperCase() === articleObj.articleNo.toUpperCase())
+      );
       if (existIdx >= 0) {
         cloudArticleQrMappings[existIdx] = { ...cloudArticleQrMappings[existIdx], ...mapping };
       } else {
@@ -3646,11 +3934,11 @@
 
       selectedArticleQrs.push({
         isArticleQr: true,
-        articleNo: currentSearchedArticle.articleNo,
-        brand: currentSearchedArticle.brand,
-        company: currentSearchedArticle.brand,
-        qrPayload: `MARG_ART:${currentSearchedArticle.articleNo}`,
-        code: `ART: ${currentSearchedArticle.articleNo}`
+        articleNo: articleObj.articleNo,
+        brand: brand,
+        company: brand,
+        qrPayload: qrPayload,
+        code: `ART: ${articleObj.articleNo}`
       });
 
       if (saveBtn) {
@@ -3658,17 +3946,9 @@
         saveBtn.innerHTML = `<span>🏷️</span> <span>Save &amp; Add 1 QR Sticker to Sheet</span>`;
       }
 
+      renderCompanyArticlesAccordion();
       renderSavedArticleQrs();
       renderA4PreviewSheet();
-
-      const box = document.getElementById('article-variants-result-box');
-      if (box) {
-        const toast = document.createElement('div');
-        toast.className = "p-2 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold text-center";
-        toast.innerText = `✅ Article "${currentSearchedArticle.articleNo}" saved & 1 QR code added to A4 Sheet!`;
-        box.prepend(toast);
-        setTimeout(() => toast.remove(), 3500);
-      }
     }
 
     function renderSavedArticleQrs() {
@@ -3682,17 +3962,18 @@
 
       if (cloudArticleQrMappings.length === 0) {
         container.innerHTML = `
-          <p class="text-xs text-slate-400 py-4 text-center">No article QRs configured yet. Search and add an article above.</p>
+          <p class="text-xs text-slate-400 py-4 text-center">No article QRs configured yet. Select a company &amp; expand an article above.</p>
         `;
         return;
       }
 
       container.innerHTML = cloudArticleQrMappings.map(item => {
         const varCount = Array.isArray(item.variants) ? item.variants.length : 0;
-        const isJa = item.source === 'ja_traders' || (item.brand && item.brand.includes('JA Traders'));
-        const sourceBadge = isJa 
+        const isJa = item.source === 'ja_traders' || (item.brand && item.brand.toUpperCase().includes('JA TRADERS'));
+        const sourceBadge = isJa
           ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">JA Traders</span>`
           : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">Master</span>`;
+        const payload = item.qr_payload || buildBrandArticlePayload(item.brand || '', item.article_no || '');
 
         return `
           <div class="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all flex items-center justify-between gap-2 shadow-sm">
@@ -3705,11 +3986,11 @@
               <div class="text-[10px] text-slate-500">${varCount} variant(s) available for retailers</div>
             </div>
             <div class="flex items-center gap-1 shrink-0">
-              <button onclick="addSavedArticleToSheet('${escHtml(item.article_no)}')" title="Add 1 QR sticker to A4 Sheet"
+              <button data-payload="${escHtml(payload)}" onclick="addSavedArticleToSheetByPayload(this.dataset.payload)" title="Add 1 QR sticker to A4 Sheet"
                 class="px-2 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-[11px] border border-teal-200 transition-all">
                 + Add Sheet
               </button>
-              <button onclick="deleteArticleQrMapping('${escHtml(item.article_no)}')" title="Delete configured article"
+              <button data-payload="${escHtml(payload)}" onclick="deleteArticleQrMappingByPayload(this.dataset.payload)" title="Delete configured article"
                 class="p-1 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-all">
                 🗑️
               </button>
@@ -3719,8 +4000,12 @@
       }).join('');
     }
 
-    function addSavedArticleToSheet(artNo) {
-      const item = cloudArticleQrMappings.find(m => m.article_no === artNo);
+    function addSavedArticleToSheetByPayload(qrPayload) {
+      const targetUpper = (qrPayload || '').toUpperCase();
+      const item = cloudArticleQrMappings.find(m => {
+        const p = (m.qr_payload || buildBrandArticlePayload(m.brand || '', m.article_no || '')).toUpperCase();
+        return p === targetUpper;
+      });
       if (!item) return;
 
       selectedArticleQrs.push({
@@ -3728,31 +4013,51 @@
         articleNo: item.article_no,
         brand: item.brand,
         company: item.brand,
-        qrPayload: item.qr_payload || `MARG_ART:${item.article_no}`,
+        qrPayload: item.qr_payload || qrPayload,
         code: `ART: ${item.article_no}`
       });
 
+      if (selectedCompanyKey) renderCompanyArticlesAccordion();
       renderA4PreviewSheet();
     }
 
-    async function deleteArticleQrMapping(artNo) {
-      if (!confirm(`Are you sure you want to delete the Article QR mapping for "${artNo}"? Retailers won't be able to scan and order this article QR until re-added.`)) {
+    async function deleteArticleQrMappingByPayload(qrPayload) {
+      const targetUpper = (qrPayload || '').toUpperCase();
+      const item = cloudArticleQrMappings.find(m => {
+        const p = (m.qr_payload || buildBrandArticlePayload(m.brand || '', m.article_no || '')).toUpperCase();
+        return p === targetUpper;
+      });
+      if (!item) return;
+
+      if (!confirm(`Are you sure you want to delete "${item.brand} - ${item.article_no}"? Retailers won't be able to order this QR until re-added.`)) {
         return;
       }
 
       if (IS_CLOUD) {
         try {
-          await fetch(`${SUPABASE_URL}/rest/v1/article_qr_mappings?shop_id=eq.anchar&article_no=eq.${encodeURIComponent(artNo)}`, {
-            method: 'DELETE',
-            headers: sbHeaders()
-          });
+          if (item.qr_payload) {
+            await fetch(`${SUPABASE_URL}/rest/v1/article_qr_mappings?qr_payload=eq.${encodeURIComponent(item.qr_payload)}`, {
+              method: 'DELETE',
+              headers: sbHeaders()
+            });
+          } else {
+            await fetch(`${SUPABASE_URL}/rest/v1/article_qr_mappings?shop_id=eq.anchar&article_no=eq.${encodeURIComponent(item.article_no)}`, {
+              method: 'DELETE',
+              headers: sbHeaders()
+            });
+          }
         } catch (e) {
           console.warn("Delete mapping error:", e);
         }
       }
 
-      cloudArticleQrMappings = cloudArticleQrMappings.filter(m => m.article_no !== artNo);
-      selectedArticleQrs = selectedArticleQrs.filter(q => q.articleNo !== artNo);
+      cloudArticleQrMappings = cloudArticleQrMappings.filter(m => {
+        const p = (m.qr_payload || buildBrandArticlePayload(m.brand || '', m.article_no || '')).toUpperCase();
+        return p !== targetUpper;
+      });
+      selectedArticleQrs = selectedArticleQrs.filter(q => (q.qrPayload || '').toUpperCase() !== targetUpper);
+
+      if (selectedCompanyKey) renderCompanyArticlesAccordion();
       renderSavedArticleQrs();
       renderA4PreviewSheet();
     }
@@ -3780,7 +4085,20 @@
         document.addEventListener('keydown', handlePrintGlobalKeyDown);
         printStudioInitialized = true;
       }
+      if (!companyOutsideClickBound) {
+        document.addEventListener('click', (e) => {
+          const wrap = document.getElementById('article-company-selector-wrap');
+          if (wrap && !wrap.contains(e.target)) {
+            closeCompanyDropdown();
+          }
+        });
+        companyOutsideClickBound = true;
+      }
       syncPrintGridUi();
+      renderCompanyDropdownList();
+      if (selectedCompanyKey) {
+        renderCompanyArticlesAccordion();
+      }
       renderSavedArticleQrs();
       renderPrintItemsList();
       renderA4PreviewSheet();
@@ -4062,6 +4380,7 @@
     function clearPrintSelection() {
       if (printStudioMode === 'article') {
         selectedArticleQrs = [];
+        if (selectedCompanyKey) renderCompanyArticlesAccordion();
         renderA4PreviewSheet();
       } else {
         selectedPrintCodes.clear();
@@ -4199,7 +4518,7 @@
                   <div style="font-family: monospace; font-size: 15px; font-weight: 900; color: #000; letter-spacing: 0.5px;">${escHtml(artText)}</div>
                   <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; color: #222; margin-top: 2px;">BRAND: ${escHtml(brandName)}</div>
                   <div style="font-size: 9.5px; font-weight: 700; color: #444; margin-top: 3px;">EVENT SAMPLE • SCAN IN APP TO BOOK PAIRS</div>
-                  <div style="font-family: monospace; font-size: 9px; color: #666; margin-top: 2px;">SCAN: MARG_ART:${escHtml(item.articleNo)}</div>
+                  <div style="font-family: monospace; font-size: 9px; color: #666; margin-top: 2px;">SCAN: ${escHtml(item.qrPayload || `MARG_ART:${item.articleNo}`)}</div>
                 </div>
               </div>
             </div>

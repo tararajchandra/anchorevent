@@ -17,15 +17,38 @@ class ArticleQrVariantEntity {
     required this.productName,
   });
 
-  factory ArticleQrVariantEntity.fromJson(Map<String, dynamic> json) {
+  factory ArticleQrVariantEntity.fromJson(
+    Map<String, dynamic> json, {
+    String fallbackCompany = '',
+    String fallbackArticleNo = '',
+  }) {
+    final color = (json['color'] ?? '').toString();
+    final size = (json['size'] ?? '').toString();
+    final rawCode =
+        (json['item_code'] ?? json['itemCode'] ?? json['code'] ?? '')
+            .toString();
+    final resolvedCode = rawCode.isNotEmpty
+        ? rawCode
+        : (fallbackArticleNo.isNotEmpty
+            ? '$fallbackArticleNo-$color-$size'
+            : '');
+    final rawCompany = (json['company'] ?? '').toString();
+    final resolvedCompany =
+        rawCompany.isNotEmpty ? rawCompany : fallbackCompany;
+    final rawProduct =
+        (json['product_name'] ?? json['productName'] ?? '').toString();
+    final resolvedProduct = rawProduct.isNotEmpty
+        ? rawProduct
+        : '$fallbackArticleNo $color $size'.trim();
+
     return ArticleQrVariantEntity(
-      itemCode: (json['item_code'] ?? json['itemCode'] ?? '').toString(),
-      color: (json['color'] ?? '').toString(),
-      size: (json['size'] ?? '').toString(),
+      itemCode: resolvedCode,
+      color: color,
+      size: size,
       rate: (json['rate'] as num? ?? 0.0).toDouble(),
       mrp: (json['mrp'] as num? ?? 0.0).toDouble(),
-      company: (json['company'] ?? '').toString(),
-      productName: (json['product_name'] ?? json['productName'] ?? '').toString(),
+      company: resolvedCompany,
+      productName: resolvedProduct,
     );
   }
 
@@ -58,19 +81,28 @@ class ArticleQrMappingEntity {
   });
 
   factory ArticleQrMappingEntity.fromJson(Map<String, dynamic> json) {
+    final articleNo =
+        (json['article_no'] ?? json['articleNo'] ?? '').toString();
+    final brand = (json['brand'] ?? '').toString();
     final rawVariants = json['variants'];
     final parsedVariants = <ArticleQrVariantEntity>[];
     if (rawVariants is List) {
       for (final v in rawVariants) {
         if (v is Map<String, dynamic>) {
-          parsedVariants.add(ArticleQrVariantEntity.fromJson(v));
+          parsedVariants.add(
+            ArticleQrVariantEntity.fromJson(
+              v,
+              fallbackCompany: brand,
+              fallbackArticleNo: articleNo,
+            ),
+          );
         }
       }
     }
 
     return ArticleQrMappingEntity(
-      articleNo: (json['article_no'] ?? json['articleNo'] ?? '').toString(),
-      brand: (json['brand'] ?? '').toString(),
+      articleNo: articleNo,
+      brand: brand,
       qrPayload: (json['qr_payload'] ?? json['qrPayload'] ?? '').toString(),
       variants: parsedVariants,
       source: (json['source'] ?? 'marg').toString(),

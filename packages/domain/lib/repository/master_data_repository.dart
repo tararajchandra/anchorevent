@@ -512,6 +512,25 @@ class MasterDataRepository {
     return PartyLedgerConverter.fromCsvRows(rows);
   }
 
+  void _indexArticleMapping(ArticleQrMappingEntity mapping) {
+    if (mapping.qrPayload.isNotEmpty) {
+      _articleQrMappings[mapping.qrPayload] = mapping;
+      _articleQrMappings[mapping.qrPayload.toUpperCase()] = mapping;
+    }
+    if (mapping.brand.isNotEmpty && mapping.articleNo.isNotEmpty) {
+      final brandArtKey =
+          '${mapping.brand.toUpperCase()}|${mapping.articleNo.toUpperCase()}';
+      _articleQrMappings[brandArtKey] = mapping;
+      _articleQrMappings['MARG_ART:$brandArtKey'] = mapping;
+    }
+    if (mapping.articleNo.isNotEmpty) {
+      _articleQrMappings.putIfAbsent(
+        mapping.articleNo.toUpperCase(),
+        () => mapping,
+      );
+    }
+  }
+
   void _loadStoredArticleQrMappings() {
     final rawJson = LocalStorage.instance.readString(
       StorageKeyConsts.articleQrMappingsJson,
@@ -525,9 +544,8 @@ class MasterDataRepository {
         for (final item in decoded) {
           if (item is Map<String, dynamic>) {
             final mapping = ArticleQrMappingEntity.fromJson(item);
-            if (mapping.qrPayload.isNotEmpty) {
-              _articleQrMappings[mapping.qrPayload] = mapping;
-              _articleQrMappings[mapping.articleNo] = mapping;
+            if (mapping.qrPayload.isNotEmpty || mapping.articleNo.isNotEmpty) {
+              _indexArticleMapping(mapping);
             }
           }
         }
@@ -552,9 +570,8 @@ class MasterDataRepository {
     if (cloudList != null && cloudList.isNotEmpty) {
       for (final row in cloudList) {
         final mapping = ArticleQrMappingEntity.fromJson(row);
-        if (mapping.qrPayload.isNotEmpty) {
-          _articleQrMappings[mapping.qrPayload] = mapping;
-          _articleQrMappings[mapping.articleNo] = mapping;
+        if (mapping.qrPayload.isNotEmpty || mapping.articleNo.isNotEmpty) {
+          _indexArticleMapping(mapping);
         }
       }
       await _persistArticleQrMappings();
@@ -572,13 +589,21 @@ class MasterDataRepository {
     if (_articleQrMappings.containsKey(trimmed)) {
       return _articleQrMappings[trimmed];
     }
-    if (trimmed.startsWith('MARG_ART:')) {
-      final artNo = trimmed.substring('MARG_ART:'.length).trim();
-      if (_articleQrMappings.containsKey(artNo)) {
-        return _articleQrMappings[artNo];
+    final upper = trimmed.toUpperCase();
+    if (_articleQrMappings.containsKey(upper)) {
+      return _articleQrMappings[upper];
+    }
+    if (upper.startsWith('MARG_ART:')) {
+      final payload = trimmed.substring('MARG_ART:'.length).trim();
+      if (_articleQrMappings.containsKey(payload)) {
+        return _articleQrMappings[payload];
+      }
+      final upperPayload = payload.toUpperCase();
+      if (_articleQrMappings.containsKey(upperPayload)) {
+        return _articleQrMappings[upperPayload];
       }
     }
-    final withPrefix = 'MARG_ART:$trimmed';
+    final withPrefix = 'MARG_ART:$upper';
     if (_articleQrMappings.containsKey(withPrefix)) {
       return _articleQrMappings[withPrefix];
     }
