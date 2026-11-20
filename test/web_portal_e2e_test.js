@@ -97,5 +97,45 @@ assert.strictEqual(singleItems[0].totalAmount, 5000);
 vm.runInContext("toggleRetailerItemsExpand('9830012345')", sandbox);
 assert.strictEqual(vm.runInContext("expandedRetailerPhones.has('9830012345')", sandbox), true);
 
+// Verify that owner-retailer-filter from Tab 1 does not leak into Reports & Analytics
+vm.runInContext(`
+  syncedOrders.push({
+    orderNo: 'ORD-102',
+    orderDate: '2026-11-18',
+    createdTime: '11:00 AM',
+    partyName: 'ALPONA SHOE HOUSE',
+    retailerPhone: '7063326901',
+    items: [
+      { itemCode: '5221', productName: '5221 L. GRY', company: 'N FASHION', qty: 72, rate: 220, mrp: 250 }
+    ]
+  });
+  // Simulate Tab 1 filter set to ROY FOOTWEAR
+  document.getElementById = (id) => {
+    if (id === 'owner-retailer-filter') return { value: 'ROY FOOTWEAR' };
+    if (id === 'reports-retailer-challan-filter') return { value: 'ALL' };
+    return {
+      classList: { contains: () => false, add: () => {}, remove: () => {}, toggle: () => {} },
+      innerText: '',
+      innerHTML: '',
+      value: ''
+    };
+  };
+`, sandbox);
+
+const multiRetData = vm.runInContext("getReportDataAndCsv('retailer')", sandbox);
+assert.strictEqual(
+  multiRetData.rows.length,
+  2,
+  'Reports tab must show all retailers when reports filter is ALL',
+);
+assert(
+  multiRetData.rows.some(r => r.retailerName === 'ALPONA SHOE HOUSE'),
+  'ALPONA SHOE HOUSE must be included',
+);
+assert(
+  multiRetData.rows.some(r => r.retailerName === 'ROY FOOTWEAR'),
+  'ROY FOOTWEAR must be included',
+);
+
 vm.runInContext("renderReportsTab()", sandbox);
 console.log('✓ Full web_portal end-to-end report calculations & table render passed 100%!');

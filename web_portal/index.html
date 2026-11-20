@@ -822,7 +822,7 @@
             <input type="text" id="reports-search-input" oninput="renderReportsTable()" placeholder="Search this report table..."
               class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-teal-500 transition-all">
           </div>
-          <select id="reports-retailer-challan-filter" onchange="renderReportsTable()"
+          <select id="reports-retailer-challan-filter" onchange="renderReportsTab()"
             class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-teal-700 font-semibold focus:outline-none focus:border-teal-500">
             <option value="ALL">🏪 All Retailers (Consolidated)</option>
           </select>
@@ -1934,9 +1934,22 @@
       renderReportsTable();
     }
 
+    function getOrdersForReport() {
+      const challanFilterEl = document.getElementById('reports-retailer-challan-filter');
+      const selectedKey = challanFilterEl ? (challanFilterEl.value || 'ALL') : 'ALL';
+      if (!selectedKey || selectedKey === 'ALL') return syncedOrders;
+      return syncedOrders.filter(o => {
+        const rawPhone = String(o.retailerPhone ?? '').trim();
+        const hasPhone = rawPhone.length > 0 && rawPhone !== 'N/A' && rawPhone !== 'App User';
+        const partyName = (o.partyName || 'RETAILER').trim();
+        const groupKey = hasPhone ? `PHONE:${rawPhone}` : `PARTY:${partyName.toUpperCase()}`;
+        const filterKey = hasPhone ? rawPhone : groupKey;
+        return filterKey === selectedKey || rawPhone === selectedKey || groupKey === selectedKey;
+      });
+    }
+
     function downloadSingleRetailerChallanCsv(phone, retailerName) {
-      const orders = getFilteredOwnerOrders();
-      const rows = calculateRetailerItemChallan(orders, masterItems, phone);
+      const rows = calculateRetailerItemChallan(syncedOrders, masterItems, phone);
       const csv = buildRetailerItemChallanCsv(rows, true);
       const safeName = sanitizeFilenamePart(retailerName);
       const safePhone = sanitizeFilenamePart(phone);
@@ -1944,7 +1957,7 @@
     }
 
     function getReportDataAndCsv(reportType) {
-      const orders = getFilteredOwnerOrders();
+      const orders = syncedOrders;
       const challanFilterEl = document.getElementById('reports-retailer-challan-filter');
       const selectedPhone = challanFilterEl ? (challanFilterEl.value || 'ALL') : 'ALL';
       let rows = [];
@@ -1970,7 +1983,8 @@
             : 'RETAILER_ITEM_CHALLAN_REGISTER.csv';
           break;
         case 'company':
-          rows = calculateCompanyWiseReport(orders, masterItems);
+          const compOrders = getOrdersForReport();
+          rows = calculateCompanyWiseReport(compOrders, masterItems);
           csv = buildCompanyWiseCsv(rows);
           filename = 'COMPANY_WISE_ORDERS.csv';
           break;
@@ -1985,7 +1999,8 @@
           filename = 'ORDER_VALUE_SUMMARY.csv';
           break;
         case 'article':
-          rows = calculateArticleWiseReport(orders, masterItems);
+          const artOrders = getOrdersForReport();
+          rows = calculateArticleWiseReport(artOrders, masterItems);
           csv = buildArticleWiseCsv(rows);
           filename = 'ARTICLE_WISE_SALES.csv';
           break;
@@ -2051,7 +2066,7 @@
     }
 
     function renderReportsKpi() {
-      const orders = getFilteredOwnerOrders();
+      const orders = getOrdersForReport();
       const kpiContainer = document.getElementById('reports-kpi-bar');
       if (!kpiContainer) return;
 
@@ -2170,7 +2185,7 @@
       let tableHtml = '';
 
       if (currentReportSubTab === 'retailer') {
-        const orders = getFilteredOwnerOrders();
+        const orders = syncedOrders;
         tableHtml = `
           <table class="w-full text-left border-collapse text-xs">
             <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] sticky top-0 border-b border-slate-200">
