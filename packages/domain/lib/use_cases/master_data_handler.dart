@@ -1,6 +1,7 @@
 import 'package:services/services.dart';
 
 import '../models/dealer/entity/dealer_profile_entity.dart';
+import '../models/item/entity/article_qr_mapping_entity.dart';
 import '../models/item/entity/footwear_item_entity.dart';
 import '../models/party/entity/party_ledger_entity.dart';
 import '../models/scheme/entity/booking_scheme_entity.dart';
@@ -85,6 +86,17 @@ class MasterDataHandler with ServiceStateMixin<List<FootwearItemEntity>> {
 
   FootwearItemEntity? lookupByBarcodeOrCode(String rawInput) {
     return MasterDataRepository.instance.findItemByBarcodeOrCode(rawInput);
+  }
+
+  Future<ServiceResponse<List<ArticleQrMappingEntity>>>
+      fetchArticleQrMappings() async {
+    return serviceObserver(() async {
+      return MasterDataRepository.instance.loadArticleQrMappings();
+    });
+  }
+
+  ArticleQrMappingEntity? lookupArticleQrMapping(String rawInput) {
+    return MasterDataRepository.instance.findArticleQrMapping(rawInput);
   }
 
   Map<String, String> get currentBarcodeMappings =>

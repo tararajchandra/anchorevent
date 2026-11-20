@@ -13,6 +13,48 @@ class ScannerBillingView extends StatelessWidget {
     required this.controller,
   });
 
+  Future<void> _handleBarcode(BuildContext context, String rawBarcode) async {
+    final artMapping = controller.lookupArticleMapping(rawBarcode);
+    if (artMapping != null && artMapping.variants.isNotEmpty) {
+      await controller.playScanBeep();
+      final initialList = artMapping.variants
+          .map(
+            (v) => ArticleVariantBookingItem(
+              itemCode: v.itemCode,
+              color: v.color,
+              size: v.size,
+              rate: v.rate,
+              mrp: v.mrp,
+              company: v.company.isNotEmpty ? v.company : artMapping.brand,
+              productName: v.productName,
+              isSelected: true,
+              qtyPairs: 12,
+            ),
+          )
+          .toList();
+
+      if (!context.mounted) {
+        return;
+      }
+      final selected = await ArticleVariantSelectionSheet.show(
+        context: context,
+        brand: artMapping.brand,
+        articleNo: artMapping.articleNo,
+        initialVariants: initialList,
+      );
+
+      if (selected != null && selected.isNotEmpty && context.mounted) {
+        controller.addArticleVariantsToCart(selected);
+        AppSnackBar.showSuccess(
+          context,
+          'Added ${selected.length} variant(s) for Art ${artMapping.articleNo}!',
+        );
+      }
+    } else {
+      controller.handleCameraBarcodeDetected(rawBarcode);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -34,7 +76,7 @@ class ScannerBillingView extends StatelessWidget {
                   scannedProductLabel: label,
                   onToggleCamera: () =>
                       controller.isLiveCameraActive.value = !isCameraOn,
-                  onBarcodeDetected: controller.handleCameraBarcodeDetected,
+                  onBarcodeDetected: (barcode) => _handleBarcode(context, barcode),
                   onSimulateKnownScan: controller.simulateKnownBarcodeScan,
                   onSimulateUnlinkedScan:
                       controller.simulateUnlinkedBarcodeScan,

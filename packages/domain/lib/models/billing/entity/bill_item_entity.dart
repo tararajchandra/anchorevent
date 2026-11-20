@@ -1,3 +1,4 @@
+import '../../item/entity/article_qr_mapping_entity.dart';
 import '../../item/entity/footwear_item_entity.dart';
 
 class BillItemEntity {
@@ -36,6 +37,26 @@ class BillItemEntity {
       qtyPairs: qtyPairs,
       rate: item.effectiveRate,
       mrp: item.mrp,
+    );
+  }
+
+  factory BillItemEntity.fromArticleVariant({
+    required ArticleQrVariantEntity variant,
+    required int qtyPairs,
+  }) {
+    final effectiveRate = variant.rate > 0 ? variant.rate : variant.mrp;
+    final displayName = variant.productName.isNotEmpty
+        ? variant.productName
+        : '${variant.color} ${variant.size}';
+    return BillItemEntity(
+      itemCode: variant.itemCode,
+      barcode: variant.itemCode,
+      productName: displayName,
+      company: variant.company,
+      unit: 'PAIR',
+      qtyPairs: qtyPairs,
+      rate: effectiveRate,
+      mrp: variant.mrp > 0 ? variant.mrp : effectiveRate,
     );
   }
 

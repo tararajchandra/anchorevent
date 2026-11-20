@@ -3,6 +3,7 @@ export 'models/billing/entity/bill_item_entity.dart';
 export 'models/billing/entity/sales_bill_entity.dart';
 export 'models/dealer/entity/dealer_profile_entity.dart';
 export 'models/item/converter/footwear_item_converter.dart';
+export 'models/item/entity/article_qr_mapping_entity.dart';
 export 'models/item/entity/footwear_item_entity.dart';
 export 'models/party/converter/party_ledger_converter.dart';
 export 'models/party/entity/party_ledger_entity.dart';

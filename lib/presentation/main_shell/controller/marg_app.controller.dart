@@ -168,6 +168,8 @@ class MargAppController extends ReactiveController {
     final loadedItems = itemsResp.data ?? <FootwearItemEntity>[];
     _replaceAll(masterItems, loadedItems);
 
+    await MasterDataHandler.instance.fetchArticleQrMappings();
+
     if (loadedItems.isNotEmpty) {
       activeScannedItem.value = null;
       cartItems.clear();
@@ -418,6 +420,46 @@ class MargAppController extends ReactiveController {
       await SystemSound.play(SystemSoundType.click);
       await _beepChannel.invokeMethod<bool>('playShutterClick');
     } catch (_) {}
+  }
+
+  ArticleQrMappingEntity? lookupArticleMapping(String raw) {
+    return MasterDataHandler.instance.lookupArticleQrMapping(raw);
+  }
+
+  Future<void> playScanBeep() => _playScanBeep();
+
+  void addArticleVariantsToCart(List<ArticleVariantBookingItem> variants) {
+    for (final v in variants) {
+      if (!v.isSelected || v.qtyPairs <= 0) {
+        continue;
+      }
+      final existingIdx =
+          cartItems.indexWhere((element) => element.itemCode == v.itemCode);
+      if (existingIdx >= 0) {
+        final current = cartItems[existingIdx];
+        cartItems[existingIdx] =
+            current.copyWithQty(current.qtyPairs + v.qtyPairs);
+      } else {
+        final effRate = v.rate > 0 ? v.rate : v.mrp;
+        final displayName = v.productName.isNotEmpty
+            ? v.productName
+            : '${v.color} ${v.size}';
+        cartItems.add(
+          BillItemEntity(
+            itemCode: v.itemCode,
+            barcode: v.itemCode,
+            productName: displayName,
+            company: v.company,
+            unit: 'PAIR',
+            qtyPairs: v.qtyPairs,
+            rate: effRate,
+            mrp: v.mrp > 0 ? v.mrp : effRate,
+          ),
+        );
+      }
+    }
+    _playShutterClick();
+    recalculateSchemeProgress();
   }
 
   void handleCameraBarcodeDetected(String rawBarcode) {

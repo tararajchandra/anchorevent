@@ -12,4 +12,5 @@ class StorageKeyConsts {
   static const String activeDealerAddress = 'marg_active_dealer_address';
   static const String isDealerLoggedIn = 'marg_is_dealer_logged_in';
   static const String registeredDealersJson = 'marg_registered_dealers_v1';
+  static const String articleQrMappingsJson = 'marg_article_qr_mappings_v1';
 }

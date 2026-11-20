@@ -307,6 +307,52 @@ class RestApi {
     return ServiceResponse<String>.success(data: 'v1.0.0');
   }
 
+  Future<ServiceResponse<List<Map<String, dynamic>>>>
+      fetchCloudArticleQrMappings() async {
+    if (isCloudConfigured) {
+      final list = await _getSupabaseList(
+        path: '/rest/v1/article_qr_mappings?select=*&order=created_at.desc',
+      );
+      if (list != null) {
+        final result = <Map<String, dynamic>>[];
+        for (final item in list) {
+          if (item is Map<String, dynamic>) {
+            result.add(item);
+          }
+        }
+        return ServiceResponse<List<Map<String, dynamic>>>.success(data: result);
+      }
+    }
+    return ServiceResponse<List<Map<String, dynamic>>>.success(
+      data: const <Map<String, dynamic>>[],
+    );
+  }
+
+  Future<ServiceResponse<bool>> pushCloudArticleQrMapping({
+    required String articleNo,
+    required String brand,
+    required String qrPayload,
+    required List<Map<String, dynamic>> variants,
+    String source = 'marg',
+  }) async {
+    if (isCloudConfigured) {
+      await _postSupabaseJson(
+        path: '/rest/v1/article_qr_mappings?on_conflict=qr_payload',
+        preferHeader: 'resolution=merge-duplicates',
+        body: <String, dynamic>{
+          'shop_id': _activeShopUuid,
+          'article_no': articleNo,
+          'brand': brand,
+          'qr_payload': qrPayload,
+          'variants': variants,
+          'source': source,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+      );
+    }
+    return ServiceResponse<bool>.success(data: true);
+  }
+
   Future<ServiceResponse<bool>> registerCloudDealerWithPin({
     required String phone,
     required String shopName,

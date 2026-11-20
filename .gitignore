@@ -38,3 +38,9 @@ build/
 
 # Credentials notes (NEVER commit)
 Docs/supabase.txt
+
+# Scratch & Tooling Cache
+.superpowers/
+.flutter-plugins-dependencies
+~$*
+

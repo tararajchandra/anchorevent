@@ -4,6 +4,7 @@ import 'package:services/services.dart';
 
 import '../models/dealer/entity/dealer_profile_entity.dart';
 import '../models/item/converter/footwear_item_converter.dart';
+import '../models/item/entity/article_qr_mapping_entity.dart';
 import '../models/item/entity/footwear_item_entity.dart';
 import '../models/party/converter/party_ledger_converter.dart';
 import '../models/party/entity/party_ledger_entity.dart';
@@ -23,6 +24,8 @@ class MasterDataRepository {
   final Map<String, String> _barcodeToItemCode = <String, String>{};
   final Map<String, DealerProfileEntity> _registeredDealers =
       <String, DealerProfileEntity>{};
+  final Map<String, ArticleQrMappingEntity> _articleQrMappings =
+      <String, ArticleQrMappingEntity>{};
 
   List<FootwearItemEntity> _cachedItems = <FootwearItemEntity>[];
   List<PartyLedgerEntity> _cachedParties = <PartyLedgerEntity>[];
@@ -507,5 +510,78 @@ class MasterDataRepository {
       ],
     ];
     return PartyLedgerConverter.fromCsvRows(rows);
+  }
+
+  void _loadStoredArticleQrMappings() {
+    final rawJson = LocalStorage.instance.readString(
+      StorageKeyConsts.articleQrMappingsJson,
+    );
+    if (rawJson == null || rawJson.isEmpty) {
+      return;
+    }
+    try {
+      final decoded = jsonDecode(rawJson);
+      if (decoded is List<dynamic>) {
+        for (final item in decoded) {
+          if (item is Map<String, dynamic>) {
+            final mapping = ArticleQrMappingEntity.fromJson(item);
+            if (mapping.qrPayload.isNotEmpty) {
+              _articleQrMappings[mapping.qrPayload] = mapping;
+              _articleQrMappings[mapping.articleNo] = mapping;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _persistArticleQrMappings() async {
+    final uniqueMappings =
+        _articleQrMappings.values.toSet().map((e) => e.toJson()).toList();
+    await LocalStorage.instance.writeString(
+      StorageKeyConsts.articleQrMappingsJson,
+      jsonEncode(uniqueMappings),
+    );
+  }
+
+  Future<ServiceResponse<List<ArticleQrMappingEntity>>>
+      loadArticleQrMappings() async {
+    _loadStoredArticleQrMappings();
+    final cloudResp = await RestApi.instance.fetchCloudArticleQrMappings();
+    final cloudList = cloudResp.data;
+    if (cloudList != null && cloudList.isNotEmpty) {
+      for (final row in cloudList) {
+        final mapping = ArticleQrMappingEntity.fromJson(row);
+        if (mapping.qrPayload.isNotEmpty) {
+          _articleQrMappings[mapping.qrPayload] = mapping;
+          _articleQrMappings[mapping.articleNo] = mapping;
+        }
+      }
+      await _persistArticleQrMappings();
+    }
+    return ServiceResponse<List<ArticleQrMappingEntity>>.success(
+      data: _articleQrMappings.values.toSet().toList(),
+    );
+  }
+
+  ArticleQrMappingEntity? findArticleQrMapping(String rawInput) {
+    if (_articleQrMappings.isEmpty) {
+      _loadStoredArticleQrMappings();
+    }
+    final trimmed = rawInput.trim();
+    if (_articleQrMappings.containsKey(trimmed)) {
+      return _articleQrMappings[trimmed];
+    }
+    if (trimmed.startsWith('MARG_ART:')) {
+      final artNo = trimmed.substring('MARG_ART:'.length).trim();
+      if (_articleQrMappings.containsKey(artNo)) {
+        return _articleQrMappings[artNo];
+      }
+    }
+    final withPrefix = 'MARG_ART:$trimmed';
+    if (_articleQrMappings.containsKey(withPrefix)) {
+      return _articleQrMappings[withPrefix];
+    }
+    return null;
   }
 }
