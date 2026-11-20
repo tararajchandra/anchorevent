@@ -138,4 +138,57 @@ assert(
 );
 
 vm.runInContext("renderReportsTab()", sandbox);
-console.log('✓ Full web_portal end-to-end report calculations & table render passed 100%!');
+
+console.log('Testing JA Traders Reports & Analytics in web_portal...');
+
+// Verify JA Traders reports extraction:
+// In syncedOrders, ORD-101 has PARAGON (non-JA), ORD-102 has N FASHION (JA Traders).
+const jaRetData = vm.runInContext("getJaReportDataAndCsv('retailer')", sandbox);
+assert.strictEqual(
+  jaRetData.rows.length,
+  1,
+  'JA Traders retailer report should only include retailers with JA items',
+);
+assert.strictEqual(jaRetData.rows[0].retailerName, 'ALPONA SHOE HOUSE');
+assert.strictEqual(jaRetData.rows[0].totalPairs, 72);
+assert.strictEqual(jaRetData.rows[0].totalAmount, 72 * 220);
+assert.strictEqual(jaRetData.filename, 'JA_TRADERS_RETAILER_ORDERS.csv');
+
+// JA Company-Wise report
+const jaCompData = vm.runInContext("getJaReportDataAndCsv('company')", sandbox);
+assert.strictEqual(jaCompData.rows.length, 1, 'Only N FASHION company present');
+assert.strictEqual(jaCompData.rows[0].company, 'N FASHION');
+assert.strictEqual(jaCompData.rows[0].totalPairs, 72);
+assert.strictEqual(jaCompData.rows[0].sharePercent, '100.0');
+assert.strictEqual(jaCompData.filename, 'JA_TRADERS_COMPANY_ORDERS.csv');
+
+// JA Order Value report
+const jaOrderData = vm.runInContext("getJaReportDataAndCsv('order_value')", sandbox);
+assert.strictEqual(jaOrderData.rows.length, 1);
+assert.strictEqual(jaOrderData.rows[0].orderNo, 'ORD-102');
+assert.strictEqual(jaOrderData.filename, 'JA_TRADERS_ORDER_VALUE_SUMMARY.csv');
+
+// JA Article-Wise report
+const jaArtData = vm.runInContext("getJaReportDataAndCsv('article')", sandbox);
+assert.strictEqual(jaArtData.rows.length, 1);
+assert.strictEqual(jaArtData.rows[0].itemCode, '5221');
+assert.strictEqual(jaArtData.rows[0].totalPairs, 72);
+assert.strictEqual(jaArtData.filename, 'JA_TRADERS_ARTICLE_SALES.csv');
+
+// JA Retailer Item-Wise Challan report
+const jaChallanData = vm.runInContext("getJaReportDataAndCsv('retailer_items')", sandbox);
+assert.strictEqual(jaChallanData.rows.length, 1);
+assert.strictEqual(jaChallanData.rows[0].itemCode, '5221');
+assert.strictEqual(jaChallanData.rows[0].qtyPairs, 72);
+assert.strictEqual(jaChallanData.filename, 'JA_TRADERS_RETAILER_CHALLAN_REGISTER.csv');
+
+// Test subtab switching & render
+vm.runInContext("switchJaReportSubTab('company')", sandbox);
+assert.strictEqual(vm.runInContext("currentJaReportSubTab", sandbox), 'company');
+
+vm.runInContext("renderJaReportsTab()", sandbox);
+vm.runInContext("switchOwnerTab('ja-reports')", sandbox);
+
+console.log(
+  '✓ Full web_portal end-to-end report calculations, JA Traders analytics & table render passed 100%!',
+);

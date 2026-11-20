@@ -16,7 +16,11 @@ const {
   calculateRetailerItemChallan,
   calculateSingleRetailerConsolidatedItems,
   buildRetailerItemChallanCsv,
-  sanitizeFilenamePart
+  sanitizeFilenamePart,
+  isJaTradersCompany,
+  isJaTradersItem,
+  filterOrdersForJaTraders,
+  getJaTradersUniqueCompanies
 } = require('./web_reports_module.js');
 
 // Mock test data
@@ -232,3 +236,99 @@ const alphaChallan = calculateRetailerItemChallan(noPhoneOrders, [], 'PARTY:SHOP
 assert.strictEqual(alphaChallan.length, 1);
 assert.strictEqual(alphaChallan[0].retailerName, 'SHOP ALPHA');
 console.log('✓ All Task 4 cloud scheme & retailer isolation tests passed!');
+
+console.log('--- Running Task 5: JA Traders Reports & Company Analytics Tests ---');
+
+// 1. Company detection tests
+assert(isJaTradersCompany('N FASHION'), 'N FASHION is JA Traders');
+assert(isJaTradersCompany('N FASHION (JA Traders)'), 'N FASHION (JA Traders) is JA Traders');
+assert(isJaTradersCompany('AIRSON (JA Traders)'), 'AIRSON (JA Traders) is JA Traders');
+assert(isJaTradersCompany('AIRWASH'), 'AIRWASH is JA Traders');
+assert(isJaTradersCompany('EROCX'), 'EROCX is JA Traders');
+assert(isJaTradersCompany('UNITEC (JA Traders)'), 'UNITEC (JA Traders) is JA Traders');
+assert(isJaTradersCompany('NUSHI'), 'NUSHI is JA Traders');
+assert(isJaTradersCompany('J.A.TRADERS'), 'J.A.TRADERS is JA Traders');
+assert(!isJaTradersCompany('AJANTA'), 'AJANTA is NOT JA Traders');
+assert(!isJaTradersCompany('PARAGON'), 'PARAGON is NOT JA Traders');
+assert(!isJaTradersCompany('CAMPUS'), 'CAMPUS is NOT JA Traders');
+
+// 2. Order filtering for JA Traders
+const mixedOrders = [
+  {
+    orderNo: 'ORD-MIX-1',
+    orderDate: '2026-11-20',
+    partyName: 'RETAILER 1',
+    retailerPhone: '9830000001',
+    items: [
+      { itemCode: '3046', productName: '028 GRY', company: 'AJANTA', qty: 20, rate: 100, mrp: 150 },
+      {
+        itemCode: '5221',
+        productName: '5221 L.GRY',
+        company: 'N FASHION (JA Traders)',
+        qty: 30,
+        rate: 200,
+        mrp: 250
+      }
+    ]
+  },
+  {
+    orderNo: 'ORD-MIX-2',
+    orderDate: '2026-11-20',
+    partyName: 'RETAILER 2',
+    retailerPhone: '9830000002',
+    items: [
+      {
+        itemCode: 'AIR-1',
+        productName: 'BADSHA-1',
+        company: 'AIRWASH (JA Traders)',
+        qty: 50,
+        rate: 150,
+        mrp: 200
+      },
+      {
+        itemCode: 'AIR-2',
+        productName: '4V-2 N.BLU',
+        company: 'AIRSON (JA Traders)',
+        qty: 40,
+        rate: 180,
+        mrp: 240
+      }
+    ]
+  },
+  {
+    orderNo: 'ORD-NON-JA',
+    orderDate: '2026-11-20',
+    partyName: 'RETAILER 3',
+    retailerPhone: '9830000003',
+    items: [
+      { itemCode: '1001', productName: 'SLIPPER', company: 'PARAGON', qty: 60, rate: 120, mrp: 160 }
+    ]
+  }
+];
+
+const jaFiltered = filterOrdersForJaTraders(mixedOrders);
+assert.strictEqual(jaFiltered.length, 2, 'Non-JA order must be omitted');
+assert.strictEqual(jaFiltered[0].items.length, 1, 'ORD-MIX-1 should only have JA item (N FASHION)');
+assert.strictEqual(jaFiltered[0].items[0].qty, 30);
+assert.strictEqual(jaFiltered[1].items.length, 2, 'ORD-MIX-2 has 2 JA items (AIRWASH + AIRSON)');
+
+// 3. Analytics for JA Traders companies
+const jaCompanies = calculateCompanyWiseReport(jaFiltered, []);
+assert.strictEqual(jaCompanies.length, 3, 'Must have 3 JA companies: N FASHION, AIRWASH, AIRSON');
+const totalJaPairs = jaCompanies.reduce((s, c) => s + c.totalPairs, 0);
+assert.strictEqual(totalJaPairs, 30 + 50 + 40, 'Total JA pairs = 120');
+
+// 4. Specific company filter (e.g. only N FASHION)
+const nFashionOnly = filterOrdersForJaTraders(mixedOrders, [], [], 'N FASHION (JA Traders)');
+assert.strictEqual(nFashionOnly.length, 1, 'Only ORD-MIX-1 contains N FASHION');
+assert.strictEqual(nFashionOnly[0].items[0].company, 'N FASHION (JA Traders)');
+assert.strictEqual(nFashionOnly[0].items[0].qty, 30);
+
+// 5. Unique companies list
+const uniqueJaComps = getJaTradersUniqueCompanies(mixedOrders, []);
+assert(uniqueJaComps.includes('N FASHION (JA Traders)'));
+assert(uniqueJaComps.includes('AIRWASH (JA Traders)'));
+assert(uniqueJaComps.includes('AIRSON (JA Traders)'));
+assert(!uniqueJaComps.includes('AJANTA'));
+
+console.log('✓ All Task 5 JA Traders Reports & Company Analytics tests passed!');

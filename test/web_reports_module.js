@@ -9,7 +9,7 @@ function csvEsc(value) {
   return s;
 }
 
-function resolveItemCompany(item, masterItemsList) {
+function resolveItemCompany(item, masterItemsList, jaTradersList) {
   let comp = (item.company || '').trim();
   if (!comp && Array.isArray(masterItemsList)) {
     const m = masterItemsList.find(x => x.code === item.itemCode);
@@ -17,7 +17,147 @@ function resolveItemCompany(item, masterItemsList) {
       comp = m.company.trim();
     }
   }
+  if (!comp && Array.isArray(jaTradersList)) {
+    const j = jaTradersList.find(
+      x => x.article_no === item.itemCode ||
+      `${x.article_no}-${x.color}-${x.size}` === item.itemCode
+    );
+    if (j && j.company) {
+      comp = j.company.trim();
+    }
+  }
   return comp || 'OTHER / UNBRANDED';
+}
+
+const JA_TRADERS_BASE_COMPANIES = [
+  'N FASHION',
+  'AIRSON',
+  'AIRWASH',
+  'EROCX',
+  'UNITEC',
+  'NUSHI'
+];
+
+function isJaTradersCompany(company) {
+  if (!company) return false;
+  const compUpper = String(company).trim().toUpperCase();
+  if (
+    compUpper.includes('JA TRADER') ||
+    compUpper.includes('J.A.TRADER') ||
+    compUpper.includes('JA TRADERS') ||
+    compUpper.includes('J.A. TRADERS') ||
+    compUpper.includes('(JA TRADERS)')
+  ) {
+    return true;
+  }
+  for (const base of JA_TRADERS_BASE_COMPANIES) {
+    if (compUpper === base || compUpper.startsWith(base + ' ') || compUpper.includes(base)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isJaTradersItem(item, masterItemsList = [], jaTradersList = []) {
+  if (!item) return false;
+  const itemComp = (item.company || '').trim();
+  if (itemComp && isJaTradersCompany(itemComp)) {
+    return true;
+  }
+  if (item.source === 'ja_traders' || item.source === 'jaTraders') {
+    return true;
+  }
+  if (item.brand && isJaTradersCompany(item.brand)) {
+    return true;
+  }
+  const code = String(item.itemCode || item.code || '').trim().toUpperCase();
+  const prod = String(item.productName || item.product || '').trim().toUpperCase();
+  const artNo = (item.articleNo || prod.split(' ')[0] || '').trim().toUpperCase();
+
+  if (Array.isArray(jaTradersList) && jaTradersList.length > 0) {
+    const foundInJa = jaTradersList.some(j => {
+      const jArt = String(j.article_no || j.articleNo || '').trim().toUpperCase();
+      const jColor = String(j.color || '').trim().toUpperCase();
+      const jSize = String(j.size || '').trim().toUpperCase();
+      const jCode = `${jArt}-${jColor}-${jSize}`;
+      return (code && (code === jArt || code === jCode)) || (artNo && artNo === jArt);
+    });
+    if (foundInJa) return true;
+  }
+
+  if (Array.isArray(masterItemsList) && code) {
+    const m = masterItemsList.find(x => String(x.code).toUpperCase() === code);
+    if (m && m.company && isJaTradersCompany(m.company)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function filterOrdersForJaTraders(
+  ordersList,
+  masterItemsList = [],
+  jaTradersList = [],
+  companyFilter = 'ALL'
+) {
+  if (!Array.isArray(ordersList)) return [];
+  const targetCompany = String(companyFilter || 'ALL').trim().toUpperCase();
+  const filteredOrders = [];
+
+  for (const ord of ordersList) {
+    if (!ord || !Array.isArray(ord.items)) continue;
+    const jaItems = [];
+
+    for (const it of ord.items) {
+      if (!it) continue;
+      if (!isJaTradersItem(it, masterItemsList, jaTradersList)) continue;
+
+      const comp = resolveItemCompany(it, masterItemsList, jaTradersList);
+      if (targetCompany !== 'ALL') {
+        const compUpper = comp.toUpperCase();
+        if (compUpper !== targetCompany && !compUpper.startsWith(targetCompany)) {
+          continue;
+        }
+      }
+
+      jaItems.push({
+        ...it,
+        company: comp
+      });
+    }
+
+    if (jaItems.length > 0) {
+      filteredOrders.push({
+        ...ord,
+        items: jaItems
+      });
+    }
+  }
+
+  return filteredOrders;
+}
+
+function getJaTradersUniqueCompanies(ordersList = [], jaTradersList = []) {
+  const compSet = new Set();
+  if (Array.isArray(jaTradersList)) {
+    jaTradersList.forEach(j => {
+      const c = (j.company || '').trim();
+      if (c && isJaTradersCompany(c)) compSet.add(c);
+    });
+  }
+  if (Array.isArray(ordersList)) {
+    ordersList.forEach(o => {
+      (o.items || []).forEach(it => {
+        const c = (it.company || '').trim();
+        if (c && isJaTradersCompany(c)) compSet.add(c);
+      });
+    });
+  }
+  if (compSet.size === 0) {
+    JA_TRADERS_BASE_COMPANIES.forEach(c => compSet.add(`${c} (JA Traders)`));
+  }
+  return Array.from(compSet).sort((a, b) => a.localeCompare(b));
 }
 
 function determineQualifiedScheme(totalPairs, schemesList) {
@@ -443,5 +583,10 @@ module.exports = {
   sanitizeFilenamePart,
   calculateRetailerItemChallan,
   calculateSingleRetailerConsolidatedItems,
-  buildRetailerItemChallanCsv
+  buildRetailerItemChallanCsv,
+  JA_TRADERS_BASE_COMPANIES,
+  isJaTradersCompany,
+  isJaTradersItem,
+  filterOrdersForJaTraders,
+  getJaTradersUniqueCompanies
 };
