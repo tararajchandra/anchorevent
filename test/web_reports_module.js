@@ -24,12 +24,28 @@ function determineQualifiedScheme(totalPairs, schemesList) {
   if (!Array.isArray(schemesList) || schemesList.length === 0) {
     return 'None';
   }
+  const active = schemesList.filter(
+    s => s && s.isActive !== false && s.is_active !== false
+  );
+  if (active.length === 0) {
+    return 'Not Qualified';
+  }
+  const getPairs = (s) =>
+    Number(s.minPairs ?? s.min_pairs ?? s.pairs ?? 0);
+  const getLabel = (s) =>
+    s.rewardDescription ||
+    s.reward_description ||
+    s.reward ||
+    s.schemeName ||
+    s.scheme_name ||
+    s.name ||
+    'Tier Reward';
   // Sort descending by pairs requirement
-  const sorted = [...schemesList].sort((a, b) => Number(b.pairs || 0) - Number(a.pairs || 0));
+  const sorted = [...active].sort((a, b) => getPairs(b) - getPairs(a));
   for (const s of sorted) {
-    const required = Number(s.pairs || 0);
+    const required = getPairs(s);
     if (totalPairs >= required && required > 0) {
-      return `${s.reward || s.name || 'Tier Reward'} (${required}+ Pairs)`;
+      return `${getLabel(s)} (${required}+ Pairs)`;
     }
   }
   return 'Not Qualified';
@@ -40,19 +56,28 @@ function calculateRetailerWiseReport(ordersList, schemesList) {
   const map = new Map();
 
   for (const ord of ordersList) {
-    const phone = ord.retailerPhone || 'N/A';
-    if (!map.has(phone)) {
-      map.set(phone, {
-        retailerName: ord.partyName || 'RETAILER',
+    const rawPhone = String(ord.retailerPhone ?? '').trim();
+    const hasPhone =
+      rawPhone.length > 0 && rawPhone !== 'N/A' && rawPhone !== 'App User';
+    const phone = hasPhone ? rawPhone : 'N/A';
+    const partyName = (ord.partyName || 'RETAILER').trim();
+    const groupKey = hasPhone
+      ? `PHONE:${phone}`
+      : `PARTY:${partyName.toUpperCase()}`;
+    const filterKey = hasPhone ? phone : groupKey;
+    if (!map.has(groupKey)) {
+      map.set(groupKey, {
+        retailerKey: filterKey,
+        retailerName: partyName || 'RETAILER',
         phone: phone,
         orderCount: 0,
         totalPairs: 0,
         totalAmount: 0
       });
     }
-    const acc = map.get(phone);
+    const acc = map.get(groupKey);
     acc.orderCount += 1;
-    if (ord.partyName && acc.retailerName === 'RETAILER') {
+    if (ord.partyName && (acc.retailerName === 'RETAILER' || acc.retailerName === 'App User')) {
       acc.retailerName = ord.partyName;
     }
 
@@ -279,11 +304,21 @@ function calculateRetailerItemChallan(ordersList, masterItemsList, filterPhone =
   const rows = [];
 
   for (const ord of ordersList) {
-    const phone = ord.retailerPhone || 'N/A';
-    if (cleanFilter && cleanFilter !== 'ALL' && phone !== cleanFilter) {
-      continue;
+    const rawPhone = String(ord.retailerPhone ?? '').trim();
+    const hasPhone =
+      rawPhone.length > 0 && rawPhone !== 'N/A' && rawPhone !== 'App User';
+    const phone = hasPhone ? rawPhone : 'N/A';
+    const retailerName = (ord.partyName || 'RETAILER').trim();
+    const partyKey = `PARTY:${retailerName.toUpperCase()}`;
+    if (cleanFilter && cleanFilter !== 'ALL') {
+      if (cleanFilter.startsWith('PARTY:')) {
+        if (hasPhone || partyKey !== cleanFilter) {
+          continue;
+        }
+      } else if (phone !== cleanFilter) {
+        continue;
+      }
     }
-    const retailerName = ord.partyName || 'RETAILER';
     const orderNo = ord.orderNo || '';
     const orderDate = ord.orderDate || '';
 

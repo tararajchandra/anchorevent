@@ -47,6 +47,59 @@ class BillingRepository {
     return List<SalesBillEntity>.unmodifiable(_savedBills);
   }
 
+  List<SalesBillEntity> getSavedBillsForRetailer({
+    required String phone,
+    required String partyName,
+  }) {
+    _ensureLoadedFromStorage();
+    return List<SalesBillEntity>.unmodifiable(
+      _savedBills.where(
+        (SalesBillEntity bill) => bill.belongsToRetailer(
+          phone: phone,
+          partyName: partyName,
+        ),
+      ),
+    );
+  }
+
+  Future<List<SalesBillEntity>> syncRetailerBillsFromCloud({
+    required String phone,
+    required String partyName,
+  }) async {
+    _ensureLoadedFromStorage();
+    final resp = await RestApi.instance.fetchCloudBillsForRetailer(
+      phone: phone,
+      partyName: partyName,
+    );
+    final cloudRows = resp.data;
+    if (cloudRows != null && cloudRows.isNotEmpty) {
+      var changed = false;
+      for (final row in cloudRows) {
+        final cloudBill = SalesBillEntity.fromJson(row);
+        if (cloudBill.billNo.isEmpty) {
+          continue;
+        }
+        final existingIdx = _savedBills.indexWhere(
+          (SalesBillEntity b) =>
+              b.billNo == cloudBill.billNo &&
+              b.belongsToRetailer(phone: phone, partyName: partyName),
+        );
+        if (existingIdx < 0) {
+          _savedBills.add(cloudBill);
+          changed = true;
+        } else if (cloudBill.items.isNotEmpty &&
+            _savedBills[existingIdx].items.isEmpty) {
+          _savedBills[existingIdx] = cloudBill;
+          changed = true;
+        }
+      }
+      if (changed) {
+        await _persistBillsToStorage();
+      }
+    }
+    return getSavedBillsForRetailer(phone: phone, partyName: partyName);
+  }
+
   Future<ServiceResponse<SalesBillEntity>> saveBill({
     required String partyName,
     required String deviceUuid,
@@ -60,7 +113,11 @@ class BillingRepository {
       );
     }
 
-    final nextSeq = _savedBills.length + 1;
+    final retailerBills = getSavedBillsForRetailer(
+      phone: salesmanName,
+      partyName: partyName,
+    );
+    final nextSeq = retailerBills.length + 1;
     final newBill = SalesBillConverter.createNewBill(
       sequenceNumber: nextSeq,
       partyName: partyName,
@@ -88,8 +145,18 @@ class BillingRepository {
     return ServiceResponse<SalesBillEntity>.success(data: newBill);
   }
 
-  String generateMargExportCsv() {
+  String generateMargExportCsv({
+    String phone = '',
+    String partyName = '',
+  }) {
     _ensureLoadedFromStorage();
+    if (phone.trim().isNotEmpty || partyName.trim().isNotEmpty) {
+      final filtered = getSavedBillsForRetailer(
+        phone: phone,
+        partyName: partyName,
+      );
+      return SalesBillConverter.toMargImportCsv(filtered);
+    }
     return SalesBillConverter.toMargImportCsv(_savedBills);
   }
 }

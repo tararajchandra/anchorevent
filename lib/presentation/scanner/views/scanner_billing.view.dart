@@ -14,41 +14,49 @@ class ScannerBillingView extends StatelessWidget {
   });
 
   Future<void> _handleBarcode(BuildContext context, String rawBarcode) async {
+    if (!controller.canProcessBarcodeScan()) {
+      return;
+    }
     final artMapping = controller.lookupArticleMapping(rawBarcode);
     if (artMapping != null && artMapping.variants.isNotEmpty) {
-      await controller.playScanBeep();
-      final initialList = artMapping.variants
-          .map(
-            (v) => ArticleVariantBookingItem(
-              itemCode: v.itemCode,
-              color: v.color,
-              size: v.size,
-              rate: v.rate,
-              mrp: v.mrp,
-              company: v.company.isNotEmpty ? v.company : artMapping.brand,
-              productName: v.productName,
-              isSelected: true,
-              qtyPairs: 12,
-            ),
-          )
-          .toList();
+      controller.beginArticleSheetScan();
+      controller.playScanBeep();
+      try {
+        final initialList = artMapping.variants
+            .map(
+              (v) => ArticleVariantBookingItem(
+                itemCode: v.itemCode,
+                color: v.color,
+                size: v.size,
+                rate: v.rate,
+                mrp: v.mrp,
+                company: v.company.isNotEmpty ? v.company : artMapping.brand,
+                productName: v.productName,
+                isSelected: true,
+                qtyPairs: 12,
+              ),
+            )
+            .toList();
 
-      if (!context.mounted) {
-        return;
-      }
-      final selected = await ArticleVariantSelectionSheet.show(
-        context: context,
-        brand: artMapping.brand,
-        articleNo: artMapping.articleNo,
-        initialVariants: initialList,
-      );
-
-      if (selected != null && selected.isNotEmpty && context.mounted) {
-        controller.addArticleVariantsToCart(selected);
-        AppSnackBar.showSuccess(
-          context,
-          'Added ${selected.length} variant(s) for Art ${artMapping.articleNo}!',
+        final selected = await ArticleVariantSelectionSheet.show(
+          context: context,
+          brand: artMapping.brand,
+          articleNo: artMapping.articleNo,
+          initialVariants: initialList,
         );
+
+        if (selected != null && selected.isNotEmpty && context.mounted) {
+          controller.addArticleVariantsToCart(selected);
+          AppSnackBar.showSuccess(
+            context,
+            GraphicsStringConsts.articleVariantsAddedSuccess(
+              selected.length,
+              artMapping.articleNo,
+            ),
+          );
+        }
+      } finally {
+        controller.endArticleSheetScan();
       }
     } else {
       controller.handleCameraBarcodeDetected(rawBarcode);
@@ -67,22 +75,29 @@ class ScannerBillingView extends StatelessWidget {
             return ReactiveBuilder<FootwearItemEntity?>(
               reactiv: controller.activeScannedItem,
               builder: (context, scannedItem) {
-                final label = scannedItem != null
-                    ? '${scannedItem.company} • ${scannedItem.product}'
-                    : '';
-                return ScannerViewfinderCard(
-                  isCameraActive: isCameraOn,
-                  isShutterClosed: scannedItem != null,
-                  scannedProductLabel: label,
-                  onToggleCamera: () =>
-                      controller.isLiveCameraActive.value = !isCameraOn,
-                  onBarcodeDetected: (barcode) => _handleBarcode(context, barcode),
-                  onSimulateKnownScan: controller.simulateKnownBarcodeScan,
-                  onSimulateUnlinkedScan:
-                      controller.simulateUnlinkedBarcodeScan,
-                  onRescanTap: controller.clearActiveScannedItem,
-                  knownBtnLabel: GraphicsStringConsts.scanKnownSampleBtn,
-                  unlinkedBtnLabel: GraphicsStringConsts.scanUnlinkedSampleBtn,
+                return ReactiveBuilder<bool>(
+                  reactiv: controller.isArticleSheetOpen,
+                  builder: (context, isSheetOpen) {
+                    final label = scannedItem != null
+                        ? '${scannedItem.company} • ${scannedItem.product}'
+                        : '';
+                    return ScannerViewfinderCard(
+                      isCameraActive: isCameraOn,
+                      isShutterClosed: scannedItem != null || isSheetOpen,
+                      scannedProductLabel: label,
+                      onToggleCamera: () =>
+                          controller.isLiveCameraActive.value = !isCameraOn,
+                      onBarcodeDetected: (barcode) =>
+                          _handleBarcode(context, barcode),
+                      onSimulateKnownScan: controller.simulateKnownBarcodeScan,
+                      onSimulateUnlinkedScan:
+                          controller.simulateUnlinkedBarcodeScan,
+                      onRescanTap: controller.clearActiveScannedItem,
+                      knownBtnLabel: GraphicsStringConsts.scanKnownSampleBtn,
+                      unlinkedBtnLabel:
+                          GraphicsStringConsts.scanUnlinkedSampleBtn,
+                    );
+                  },
                 );
               },
             );

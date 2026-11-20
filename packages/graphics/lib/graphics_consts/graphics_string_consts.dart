@@ -83,4 +83,7 @@ class GraphicsStringConsts {
 
   static String bookingSlipGeneratedSuccess(String orderNo) =>
       'Booking Slip for $orderNo generated successfully!';
+
+  static String articleVariantsAddedSuccess(int count, String articleNo) =>
+      'Added $count variant(s) for Art $articleNo!';
 }

@@ -39,6 +39,10 @@ class MargAppController extends ReactiveController {
 
   final ReactiveInt scannedPairQty = ReactiveInt(12);
   final ReactiveBool isLiveCameraActive = ReactiveBool(false);
+  final ReactiveBool isArticleSheetOpen = ReactiveBool(false);
+  DateTime? _lastArticleSheetClosedAt;
+
+  static const Duration _articleRescanCooldown = Duration(milliseconds: 1500);
 
   final ReactiveList<BillItemEntity> cartItems =
       ReactiveList<BillItemEntity>(<BillItemEntity>[]);
@@ -61,10 +65,54 @@ class MargAppController extends ReactiveController {
     currentThemeMode.value = AppThemeModeEnum.fromStorageValue(savedThemeStr);
 
     _initDealerSession();
-    _replaceAll(savedBills, BillingHandler.instance.getSavedBills());
-    generatedCsvText.value = BillingHandler.instance.generateMargCsvContent();
+    _refreshActiveRetailerBills();
     _loadInitialSchemes();
     _loadInitialMasters();
+    if (isDealerLoggedIn.value) {
+      _syncActiveRetailerBillsFromCloud();
+    }
+  }
+
+  void _refreshActiveRetailerBills() {
+    if (!isDealerLoggedIn.value) {
+      savedBills.clear();
+      generatedCsvText.value = '';
+      recalculateSchemeProgress();
+      return;
+    }
+    final profile = dealerProfile.value;
+    final retailerBills = BillingHandler.instance.getSavedBillsForRetailer(
+      phone: profile.phone,
+      partyName: profile.shopName,
+    );
+    _replaceAll(savedBills, retailerBills);
+    generatedCsvText.value = BillingHandler.instance.generateMargCsvContent(
+      phone: profile.phone,
+      partyName: profile.shopName,
+    );
+    recalculateSchemeProgress();
+  }
+
+  Future<void> _syncActiveRetailerBillsFromCloud() async {
+    if (!isDealerLoggedIn.value) {
+      return;
+    }
+    final profile = dealerProfile.value;
+    final synced = await BillingHandler.instance.syncRetailerBillsFromCloud(
+      phone: profile.phone,
+      partyName: profile.shopName,
+    );
+    if (!isDealerLoggedIn.value) {
+      return;
+    }
+    if (dealerProfile.value.phone == profile.phone) {
+      _replaceAll(savedBills, synced);
+      generatedCsvText.value = BillingHandler.instance.generateMargCsvContent(
+        phone: profile.phone,
+        partyName: profile.shopName,
+      );
+      recalculateSchemeProgress();
+    }
   }
 
   void _initDealerSession() {
@@ -379,6 +427,8 @@ class MargAppController extends ReactiveController {
     authSuccessMessage.value = '';
     dealerProfile.value = profile;
     isDealerLoggedIn.value = true;
+    _refreshActiveRetailerBills();
+    _syncActiveRetailerBillsFromCloud();
     return true;
   }
 
@@ -394,6 +444,11 @@ class MargAppController extends ReactiveController {
     authSuccessMessage.value = '';
     isDealerLoggedIn.value = false;
     dealerProfile.value = DealerProfileEntity.empty();
+    cartItems.clear();
+    activeScannedItem.value = null;
+    savedBills.clear();
+    generatedCsvText.value = '';
+    recalculateSchemeProgress();
     if (lastPhone.isNotEmpty) {
       lookupDealerByPhone(lastPhone);
     }
@@ -402,7 +457,7 @@ class MargAppController extends ReactiveController {
   void switchTab(AppTabEnum tab) {
     currentTab.value = tab;
     if (tab == AppTabEnum.myOrders) {
-      generatedCsvText.value = BillingHandler.instance.generateMargCsvContent();
+      _refreshActiveRetailerBills();
     }
   }
 
@@ -427,6 +482,30 @@ class MargAppController extends ReactiveController {
   }
 
   Future<void> playScanBeep() => _playScanBeep();
+
+  bool get isScannerShutterClosed =>
+      activeScannedItem.value != null || isArticleSheetOpen.value;
+
+  bool canProcessBarcodeScan() {
+    if (isArticleSheetOpen.value || activeScannedItem.value != null) {
+      return false;
+    }
+    final closedAt = _lastArticleSheetClosedAt;
+    if (closedAt != null &&
+        DateTime.now().difference(closedAt) < _articleRescanCooldown) {
+      return false;
+    }
+    return true;
+  }
+
+  void beginArticleSheetScan() {
+    isArticleSheetOpen.value = true;
+  }
+
+  void endArticleSheetScan() {
+    isArticleSheetOpen.value = false;
+    _lastArticleSheetClosedAt = DateTime.now();
+  }
 
   void addArticleVariantsToCart(List<ArticleVariantBookingItem> variants) {
     for (final v in variants) {
@@ -463,7 +542,7 @@ class MargAppController extends ReactiveController {
   }
 
   void handleCameraBarcodeDetected(String rawBarcode) {
-    if (activeScannedItem.value != null) {
+    if (!canProcessBarcodeScan()) {
       return;
     }
     handleBarcodeInput(rawBarcode);
@@ -572,10 +651,8 @@ class MargAppController extends ReactiveController {
     );
     final created = resp.data;
     if (resp.status.isSuccess && created != null) {
-      _replaceAll(savedBills, BillingHandler.instance.getSavedBills());
-      generatedCsvText.value = BillingHandler.instance.generateMargCsvContent();
       cartItems.clear();
-      recalculateSchemeProgress();
+      _refreshActiveRetailerBills();
       switchTab(AppTabEnum.myOrders);
       return created;
     }

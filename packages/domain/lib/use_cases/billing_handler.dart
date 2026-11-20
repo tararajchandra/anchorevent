@@ -13,6 +13,26 @@ class BillingHandler with ServiceStateMixin<List<SalesBillEntity>> {
     return BillingRepository.instance.getSavedBills();
   }
 
+  List<SalesBillEntity> getSavedBillsForRetailer({
+    required String phone,
+    required String partyName,
+  }) {
+    return BillingRepository.instance.getSavedBillsForRetailer(
+      phone: phone,
+      partyName: partyName,
+    );
+  }
+
+  Future<List<SalesBillEntity>> syncRetailerBillsFromCloud({
+    required String phone,
+    required String partyName,
+  }) {
+    return BillingRepository.instance.syncRetailerBillsFromCloud(
+      phone: phone,
+      partyName: partyName,
+    );
+  }
+
   Future<ServiceResponse<SalesBillEntity>> createAndSaveBill({
     required String partyName,
     required String deviceUuid,
@@ -29,7 +49,13 @@ class BillingHandler with ServiceStateMixin<List<SalesBillEntity>> {
     });
   }
 
-  String generateMargCsvContent() {
-    return BillingRepository.instance.generateMargExportCsv();
+  String generateMargCsvContent({
+    String phone = '',
+    String partyName = '',
+  }) {
+    return BillingRepository.instance.generateMargExportCsv(
+      phone: phone,
+      partyName: partyName,
+    );
   }
 }

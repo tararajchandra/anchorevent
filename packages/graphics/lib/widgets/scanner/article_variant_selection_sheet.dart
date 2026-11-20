@@ -174,23 +174,29 @@ class _ArticleVariantSelectionSheetState
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Row(
               children: <Widget>[
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10.0,
-                    vertical: 4.0,
-                  ),
-                  decoration: BoxDecoration(
-                    color: GraphicsColorConsts.primaryTeal.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8.0),
-                    border: Border.all(
-                      color: GraphicsColorConsts.primaryTeal.withValues(alpha: 0.4),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10.0,
+                      vertical: 4.0,
                     ),
-                  ),
-                  child: Text(
-                    widget.brand,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: GraphicsColorConsts.primaryTeal,
-                      fontWeight: FontWeight.w800,
+                    decoration: BoxDecoration(
+                      color: GraphicsColorConsts.primaryTeal
+                          .withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(
+                        color: GraphicsColorConsts.primaryTeal
+                            .withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Text(
+                      widget.brand,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: GraphicsColorConsts.primaryTeal,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),
@@ -251,6 +257,8 @@ class _ArticleVariantSelectionSheetState
                     children: <Widget>[
                       Checkbox(
                         value: item.isSelected,
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         activeColor: GraphicsColorConsts.primaryTeal,
                         onChanged: (val) {
                           setState(() {
@@ -258,11 +266,15 @@ class _ArticleVariantSelectionSheetState
                           });
                         },
                       ),
+                      const SizedBox(width: 6.0),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Row(
+                            Wrap(
+                              spacing: 6.0,
+                              runSpacing: 4.0,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: <Widget>[
                                 if (item.color.isNotEmpty)
                                   Container(
@@ -270,7 +282,6 @@ class _ArticleVariantSelectionSheetState
                                       horizontal: 6.0,
                                       vertical: 2.0,
                                     ),
-                                    margin: const EdgeInsets.only(right: 6.0),
                                     decoration: BoxDecoration(
                                       color: GraphicsColorConsts.primaryTeal
                                           .withValues(alpha: 0.12),
@@ -292,13 +303,23 @@ class _ArticleVariantSelectionSheetState
                                       vertical: 2.0,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: GraphicsColorConsts.cardSlate,
+                                      color: isDark
+                                          ? GraphicsColorConsts.surfaceSlate
+                                          : GraphicsColorConsts.backgroundLight,
                                       borderRadius: BorderRadius.circular(4.0),
+                                      border: Border.all(
+                                        color: isDark
+                                            ? GraphicsColorConsts.borderSlate
+                                            : GraphicsColorConsts.borderLight,
+                                      ),
                                     ),
                                     child: Text(
                                       'Size: ${item.size}',
                                       style:
                                           theme.textTheme.labelSmall?.copyWith(
+                                        color: isDark
+                                            ? GraphicsColorConsts.textPrimary
+                                            : GraphicsColorConsts.surfaceSlate,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -316,12 +337,17 @@ class _ArticleVariantSelectionSheetState
                           ],
                         ),
                       ),
+                      const SizedBox(width: 8.0),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
                           IconButton(
                             iconSize: 20.0,
                             padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                            style: IconButton.styleFrom(
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                             constraints: const BoxConstraints(
                               minWidth: 32.0,
                               minHeight: 32.0,
@@ -363,6 +389,10 @@ class _ArticleVariantSelectionSheetState
                           IconButton(
                             iconSize: 20.0,
                             padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                            style: IconButton.styleFrom(
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                             constraints: const BoxConstraints(
                               minWidth: 32.0,
                               minHeight: 32.0,
@@ -427,9 +457,12 @@ class _ArticleVariantSelectionSheetState
                         }
                       : null,
                   icon: const Icon(Icons.check_circle_rounded),
-                  label: const Text(
+                  label: Text(
                     'Submit Order',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: GraphicsColorConsts.backgroundDark,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],

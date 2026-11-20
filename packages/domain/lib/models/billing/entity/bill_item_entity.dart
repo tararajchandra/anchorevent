@@ -88,12 +88,13 @@ class BillItemEntity {
 
   factory BillItemEntity.fromJson(Map<String, dynamic> json) {
     return BillItemEntity(
-      itemCode: json['itemCode'] as String? ?? '',
-      barcode: json['barcode'] as String? ?? '',
-      productName: json['productName'] as String? ?? '',
-      company: json['company'] as String? ?? '',
-      unit: json['unit'] as String? ?? 'PAIR',
-      qtyPairs: (json['qtyPairs'] as num? ?? 1).toInt(),
+      itemCode: (json['itemCode'] ?? json['item_code'] ?? '').toString(),
+      barcode: (json['barcode'] ?? '').toString(),
+      productName:
+          (json['productName'] ?? json['product_name'] ?? '').toString(),
+      company: (json['company'] ?? '').toString(),
+      unit: (json['unit'] ?? 'PAIR').toString(),
+      qtyPairs: ((json['qtyPairs'] ?? json['qty_pairs']) as num? ?? 1).toInt(),
       rate: (json['rate'] as num? ?? 0.0).toDouble(),
       mrp: (json['mrp'] as num? ?? 0.0).toDouble(),
     );

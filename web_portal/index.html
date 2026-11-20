@@ -1518,11 +1518,27 @@
       if (!Array.isArray(schemesList) || schemesList.length === 0) {
         return 'Not Configured';
       }
-      const sorted = [...schemesList].sort((a, b) => Number(b.pairs || 0) - Number(a.pairs || 0));
+      const active = schemesList.filter(
+        s => s && s.isActive !== false && s.is_active !== false
+      );
+      if (active.length === 0) {
+        return 'Not Qualified';
+      }
+      const getPairs = (s) =>
+        Number(s.minPairs ?? s.min_pairs ?? s.pairs ?? 0);
+      const getLabel = (s) =>
+        s.rewardDescription ||
+        s.reward_description ||
+        s.reward ||
+        s.schemeName ||
+        s.scheme_name ||
+        s.name ||
+        'Tier Reward';
+      const sorted = [...active].sort((a, b) => getPairs(b) - getPairs(a));
       for (const s of sorted) {
-        const required = Number(s.pairs || 0);
+        const required = getPairs(s);
         if (totalPairs >= required && required > 0) {
-          return `${s.reward || s.name || 'Tier Reward'} (${required}+ Pairs)`;
+          return `${getLabel(s)} (${required}+ Pairs)`;
         }
       }
       return 'Not Qualified';
@@ -1533,17 +1549,26 @@
       const map = new Map();
 
       for (const ord of ordersList) {
-        const phone = ord.retailerPhone || 'N/A';
-        if (!map.has(phone)) {
-          map.set(phone, {
-            retailerName: ord.partyName || 'RETAILER',
+        const rawPhone = String(ord.retailerPhone ?? '').trim();
+        const hasPhone =
+          rawPhone.length > 0 && rawPhone !== 'N/A' && rawPhone !== 'App User';
+        const phone = hasPhone ? rawPhone : 'N/A';
+        const partyName = (ord.partyName || 'RETAILER').trim();
+        const groupKey = hasPhone
+          ? `PHONE:${phone}`
+          : `PARTY:${partyName.toUpperCase()}`;
+        const filterKey = hasPhone ? phone : groupKey;
+        if (!map.has(groupKey)) {
+          map.set(groupKey, {
+            retailerKey: filterKey,
+            retailerName: partyName || 'RETAILER',
             phone: phone,
             orderCount: 0,
             totalPairs: 0,
             totalAmount: 0
           });
         }
-        const acc = map.get(phone);
+        const acc = map.get(groupKey);
         acc.orderCount += 1;
         if (ord.partyName && (acc.retailerName === 'RETAILER' || acc.retailerName === 'App User')) {
           acc.retailerName = ord.partyName;
@@ -1633,12 +1658,22 @@
           }
         }
 
+        const rawPhone = String(ord.retailerPhone ?? '').trim();
+        const hasPhone =
+          rawPhone.length > 0 && rawPhone !== 'N/A' && rawPhone !== 'App User';
+        const phone = hasPhone ? rawPhone : 'N/A';
+        const retailerName = (ord.partyName || 'RETAILER').trim();
+        const retailerKey = hasPhone
+          ? phone
+          : `PARTY:${retailerName.toUpperCase()}`;
+
         result.push({
           orderNo: ord.orderNo || '',
           orderDate: ord.orderDate || '',
           orderTime: ord.createdTime || '',
-          retailerName: ord.partyName || 'RETAILER',
-          phone: ord.retailerPhone || 'N/A',
+          retailerName: retailerName || 'RETAILER',
+          phone: phone,
+          retailerKey: retailerKey,
           itemCount: itemCount,
           totalPairs: totalPairs,
           totalAmount: Math.round(totalAmount * 100) / 100
@@ -1766,11 +1801,21 @@
       const rows = [];
 
       for (const ord of ordersList) {
-        const phone = ord.retailerPhone || 'N/A';
-        if (cleanFilter && cleanFilter !== 'ALL' && phone !== cleanFilter) {
-          continue;
+        const rawPhone = String(ord.retailerPhone ?? '').trim();
+        const hasPhone =
+          rawPhone.length > 0 && rawPhone !== 'N/A' && rawPhone !== 'App User';
+        const phone = hasPhone ? rawPhone : 'N/A';
+        const retailerName = (ord.partyName || 'RETAILER').trim();
+        const partyKey = `PARTY:${retailerName.toUpperCase()}`;
+        if (cleanFilter && cleanFilter !== 'ALL') {
+          if (cleanFilter.startsWith('PARTY:')) {
+            if (hasPhone || partyKey !== cleanFilter) {
+              continue;
+            }
+          } else if (phone !== cleanFilter) {
+            continue;
+          }
         }
-        const retailerName = ord.partyName || 'RETAILER';
         const orderNo = ord.orderNo || '';
         const orderDate = ord.orderDate || '';
 
@@ -1910,7 +1955,9 @@
         case 'retailer':
           rows = calculateRetailerWiseReport(orders, eventSchemes);
           if (selectedPhone && selectedPhone !== 'ALL') {
-            rows = rows.filter(r => r.phone === selectedPhone);
+            rows = rows.filter(
+              r => (r.retailerKey || r.phone) === selectedPhone || r.phone === selectedPhone
+            );
           }
           csv = buildRetailerWiseCsv(rows);
           filename = 'RETAILER_WISE_ORDERS.csv';
@@ -1930,7 +1977,9 @@
         case 'order_value':
           rows = calculateOrderValueReport(orders);
           if (selectedPhone && selectedPhone !== 'ALL') {
-            rows = rows.filter(o => o.phone === selectedPhone);
+            rows = rows.filter(
+              o => (o.retailerKey || o.phone) === selectedPhone || o.phone === selectedPhone
+            );
           }
           csv = buildOrderValueCsv(rows);
           filename = 'ORDER_VALUE_SUMMARY.csv';
@@ -1987,8 +2036,8 @@
       const prevVal = selectEl.value || 'ALL';
       const retRows = calculateRetailerWiseReport(syncedOrders, eventSchemes);
       selectEl.innerHTML = `<option value="ALL">🏪 All Retailers (${retRows.length})</option>` +
-        retRows.map(r => `<option value="${escHtml(r.phone)}">🏪 ${escHtml(r.retailerName)} (${escHtml(r.phone)} • ${r.totalPairs} Prs)</option>`).join('');
-      if (prevVal === 'ALL' || retRows.some(r => r.phone === prevVal)) {
+        retRows.map(r => `<option value="${escHtml(r.retailerKey || r.phone)}">🏪 ${escHtml(r.retailerName)} (${escHtml(r.phone)} • ${r.totalPairs} Prs)</option>`).join('');
+      if (prevVal === 'ALL' || retRows.some(r => (r.retailerKey || r.phone) === prevVal)) {
         selectEl.value = prevVal;
       }
     }
@@ -2138,9 +2187,10 @@
             </thead>
             <tbody class="divide-y divide-slate-200 font-medium">
               ${filtered.map((r, i) => {
-                const isExpanded = expandedRetailerPhones.has(r.phone);
+                const filterKey = r.retailerKey || r.phone;
+                const isExpanded = expandedRetailerPhones.has(filterKey);
                 const itemBreakdown = isExpanded
-                  ? calculateSingleRetailerConsolidatedItems(orders, masterItems, r.phone)
+                  ? calculateSingleRetailerConsolidatedItems(orders, masterItems, filterKey)
                   : [];
                 return `
                 <tr class="hover:bg-slate-50 transition-colors">
@@ -2164,7 +2214,7 @@
                   </td>
                   <td class="p-3.5 text-center">
                     <div class="flex items-center justify-center gap-1.5">
-                      <button onclick="toggleRetailerItemsExpand('${escHtml(r.phone)}')"
+                      <button onclick="toggleRetailerItemsExpand('${escHtml(filterKey)}')"
                         class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-1 ${
                           isExpanded
                             ? 'bg-teal-600 text-white border-teal-500'
@@ -2172,7 +2222,7 @@
                         }">
                         <span>${isExpanded ? '▾ Hide Items' : '👁️ View Items'}</span>
                       </button>
-                      <button onclick="downloadSingleRetailerChallanCsv('${escHtml(r.phone)}', '${escHtml(r.retailerName)}')"
+                      <button onclick="downloadSingleRetailerChallanCsv('${escHtml(filterKey)}', '${escHtml(r.retailerName)}')"
                         class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-[11px] font-extrabold transition-all flex items-center gap-1"
                         title="Download Challan Excel/CSV for ${escHtml(r.retailerName)}">
                         <span>⬇ Challan CSV</span>
@@ -2189,7 +2239,7 @@
                           <span class="text-xs font-extrabold text-teal-700">📦 Booked Articles Breakdown for ${escHtml(r.retailerName)} (${escHtml(r.phone)})</span>
                           <p class="text-[11px] text-slate-500">Use this item breakdown to pack cartons and generate dispatch challans (${itemBreakdown.length} distinct articles • ${r.totalPairs} total pairs)</p>
                         </div>
-                        <button onclick="downloadSingleRetailerChallanCsv('${escHtml(r.phone)}', '${escHtml(r.retailerName)}')"
+                        <button onclick="downloadSingleRetailerChallanCsv('${escHtml(filterKey)}', '${escHtml(r.retailerName)}')"
                           class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-extrabold text-[11px] flex items-center gap-1.5 self-start sm:self-auto">
                           <span>⬇ Download ${escHtml(r.retailerName)} Challan CSV</span>
                         </button>
@@ -2278,7 +2328,7 @@
                   <td class="p-3.5 text-right font-mono text-slate-500">₹${x.mrp.toFixed(2)}</td>
                   <td class="p-3.5 text-right font-mono font-extrabold text-amber-700">₹${x.lineAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td class="p-3.5 text-center">
-                    <button onclick="downloadSingleRetailerChallanCsv('${escHtml(x.phone)}', '${escHtml(x.retailerName)}')"
+                    <button onclick="downloadSingleRetailerChallanCsv('${escHtml(x.phone && x.phone !== 'N/A' ? x.phone : `PARTY:${String(x.retailerName || '').trim().toUpperCase()}`)}', '${escHtml(x.retailerName)}')"
                       class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-teal-700 border border-slate-300 text-[10px] font-bold">
                       ⬇ CSV
                     </button>

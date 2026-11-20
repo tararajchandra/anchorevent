@@ -45,6 +45,46 @@ class SalesBillEntity {
     return brands.isEmpty ? 'Footwear' : brands.take(2).join(' & ');
   }
 
+  static String normalizePhone(String raw) {
+    final digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.length > 10) {
+      return digits.substring(digits.length - 10);
+    }
+    return digits;
+  }
+
+  String get retailerPhone {
+    final trimmedUuid = deviceUuid.trim();
+    if (trimmedUuid.toUpperCase().startsWith('PHONE-')) {
+      final fromUuid = normalizePhone(trimmedUuid.substring(6));
+      if (fromUuid.length == 10) {
+        return fromUuid;
+      }
+    }
+    final fromSalesman = normalizePhone(salesmanName);
+    if (fromSalesman.length == 10) {
+      return fromSalesman;
+    }
+    return '';
+  }
+
+  bool belongsToRetailer({
+    required String phone,
+    required String partyName,
+  }) {
+    final targetPhone = normalizePhone(phone);
+    final billPhone = retailerPhone;
+    if (targetPhone.length == 10 && billPhone.length == 10) {
+      return targetPhone == billPhone;
+    }
+    final targetParty = partyName.trim().toUpperCase();
+    final billParty = this.partyName.trim().toUpperCase();
+    if (targetParty.isNotEmpty && billParty.isNotEmpty) {
+      return targetParty == billParty;
+    }
+    return false;
+  }
+
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'billNo': billNo,
@@ -58,7 +98,7 @@ class SalesBillEntity {
   }
 
   factory SalesBillEntity.fromJson(Map<String, dynamic> json) {
-    final rawItems = json['items'];
+    final rawItems = json['items'] ?? json['bill_items'];
     final parsedItems = <BillItemEntity>[];
     if (rawItems is List<dynamic>) {
       for (final raw in rawItems) {
@@ -68,12 +108,15 @@ class SalesBillEntity {
       }
     }
     return SalesBillEntity(
-      billNo: json['billNo'] as String? ?? '',
-      billDate: json['billDate'] as String? ?? '',
-      createdTime: json['createdTime'] as String? ?? '',
-      partyName: json['partyName'] as String? ?? '',
-      deviceUuid: json['deviceUuid'] as String? ?? '',
-      salesmanName: json['salesmanName'] as String? ?? 'Salesman',
+      billNo: (json['billNo'] ?? json['bill_no'] ?? '').toString(),
+      billDate: (json['billDate'] ?? json['bill_date'] ?? '').toString(),
+      createdTime:
+          (json['createdTime'] ?? json['created_time'] ?? '').toString(),
+      partyName: (json['partyName'] ?? json['party_name'] ?? '').toString(),
+      deviceUuid: (json['deviceUuid'] ?? json['device_uuid'] ?? '').toString(),
+      salesmanName:
+          (json['salesmanName'] ?? json['salesman_name'] ?? 'Salesman')
+              .toString(),
       items: parsedItems,
     );
   }

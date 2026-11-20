@@ -200,3 +200,35 @@ assert.strictEqual(sanitizeFilenamePart('MAA TARA, "SPECIAL"'), 'MAA_TARA_SPECIA
 assert.strictEqual(sanitizeFilenamePart('DEMO1'), 'DEMO1');
 
 console.log('✓ All Task 3 Retailer Item-Wise Challan tests passed!');
+
+console.log('--- Running Task 4: Cloud Scheme Format & Retailer Isolation Tests ---');
+const cloudSchemes = [
+  { id: 's1', schemeName: 'Bronze', minPairs: 100, rewardDescription: '2% Off', isActive: true },
+  { id: 's2', schemeName: 'Silver', minPairs: 250, rewardDescription: 'Silver Coin', isActive: true },
+  { id: 's3', schemeName: 'DisabledVIP', minPairs: 50, rewardDescription: 'VIP Gift', isActive: false }
+];
+assert.strictEqual(determineQualifiedScheme(72, cloudSchemes), 'Not Qualified', '72 pairs below 100 active threshold and ignores inactive 50 slab');
+assert.strictEqual(determineQualifiedScheme(260, cloudSchemes), 'Silver Coin (250+ Pairs)', '260 pairs qualifies for minPairs 250 rewardDescription');
+
+const noPhoneOrders = [
+  {
+    orderNo: 'ORD-A',
+    orderDate: '2026-11-20',
+    partyName: 'SHOP ALPHA',
+    retailerPhone: 'App User',
+    items: [{ itemCode: '101', productName: 'Shoe A', company: 'AJANTA', qty: 12, rate: 100, mrp: 120 }]
+  },
+  {
+    orderNo: 'ORD-B',
+    orderDate: '2026-11-20',
+    partyName: 'SHOP BETA',
+    retailerPhone: 'N/A',
+    items: [{ itemCode: '202', productName: 'Shoe B', company: 'PARAGON', qty: 24, rate: 200, mrp: 250 }]
+  }
+];
+const isolatedRetailers = calculateRetailerWiseReport(noPhoneOrders, cloudSchemes);
+assert.strictEqual(isolatedRetailers.length, 2, 'Distinct partyNames without valid phones must not merge');
+const alphaChallan = calculateRetailerItemChallan(noPhoneOrders, [], 'PARTY:SHOP ALPHA');
+assert.strictEqual(alphaChallan.length, 1);
+assert.strictEqual(alphaChallan[0].retailerName, 'SHOP ALPHA');
+console.log('✓ All Task 4 cloud scheme & retailer isolation tests passed!');

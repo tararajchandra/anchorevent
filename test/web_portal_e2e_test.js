@@ -49,7 +49,10 @@ vm.runInContext(`
     }
   ];
   masterItems = [{ code: '1001', product: 'PARAGON SLIPPER', company: 'PARAGON', mrp: 150 }];
-  eventSchemes = [{ pairs: 40, reward: 'Dinner Set' }];
+  eventSchemes = [
+    { schemeName: 'Bronze', minPairs: 40, rewardDescription: 'Dinner Set', isActive: true },
+    { schemeName: 'Gold', minPairs: 200, rewardDescription: 'Gold Coin', isActive: true }
+  ];
 `, sandbox);
 
 const retData = vm.runInContext("getReportDataAndCsv('retailer')", sandbox);

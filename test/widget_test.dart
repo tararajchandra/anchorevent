@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -183,6 +185,259 @@ void main() {
       expect(find.text(GraphicsStringConsts.shutterScannedBadge), findsNothing);
       expect(find.text('Add Pairs'), findsNothing);
       expect(find.textContaining('1 Items (12 Pairs)'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'rapid article QR detections open one sheet and size badge fits cleanly',
+    (WidgetTester tester) async {
+      await LocalStorage.instance.writeBool(
+        StorageKeyConsts.isDealerLoggedIn,
+        true,
+      );
+      await LocalStorage.instance.writeString(
+        StorageKeyConsts.activeShopName,
+        'AJANTA SHOE',
+      );
+      await LocalStorage.instance.writeString(
+        StorageKeyConsts.activeDealerPhone,
+        '9883433169',
+      );
+      final mappingsJson = jsonEncode(<Map<String, dynamic>>[
+        <String, dynamic>{
+          'article_no': '5221',
+          'brand': 'N FASHION (JA TRADERS)',
+          'qr_payload': 'MARG_ART:N FASHION (JA TRADERS)|5221',
+          'variants': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'item_code': '5221-LG-6X10',
+              'color': 'L. GRY/ BK',
+              'size': '6X10',
+              'rate': 220.0,
+              'mrp': 220.0,
+            },
+            <String, dynamic>{
+              'item_code': '5221-WB-6X9',
+              'color': 'WHT/BLK',
+              'size': '6X9',
+              'rate': 245.0,
+              'mrp': 245.0,
+            },
+          ],
+        },
+      ]);
+      await LocalStorage.instance.writeString(
+        StorageKeyConsts.articleQrMappingsJson,
+        mappingsJson,
+      );
+      addTearDown(() async {
+        await LocalStorage.instance.writeString(
+          StorageKeyConsts.articleQrMappingsJson,
+          '',
+        );
+      });
+
+      await tester.pumpWidget(const DealerConnectApp());
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 250)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(GraphicsStringConsts.navScan));
+      await tester.pumpAndSettle();
+
+      final mapping = MasterDataHandler.instance.lookupArticleQrMapping(
+        'MARG_ART:N FASHION (JA TRADERS)|5221',
+      );
+      expect(mapping, isNotNull);
+
+      final viewfinder = tester.widget<ScannerViewfinderCard>(
+        find.byType(ScannerViewfinderCard),
+      );
+
+      for (var i = 0; i < 6; i++) {
+        viewfinder.onBarcodeDetected('MARG_ART:N FASHION (JA TRADERS)|5221');
+      }
+      await tester.pump();
+      expect(
+        tester
+            .widget<ScannerViewfinderCard>(find.byType(ScannerViewfinderCard))
+            .isShutterClosed,
+        isTrue,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ArticleVariantSelectionSheet), findsOneWidget);
+      expect(find.text('Size: 6X10'), findsOneWidget);
+      expect(find.text('Size: 6X9'), findsOneWidget);
+
+      final updatedViewfinder = tester.widget<ScannerViewfinderCard>(
+        find.byType(ScannerViewfinderCard),
+      );
+      expect(updatedViewfinder.isShutterClosed, isTrue);
+
+      final sizeContainer = tester.widget<Container>(
+        find
+            .ancestor(
+              of: find.text('Size: 6X10'),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      final decoration = sizeContainer.decoration as BoxDecoration?;
+      expect(decoration?.color, GraphicsColorConsts.backgroundLight);
+
+      final submitBtn = find.text('Submit Order');
+      await tester.ensureVisible(submitBtn);
+      await tester.tap(submitBtn);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ArticleVariantSelectionSheet), findsNothing);
+      expect(find.textContaining('2 Items (24 Pairs)'), findsOneWidget);
+
+      final postSubmitViewfinder = tester.widget<ScannerViewfinderCard>(
+        find.byType(ScannerViewfinderCard),
+      );
+      expect(postSubmitViewfinder.isShutterClosed, isFalse);
+
+      postSubmitViewfinder
+          .onBarcodeDetected('MARG_ART:N FASHION (JA TRADERS)|5221');
+      await tester.pump();
+      await tester.pumpAndSettle();
+      expect(find.byType(ArticleVariantSelectionSheet), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'ArticleVariantSelectionSheet lays out cleanly at 360px phone width',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(360.0, 780.0);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final variants = <ArticleVariantBookingItem>[
+        ArticleVariantBookingItem(
+          itemCode: '5221-LG-6X10',
+          color: 'L. GRY/ BK',
+          size: '6X10',
+          rate: 220.0,
+          mrp: 220.0,
+          company: 'N FASHION (JA TRADERS)',
+          productName: '5221 L. GRY/ BK 6X10',
+        ),
+        ArticleVariantBookingItem(
+          itemCode: '5221-WB-6X9',
+          color: 'WHT/BLK',
+          size: '6X9',
+          rate: 245.0,
+          mrp: 245.0,
+          company: 'N FASHION (JA TRADERS)',
+          productName: '5221 WHT/BLK 6X9',
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: GraphicsTheme.lightTheme,
+          home: Scaffold(
+            body: ArticleVariantSelectionSheet(
+              brand: 'N FASHION (JA TRADERS)',
+              articleNo: '5221',
+              initialVariants: variants,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Size: 6X10'), findsOneWidget);
+      expect(find.text('L. GRY/ BK'), findsOneWidget);
+      expect(find.text('Submit Order'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'orders and schemes stay isolated per logged-in retailer with unique billNo',
+    (WidgetTester tester) async {
+      const sampleItem = BillItemEntity(
+        itemCode: '5221-LG-6X10',
+        barcode: '5221-LG-6X10',
+        productName: '5221 L. GRY/ BK 6X10',
+        company: 'N FASHION (JA Traders)',
+        unit: 'PAIR',
+        qtyPairs: 12,
+        rate: 220.0,
+        mrp: 220.0,
+      );
+
+      final respA = await BillingHandler.instance.createAndSaveBill(
+        partyName: 'ALPONA SHOE HOUSE',
+        deviceUuid: 'PHONE-7063326901',
+        salesmanName: '7063326901',
+        cartItems: const <BillItemEntity>[sampleItem],
+      );
+      final respB = await BillingHandler.instance.createAndSaveBill(
+        partyName: 'MAA TARA FOOTWEAR',
+        deviceUuid: 'PHONE-9876543210',
+        salesmanName: '9876543210',
+        cartItems: <BillItemEntity>[sampleItem.copyWithQty(24)],
+      );
+
+      final billA = respA.data;
+      final billB = respB.data;
+      expect(billA, isNotNull);
+      expect(billB, isNotNull);
+      expect(billA?.billNo, startsWith('ORD-6901-001-'));
+      expect(billB?.billNo, startsWith('ORD-3210-001-'));
+      expect(billA?.billNo, isNot(equals(billB?.billNo)));
+
+      final aOrders = BillingHandler.instance.getSavedBillsForRetailer(
+        phone: '7063326901',
+        partyName: 'ALPONA SHOE HOUSE',
+      );
+      final bOrders = BillingHandler.instance.getSavedBillsForRetailer(
+        phone: '9876543210',
+        partyName: 'MAA TARA FOOTWEAR',
+      );
+      expect(aOrders.length, 1);
+      expect(aOrders.first.totalPairs, 12);
+      expect(bOrders.length, 1);
+      expect(bOrders.first.totalPairs, 24);
+
+      await LocalStorage.instance.writeBool(
+        StorageKeyConsts.isDealerLoggedIn,
+        true,
+      );
+      await LocalStorage.instance.writeString(
+        StorageKeyConsts.activeShopName,
+        'ALPONA SHOE HOUSE',
+      );
+      await LocalStorage.instance.writeString(
+        StorageKeyConsts.activeDealerPhone,
+        '7063326901',
+      );
+
+      await tester.pumpWidget(const DealerConnectApp());
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 250)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('12 / 100 Pairs'), findsOneWidget);
+      expect(find.textContaining('Booked: 12 Pairs'), findsOneWidget);
+      expect(find.text('24 / 100 Pairs'), findsNothing);
+      expect(find.textContaining('Booked: 24 Pairs'), findsNothing);
+
+      await tester.tap(find.text(GraphicsStringConsts.navMyOrders));
+      await tester.pumpAndSettle();
+      expect(find.text('12 Prs'), findsOneWidget);
+      expect(find.text('24 Prs'), findsNothing);
+
+      await tester.tap(find.text(GraphicsStringConsts.navSchemes));
+      await tester.pumpAndSettle();
+      expect(find.text('12 Pairs'), findsOneWidget);
+      expect(find.text('24 Pairs'), findsNothing);
     },
   );
 }

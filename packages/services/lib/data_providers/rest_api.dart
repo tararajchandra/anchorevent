@@ -155,6 +155,14 @@ class RestApi {
     return ServiceResponse<bool>.success(data: true);
   }
 
+  static String _normalizeLast10Digits(String raw) {
+    final digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.length > 10) {
+      return digits.substring(digits.length - 10);
+    }
+    return digits;
+  }
+
   Future<ServiceResponse<bool>> pushBillHeader({
     required String billNo,
     required String billDate,
@@ -167,12 +175,38 @@ class RestApi {
     List<Map<String, dynamic>>? items,
   }) async {
     if (isCloudConfigured) {
+      var effectiveBillNo = billNo;
+      final existingRows = await _getSupabaseList(
+        path: '/rest/v1/bills?shop_id=eq.$_activeShopUuid'
+            '&bill_no=eq.${Uri.encodeComponent(effectiveBillNo)}'
+            '&select=id,party_name,device_uuid,salesman_name',
+      );
+      if (existingRows != null && existingRows.isNotEmpty) {
+        final first = existingRows.first;
+        if (first is Map<String, dynamic>) {
+          final existingUuid =
+              (first['device_uuid'] ?? '').toString().trim().toUpperCase();
+          final existingParty =
+              (first['party_name'] ?? '').toString().trim().toUpperCase();
+          final currentUuid = deviceUuid.trim().toUpperCase();
+          final currentParty = partyName.trim().toUpperCase();
+          final uuidDiffers =
+              existingUuid.isNotEmpty && existingUuid != currentUuid;
+          final partyDiffers =
+              existingParty.isNotEmpty && existingParty != currentParty;
+          if (uuidDiffers || partyDiffers) {
+            final suffix = DateTime.now().millisecondsSinceEpoch % 10000;
+            effectiveBillNo = '$billNo-$suffix';
+          }
+        }
+      }
+
       final billRow = await _postSupabaseJson(
         path: '/rest/v1/bills?on_conflict=shop_id,bill_no',
         preferHeader: 'resolution=merge-duplicates,return=representation',
         body: <String, dynamic>{
           'shop_id': _activeShopUuid,
-          'bill_no': billNo,
+          'bill_no': effectiveBillNo,
           'bill_date': billDate,
           'created_time': createdTime,
           'party_name': partyName,
@@ -184,6 +218,7 @@ class RestApi {
       );
       final billId = billRow?['id']?.toString() ?? '';
       if (billId.isNotEmpty && items != null && items.isNotEmpty) {
+        await _deleteSupabase(path: '/rest/v1/bill_items?bill_id=eq.$billId');
         final itemRows = items
             .map(
               (item) => <String, dynamic>{
@@ -207,6 +242,57 @@ class RestApi {
       }
     }
     return ServiceResponse<bool>.success(data: true);
+  }
+
+  Future<ServiceResponse<List<Map<String, dynamic>>>>
+      fetchCloudBillsForRetailer({
+    required String phone,
+    required String partyName,
+  }) async {
+    if (!isCloudConfigured) {
+      return ServiceResponse<List<Map<String, dynamic>>>.success(
+        data: const <Map<String, dynamic>>[],
+      );
+    }
+    final rows = await _getSupabaseList(
+      path: '/rest/v1/bills?shop_id=eq.$_activeShopUuid'
+          '&select=*,bill_items(*)&order=created_at.desc',
+    );
+    if (rows == null) {
+      return ServiceResponse<List<Map<String, dynamic>>>.success(
+        data: const <Map<String, dynamic>>[],
+      );
+    }
+    final cleanPhone = _normalizeLast10Digits(phone);
+    final cleanParty = partyName.trim().toUpperCase();
+    final matched = <Map<String, dynamic>>[];
+
+    for (final row in rows) {
+      if (row is! Map<String, dynamic>) {
+        continue;
+      }
+      final rowUuid = (row['device_uuid'] ?? '').toString().trim();
+      final rowSalesman = (row['salesman_name'] ?? '').toString().trim();
+      final rowParty =
+          (row['party_name'] ?? '').toString().trim().toUpperCase();
+
+      var rowPhone = '';
+      if (rowUuid.toUpperCase().startsWith('PHONE-')) {
+        rowPhone = _normalizeLast10Digits(rowUuid.substring(6));
+      } else {
+        rowPhone = _normalizeLast10Digits(rowSalesman);
+      }
+
+      final isMatch = (cleanPhone.length == 10 && rowPhone.length == 10)
+          ? cleanPhone == rowPhone
+          : (cleanParty.isNotEmpty && rowParty == cleanParty);
+
+      if (isMatch) {
+        matched.add(row);
+      }
+    }
+
+    return ServiceResponse<List<Map<String, dynamic>>>.success(data: matched);
   }
 
   Future<ServiceResponse<Map<String, Map<String, String>>>>
@@ -614,6 +700,21 @@ class RestApi {
       final request = await client.patchUrl(uri);
       _attachSupabaseHeaders(request, null);
       request.write(jsonEncode(body));
+      final response = await request.close();
+      await response.drain<void>();
+    } catch (_) {
+      return;
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<void> _deleteSupabase({required String path}) async {
+    final client = HttpClient();
+    try {
+      final uri = Uri.parse('$_supabaseUrl$path');
+      final request = await client.deleteUrl(uri);
+      _attachSupabaseHeaders(request, null);
       final response = await request.close();
       await response.drain<void>();
     } catch (_) {
