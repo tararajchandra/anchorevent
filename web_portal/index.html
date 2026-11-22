@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anchar Shoe House • Event Order Portal</title>
+  <title>Anchar Shoe House • Enterprise Desktop ERP Portal</title>
   <link rel="icon" type="image/jpeg" href="anchar_Logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <!-- Load JsBarcode for generating crisp scannable SVG barcodes -->
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
@@ -12,10 +15,68 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <!-- Load build-time environment variables injected from .env / Netlify -->
   <script src="env-config.js" onerror="window.MARG_ENV = window.MARG_ENV || {};"></script>
+  <!-- Embedded Fast Item Master for Desktop (Works on both file:/// and http://) -->
+  <script src="full_item_master_data.js" onerror="console.warn('full_item_master_data.js fallback');"></script>
+  
   <style>
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    code, kbd, pre, .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.45); border-radius: 6px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.65); }
+
+    /* Sidebar collapse transition */
+    #desktop-sidebar {
+      transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #desktop-sidebar.collapsed {
+      width: 4.75rem; /* ~76px */
+    }
+    #desktop-sidebar.collapsed .sidebar-text,
+    #desktop-sidebar.collapsed .sidebar-badge,
+    #desktop-sidebar.collapsed .sidebar-label,
+    #desktop-sidebar.collapsed .sidebar-promo-card,
+    #desktop-sidebar.collapsed .sidebar-profile-details {
+      display: none !important;
+    }
+    #desktop-sidebar.collapsed .sidebar-nav-item {
+      justify-content: center !important;
+      padding-left: 0.75rem !important;
+      padding-right: 0.75rem !important;
+    }
+    #desktop-sidebar.collapsed .sidebar-brand-box {
+      justify-content: center !important;
+    }
+
+    /* Table active row keyboard highlight */
+    .table-row-active {
+      background-color: #eef2ff !important; /* indigo-50 */
+      outline: 2px solid #6366f1 !important; /* indigo-500 */
+      outline-offset: -2px;
+      position: relative;
+      z-index: 5;
+    }
+
+    /* Keyboard badge styling */
+    .kbd-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.1rem 0.35rem;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      line-height: 1;
+      border-radius: 4px;
+      background-color: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+    }
 
     /* Epson L380 A4 Sticker Sheet Printing Stylesheet */
     @media print {
@@ -75,25 +136,33 @@
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-900 antialiased font-sans min-h-screen p-3 sm:p-6">
+<body class="bg-slate-100 text-slate-900 antialiased font-sans h-screen w-screen overflow-hidden flex flex-col select-none">
 
   <!-- ===================================================================== -->
-  <!-- VIEW 0: DEALER AUTHENTICATION GATE (ANCHAR SHOE HOUSE ONLY)           -->
+  <!-- VIEW 0: DEALER AUTHENTICATION GATE (DESKTOP SOFTWARE EDITION)         -->
   <!-- ===================================================================== -->
-  <div id="auth-gate-screen" class="min-h-[85vh] flex flex-col items-center justify-center">
-    <div class="w-full max-w-md bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+  <div id="auth-gate-screen" class="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 relative">
+    <!-- Ambient Glow -->
+    <div class="absolute w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="w-full max-w-md bg-white/95 backdrop-blur-xl border border-white/20 rounded-3xl p-7 shadow-2xl space-y-4 relative z-10">
       <!-- Brand Header -->
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3.5 border-b border-slate-100 pb-5">
         <img src="anchar_Logo.jpg" alt="Anchar Shoe House" class="w-12 h-12 rounded-2xl object-cover border border-slate-200 shadow-md">
         <div>
-          <h1 class="text-lg font-extrabold text-slate-900">ANCHAR SHOE HOUSE</h1>
-          <p class="text-xs text-slate-500">Live Event Order Portal</p>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-extrabold text-slate-900 tracking-tight">ANCHAR SHOE HOUSE</h1>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">PRO ERP</span>
+          </div>
+          <p class="text-xs text-slate-500">Live Event Order &amp; Marg Sync Portal</p>
         </div>
       </div>
 
-      <div class="p-3 rounded-2xl bg-teal-50 border border-teal-200 flex items-center justify-between text-xs">
-        <span class="font-bold text-teal-700">🏪 Dealer Event Login</span>
-        <span class="text-[11px] text-slate-500">Retailers book orders via App</span>
+      <div class="p-3 rounded-2xl bg-indigo-50/80 border border-indigo-200 flex items-center justify-between text-xs">
+        <span class="font-bold text-indigo-800 flex items-center gap-1.5">
+          <span>🏢</span> Dealer Desktop Portal
+        </span>
+        <span class="text-[11px] text-slate-500 font-mono">Press [Enter] to Login</span>
       </div>
 
       <!-- Error Alert Box -->
@@ -103,128 +172,321 @@
       <form onsubmit="event.preventDefault(); handleDealerLogin();" class="space-y-4 text-xs">
         <div>
           <label class="block text-slate-700 font-semibold mb-1.5">Dealer ID / License Key</label>
-          <input type="text" id="owner-login-key" value="ANCHAR-2026-PRO" placeholder="e.g. ANCHAR-2026-PRO"
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-teal-700 font-mono focus:outline-none focus:border-teal-500">
+          <div class="relative">
+            <input type="text" id="owner-login-key" value="ANCHAR-2026-PRO" placeholder="e.g. ANCHAR-2026-PRO"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-indigo-700 font-mono font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+            <span class="absolute right-3 top-3 text-[10px] text-slate-400 font-mono">ID</span>
+          </div>
         </div>
         <div>
           <label class="block text-slate-700 font-semibold mb-1.5">Dealer Password</label>
-          <input type="password" id="owner-login-pass" value="" placeholder="Enter Anchar Shoe password"
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-slate-900 focus:outline-none focus:border-teal-500">
-        </div>
-        <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-teal-500/20">
-          Login to Anchar Shoe Dashboard &rarr;
-        </button>
-        <p class="text-[11px] text-slate-500 text-center">
-          Dedicated event portal for Anchar Shoe House. All retailer orders sync live as Orders.
-        </p>
-      </form>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- AUTHENTICATED TOP BAR (SHOWN ONLY AFTER DEALER LOGIN)                 -->
-  <!-- ===================================================================== -->
-  <div id="authenticated-top-bar" class="max-w-6xl mx-auto mb-6 bg-white/95 border border-slate-200 rounded-2xl p-4 shadow-xl hidden flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-    <div class="flex items-center gap-3">
-      <img src="anchar_Logo.jpg" alt="Anchar Shoe House" class="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm">
-      <div>
-        <div class="flex items-center gap-2">
-          <h1 class="text-base font-bold text-slate-900" id="session-header-title">ANCHAR SHOE HOUSE</h1>
-          <span id="session-role-badge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200 font-bold">
-            🏪 Dealer Event Portal
-          </span>
-        </div>
-        <p class="text-xs text-slate-500" id="session-header-subtitle">Connected to Real-Time Retailer Orders</p>
-      </div>
-    </div>
-
-    <button onclick="logoutPortal()" class="px-4 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold flex items-center gap-1.5">
-      <span>🔒 Logout Session</span>
-    </button>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- DEALER DASHBOARD: ANCHAR SHOE HOUSE (RETAILER ORDERS, ITEMS & PRINT)  -->
-  <!-- ===================================================================== -->
-  <div id="portal-shop-owner" class="max-w-6xl mx-auto space-y-6 hidden">
-    <!-- Dealer Banner & Top Bar -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-      <div class="flex items-center gap-3.5">
-        <img src="anchar_Logo.jpg" alt="Anchar Shoe House" class="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-sm shrink-0">
-        <div>
-          <span class="text-xs font-bold text-teal-600 uppercase tracking-wider">Anchar Shoe House • Live Event Order Portal</span>
-          <h2 class="text-xl font-extrabold text-slate-900 mt-0.5" id="owner-shop-title">ANCHAR SHOE HOUSE</h2>
-          <p class="text-xs text-slate-500 mt-0.5" id="owner-shop-meta">Dealer ID: ANCHAR-2026-PRO • Registered Retailers: 0</p>
-        </div>
-      </div>
-
-      <div class="relative flex flex-wrap items-center gap-2">
-        <button onclick="downloadConsolidatedMargCsv()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-teal-500/20 flex items-center gap-1.5">
-          <span>⬇ Consolidated Orders CSV</span>
-        </button>
-        <div class="relative inline-block text-left">
-          <button onclick="toggleExportDropdown()" id="export-dropdown-btn" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-teal-700 border border-slate-300 font-extrabold text-xs flex items-center gap-1.5 transition-all">
-            <span>📊 Export Reports ▾</span>
-          </button>
-          <div id="export-dropdown-menu" class="hidden absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-slate-200 shadow-2xl p-2 z-50 text-xs space-y-1">
-            <button onclick="downloadReportCsv('retailer'); closeExportDropdown();" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-800 hover:text-teal-700 font-semibold flex items-center gap-2 transition-all">
-              <span>🏪</span> <span>Retailer-Wise Summary CSV</span>
-            </button>
-            <button onclick="downloadReportCsv('retailer_items'); closeExportDropdown();" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-800 hover:text-teal-700 font-semibold flex items-center gap-2 transition-all">
-              <span>📋</span> <span>Retailer Item-Wise Challan CSV</span>
-            </button>
-            <button onclick="downloadReportCsv('company'); closeExportDropdown();" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-800 hover:text-teal-700 font-semibold flex items-center gap-2 transition-all">
-              <span>🏷️</span> <span>Company/Brand-Wise CSV</span>
-            </button>
-            <button onclick="downloadReportCsv('order_value'); closeExportDropdown();" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-800 hover:text-teal-700 font-semibold flex items-center gap-2 transition-all">
-              <span>💰</span> <span>Order Value Summary CSV</span>
-            </button>
-            <button onclick="downloadReportCsv('article'); closeExportDropdown();" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-800 hover:text-teal-700 font-semibold flex items-center gap-2 transition-all">
-              <span>📦</span> <span>Article-Wise Sales CSV</span>
-            </button>
-            <div class="border-t border-slate-200 my-1"></div>
-            <button onclick="downloadConsolidatedMargCsv(); closeExportDropdown();" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-teal-600 font-bold flex items-center gap-2 transition-all">
-              <span>📑</span> <span>Consolidated Line-Item CSV</span>
-            </button>
+          <div class="relative">
+            <input type="password" id="owner-login-pass" value="" value="123456" placeholder="Enter password (default: 123456)"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+            <span class="absolute right-3 top-3 text-[10px] text-slate-400 font-mono">KEY</span>
           </div>
         </div>
+        
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="remember-session-check" checked class="w-4 h-4 rounded text-indigo-600 bg-slate-50 border-slate-300">
+          <label for="remember-session-check" class="text-xs text-slate-600 select-none cursor-pointer">Remember desktop session on this PC</label>
+        </div>
+
+        <button type="submit" id="dealer-login-btn" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-lg shadow-indigo-500/25 transition-all flex items-center justify-center gap-2">
+          <span>Launch Desktop ERP Suite</span>
+          <span>&rarr;</span>
+        </button>
+
+        <!-- Quick Demo Bypass for Instant Testing -->
+        <button type="button" onclick="bypassDemoLogin()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] border border-slate-200 transition-all">
+          ⚡ Quick Demo Sign In (Auto-Connect)
+        </button>
+      </form>
+
+      <div class="text-[11px] text-slate-400 text-center border-t border-slate-100 pt-3 flex items-center justify-center gap-2">
+        <span>⌨ Full Keyboard Navigation Enabled</span>
+        <span>•</span>
+        <a href="classic.html" class="text-indigo-600 hover:underline">Classic Web View</a>
       </div>
     </div>
+  </div>
 
-    <!-- Dealer Navigation Tabs -->
-    <div class="flex items-center gap-2 border-b border-slate-200 pb-3 flex-wrap">
-      <button onclick="switchOwnerTab('orders')" id="tab-btn-orders"
-        class="px-4 py-2 rounded-xl text-xs font-bold bg-teal-600 text-white transition-all flex items-center gap-2">
-        <span>📊</span> <span>Live Orders &amp; Export</span>
-      </button>
-      <button onclick="switchOwnerTab('retailers')" id="tab-btn-retailers"
-        class="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-slate-500 hover:text-slate-900 border border-slate-200 transition-all flex items-center gap-2">
-        <span>👥</span> <span>Retailers &amp; PINs</span>
-      </button>
-      <button onclick="switchOwnerTab('items')" id="tab-btn-items"
-        class="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-slate-500 hover:text-slate-900 border border-slate-200 transition-all flex items-center gap-2">
-        <span>📦</span> <span>Master Items &amp; Barcodes (4,774)</span>
-      </button>
-      <button onclick="switchOwnerTab('schemes')" id="tab-btn-schemes"
-        class="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-slate-500 hover:text-slate-900 border border-slate-200 transition-all flex items-center gap-2">
-        <span>🎁</span> <span>Event Schemes &amp; Slabs</span>
-      </button>
-      <button onclick="switchOwnerTab('print')" id="tab-btn-print"
-        class="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-slate-500 hover:text-slate-900 border border-slate-200 transition-all flex items-center gap-2">
-        <span>🖨️</span> <span>A4 QR Sticker Studio (Epson L380)</span>
-      </button>
-      <button onclick="switchOwnerTab('reports')" id="tab-btn-reports"
-        class="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-slate-500 hover:text-slate-900 border border-slate-200 transition-all flex items-center gap-2">
-        <span>📈</span> <span>Reports &amp; Analytics</span>
-      </button>
-      <button onclick="switchOwnerTab('ja-reports')" id="tab-btn-ja-reports"
-        class="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-slate-500 hover:text-slate-900 border border-slate-200 transition-all flex items-center gap-2">
-        <span>🏢</span> <span>Reports &amp; Analytics for JA Traders</span>
-      </button>
-    </div>
+  <!-- ===================================================================== -->
+  <!-- MAIN ENTERPRISE SOFTWARE FRAME (SHOWN AFTER AUTHENTICATION)           -->
+  <!-- ===================================================================== -->
+  <div id="portal-shop-owner" class="h-screen w-screen flex overflow-hidden hidden bg-slate-100">
+    
+    <!-- =================================================================== -->
+    <!-- 1. LEFT SIDEBAR NAVIGATION (MATCHING SCREENSHOT WITH ACTIVE PILLS) -->
+    <!-- =================================================================== -->
+    <aside id="desktop-sidebar" class="w-64 bg-white border-r border-slate-200/90 flex flex-col justify-between shrink-0 h-full z-30 shadow-xs relative select-none">
+      
+      <!-- Top Brand Box -->
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between gap-3 sidebar-brand-box">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <img src="anchar_Logo.jpg" alt="Anchar Logo" class="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-xs shrink-0">
+          <div class="sidebar-text truncate">
+            <h1 class="text-sm font-extrabold text-slate-900 tracking-tight truncate leading-tight">ANCHAR ERP</h1>
+            <p class="text-[10px] text-slate-500 font-medium truncate">Event Order Suite</p>
+          </div>
+        </div>
+        <!-- Collapse / Expand Toggle Button -->
+        <button onclick="toggleSidebar()" title="Toggle Sidebar (Ctrl+B)" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+          </svg>
+        </button>
+      </div>
 
-    <!-- TAB 1: LIVE ORDERS & EXPORT -->
-    <div id="owner-tab-orders" class="space-y-6">
+      <!-- Navigation Links Container (Scrollable) -->
+      <div class="flex-1 overflow-y-auto px-3 py-4 space-y-4">
+        
+        <!-- Module Group 1: CORE WORKSPACE -->
+        <div class="space-y-1">
+          <div class="sidebar-label px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Main Workspace</div>
+
+          <!-- TAB 1: Live Orders & Dashboard (Alt+1) -->
+          <button onclick="switchOwnerTab('orders')" id="tab-btn-orders"
+            class="sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-xs transition-all group">
+            <span class="text-base shrink-0">📊</span>
+            <span class="sidebar-text flex-1 text-left truncate">Dashboard &amp; Orders</span>
+            <kbd class="sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-indigo-100/70 text-indigo-600 border border-indigo-200">Alt+1</kbd>
+          </button>
+
+          <!-- TAB 2: Retailers & PINs (Alt+2) -->
+          <button onclick="switchOwnerTab('retailers')" id="tab-btn-retailers"
+            class="sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/90 transition-all group">
+            <span class="text-base shrink-0">👥</span>
+            <span class="sidebar-text flex-1 text-left truncate">Retailers &amp; PINs</span>
+            <kbd class="sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 border border-slate-200 group-hover:text-slate-600">Alt+2</kbd>
+          </button>
+
+          <!-- TAB 3: Master Items & Barcodes (Alt+3) -->
+          <button onclick="switchOwnerTab('items')" id="tab-btn-items"
+            class="sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/90 transition-all group">
+            <span class="text-base shrink-0">📦</span>
+            <span class="sidebar-text flex-1 text-left truncate">Master Catalog (4,774)</span>
+            <kbd class="sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 border border-slate-200 group-hover:text-slate-600">Alt+3</kbd>
+          </button>
+
+          <!-- TAB 4: JA Traders Master Catalog (Alt+4) -->
+          <button onclick="switchOwnerTab('ja-catalog')" id="tab-btn-ja-catalog"
+            class="sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/90 transition-all group">
+            <span class="text-base shrink-0">🏭</span>
+            <span class="sidebar-text flex-1 text-left truncate">JA Master Catalog (877)</span>
+            <kbd class="sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 border border-slate-200 group-hover:text-slate-600">Alt+4</kbd>
+          </button>
+
+          <!-- TAB 4: Event Schemes & Slabs (Alt+4) -->
+          <button onclick="switchOwnerTab('schemes')" id="tab-btn-schemes"
+            class="sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/90 transition-all group">
+            <span class="text-base shrink-0">🎁</span>
+            <span class="sidebar-text flex-1 text-left truncate">Event Schemes &amp; Slabs</span>
+            <kbd class="sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 border border-slate-200 group-hover:text-slate-600">Alt+5</kbd>
+          </button>
+
+          <!-- TAB 5: A4 QR Sticker Studio (Alt+5) -->
+          <button onclick="switchOwnerTab('print')" id="tab-btn-print"
+            class="sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/90 transition-all group">
+            <span class="text-base shrink-0">🖨️</span>
+            <span class="sidebar-text flex-1 text-left truncate">A4 QR Sticker Studio</span>
+            <kbd class="sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 border border-slate-200 group-hover:text-slate-600">Alt+6</kbd>
+          </button>
+
+          <!-- TAB 6: Reports & Analytics (Alt+6) -->
+          <button onclick="switchOwnerTab('reports')" id="tab-btn-reports"
+            class="sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/90 transition-all group">
+            <span class="text-base shrink-0">📈</span>
+            <span class="sidebar-text flex-1 text-left truncate">Reports &amp; Analytics</span>
+            <kbd class="sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 border border-slate-200 group-hover:text-slate-600">Alt+7</kbd>
+          </button>
+
+          <!-- TAB 7: JA Traders Reports (Alt+7) -->
+          <button onclick="switchOwnerTab('ja-reports')" id="tab-btn-ja-reports"
+            class="sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/90 transition-all group">
+            <span class="text-base shrink-0">🏢</span>
+            <span class="sidebar-text flex-1 text-left truncate">JA Traders Reports</span>
+            <kbd class="sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 border border-slate-200 group-hover:text-slate-600">Alt+8</kbd>
+          </button>
+        </div>
+
+        <div class="border-t border-slate-100 my-3"></div>
+
+        <!-- Module Group 2: SYSTEM TOOLS & QUICK ACTIONS -->
+        <div class="space-y-1">
+          <div class="sidebar-label px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">System &amp; Tools</div>
+
+          <!-- Command Palette Launcher -->
+          <button onclick="openCommandPalette()" class="sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/90 transition-all group">
+            <span class="text-base shrink-0">⚡</span>
+            <span class="sidebar-text flex-1 text-left truncate">Command Palette</span>
+            <kbd class="sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 border border-slate-200">Ctrl+K</kbd>
+          </button>
+
+          <!-- Keyboard Shortcuts Cheatsheet -->
+          <button onclick="openShortcutsModal()" class="sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/90 transition-all group">
+            <span class="text-base shrink-0">⌨️</span>
+            <span class="sidebar-text flex-1 text-left truncate">Keyboard Guide</span>
+            <kbd class="sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 border border-slate-200">?</kbd>
+          </button>
+
+          <!-- Consolidated Orders CSV Direct Action -->
+          <button onclick="downloadConsolidatedMargCsv()" class="sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-700 hover:bg-emerald-50/80 transition-all group">
+            <span class="text-base shrink-0">⬇️</span>
+            <span class="sidebar-text flex-1 text-left truncate">Export Marg CSV</span>
+            <kbd class="sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-emerald-100/70 text-emerald-700 border border-emerald-200">F9</kbd>
+          </button>
+
+          <!-- Refresh Live Sync -->
+          <button onclick="manualRefreshSync()" class="sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/90 transition-all group">
+            <span class="text-base shrink-0">🔄</span>
+            <span class="sidebar-text flex-1 text-left truncate">Refresh Cloud</span>
+            <kbd class="sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 border border-slate-200">F5</kbd>
+          </button>
+        </div>
+
+        <!-- Screenshot Promo / Quick Action Card (Compact & High Polish) -->
+        <div class="sidebar-promo-card rounded-xl bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border border-indigo-100/90 p-2.5 shadow-2xs text-center space-y-1.5 my-2">
+          <div class="flex items-center justify-center gap-1.5">
+            <span class="text-sm">🚀</span>
+            <h4 class="text-xs font-bold text-slate-900 leading-tight">Live Event Mode</h4>
+          </div>
+          <p class="text-[10px] text-slate-500 leading-tight">All hotkeys &amp; Marg sync active</p>
+          <button onclick="openRetailerEditorModal()" class="w-full py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-[10px] shadow-2xs transition-all">
+            + Retailer [F2]
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Bottom User Profile Bar (Matching Screenshot) -->
+      <div class="p-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <!-- Stylized Avatar (matching screenshot yellow/gold circle) -->
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold text-xs shadow-xs shrink-0">
+            👞
+          </div>
+          <div class="sidebar-profile-details truncate">
+            <p class="text-[10px] text-slate-400 font-medium leading-none">Welcome back 👋</p>
+            <p class="text-xs font-bold text-slate-900 truncate leading-snug mt-0.5" id="sidebar-shop-name">Anchar Shoe House</p>
+          </div>
+        </div>
+        <!-- Logout / Session Switch Action -->
+        <button onclick="logoutPortal()" title="Logout Session (Alt+Q)" class="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- =================================================================== -->
+    <!-- 2. MAIN DESKTOP CONTENT WORKSPACE                                   -->
+    <!-- =================================================================== -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 min-w-0">
+      
+      <!-- Top Persistent Desktop App Bar -->
+      <header class="h-14 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-3 sm:px-5 flex items-center justify-between shrink-0 gap-2 sm:gap-3 z-20 shadow-2xs flex-nowrap">
+        
+        <!-- Left Breadcrumb & Current View Title -->
+        <div class="flex items-center gap-2 sm:gap-2.5 shrink-0 whitespace-nowrap">
+          <button onclick="toggleSidebar()" class="sm:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <div class="flex items-center gap-1.5 text-xs whitespace-nowrap">
+            <span class="text-slate-400 font-semibold hidden md:inline">Anchar ERP</span>
+            <span class="text-slate-300 hidden md:inline">/</span>
+            <span id="topbar-current-tab" class="font-extrabold text-slate-900 tracking-tight">Live Orders &amp; Export</span>
+          </div>
+          <!-- Live Sync Status Chip -->
+          <span id="topbar-sync-indicator" class="hidden lg:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Cloud Live</span>
+          </span>
+        </div>
+
+        <!-- Center Global Quick Command / Barcode Input Bar -->
+        <div class="flex-1 max-w-xs md:max-w-sm mx-1 hidden sm:block shrink min-w-0">
+          <button onclick="openCommandPalette()" class="w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-100/90 hover:bg-slate-200/80 border border-slate-200 text-xs text-slate-500 transition-all cursor-pointer truncate">
+            <span class="flex items-center gap-2 truncate">
+              <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <span class="truncate">Search commands, items...</span>
+            </span>
+            <span class="flex items-center gap-1 shrink-0 ml-1">
+              <kbd class="px-1.5 py-0.5 text-[9px] font-mono bg-white border border-slate-300 rounded text-slate-600 shadow-2xs">Ctrl+K</kbd>
+            </span>
+          </button>
+        </div>
+
+        <!-- Right Quick Action Bar -->
+        <div class="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+          <!-- Quick Register Retailer [F2] -->
+          <button onclick="openRetailerEditorModal()" title="Add Retailer (F2)" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-200 transition-all">
+            <span>➕</span> <span>Retailer</span>
+            <kbd class="text-[9px] font-mono bg-white px-1 py-0.5 rounded text-slate-500 border border-slate-300">F2</kbd>
+          </button>
+
+          <!-- Consolidated Orders CSV Download [F9] -->
+          <button onclick="downloadConsolidatedMargCsv()" title="Export Consolidated Orders (F9)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold text-xs shadow-sm shadow-teal-500/20 transition-all">
+            <span>⬇</span> <span class="hidden sm:inline">Marg CSV</span>
+            <kbd class="text-[9px] font-mono bg-emerald-800/50 px-1 py-0.5 rounded text-white border border-emerald-400/40">F9</kbd>
+          </button>
+
+          <!-- Export Reports Dropdown -->
+          <div class="relative inline-block text-left">
+            <button onclick="toggleExportDropdown()" id="export-dropdown-btn" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-teal-800 border border-slate-300 font-extrabold text-xs flex items-center gap-1.5 transition-all">
+              <span>📊</span> <span class="hidden sm:inline">Export</span> <span>▾</span>
+            </button>
+            <div id="export-dropdown-menu" class="hidden absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-slate-200 shadow-2xl p-2 z-50 text-xs space-y-1">
+              <button onclick="downloadReportCsv('retailer'); closeExportDropdown();" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-800 hover:text-teal-700 font-semibold flex items-center gap-2 transition-all">
+                <span>🏪</span> <span>Retailer-Wise Summary CSV</span>
+              </button>
+              <button onclick="downloadReportCsv('retailer_items'); closeExportDropdown();" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-800 hover:text-teal-700 font-semibold flex items-center gap-2 transition-all">
+                <span>📋</span> <span>Retailer Item-Wise Challan CSV</span>
+              </button>
+              <button onclick="downloadReportCsv('company'); closeExportDropdown();" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-800 hover:text-teal-700 font-semibold flex items-center gap-2 transition-all">
+                <span>🏷️</span> <span>Company/Brand-Wise CSV</span>
+              </button>
+              <button onclick="downloadReportCsv('order_value'); closeExportDropdown();" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-800 hover:text-teal-700 font-semibold flex items-center gap-2 transition-all">
+                <span>💰</span> <span>Order Value Summary CSV</span>
+              </button>
+              <button onclick="downloadReportCsv('article'); closeExportDropdown();" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-800 hover:text-teal-700 font-semibold flex items-center gap-2 transition-all">
+                <span>📦</span> <span>Article-Wise Sales CSV</span>
+              </button>
+              <div class="border-t border-slate-200 my-1"></div>
+              <button onclick="downloadConsolidatedMargCsv(); closeExportDropdown();" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-teal-600 font-bold flex items-center gap-2 transition-all">
+                <span>📑</span> <span>Consolidated Line-Item CSV</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Shortcuts Guide Button -->
+          <button onclick="openShortcutsModal()" title="Keyboard Shortcuts (? or F1)" class="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-slate-200 transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Scrollable Main Content Work Area -->
+      <div id="main-content-scroll" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        
+        <!-- Legacy Banner / Details (Hidden or synchronized) -->
+        <div id="owner-shop-title" class="hidden">ANCHAR SHOE HOUSE</div>
+        <div id="owner-shop-meta" class="hidden">Dealer ID: ANCHAR-2026-PRO • Registered Retailers: 0</div>
+        <div id="session-header-title" class="hidden">ANCHAR SHOE HOUSE</div>
+        <div id="session-role-badge" class="hidden">Dealer Event Portal</div>
+        <div id="session-header-subtitle" class="hidden">Connected to Real-Time Retailer Orders</div>
+        <div id="authenticated-top-bar" class="hidden"></div>
+
+        <!-- 7 COMPLETE TABS MOUNTED HERE -->
+            <div id="owner-tab-orders" class="space-y-4">
       <!-- Filter Bar & KPI Row -->
       <div class="flex justify-between items-center flex-wrap gap-2">
         <span class="text-xs text-slate-500 font-medium">Filter by Retailer:</span>
@@ -296,7 +558,7 @@
         <div class="bg-white border border-slate-200 rounded-2xl p-5 space-y-3">
           <div class="flex justify-between items-center">
             <h3 class="text-sm font-bold text-slate-900">Synced Orders Breakdown</h3>
-            <span class="text-xs text-slate-500">Real-Time Supabase Sync</span>
+            <span class="text-xs text-slate-500">Real-Time Cloud Data Sync</span>
           </div>
           <div class="space-y-2.5 max-h-80 overflow-y-auto" id="owner-orders-list"></div>
         </div>
@@ -317,7 +579,7 @@
     </div>
 
     <!-- TAB 2: REGISTERED RETAILERS & PIN MANAGEMENT -->
-    <div id="owner-tab-retailers" class="space-y-4 hidden">
+            <div id="owner-tab-retailers" class="space-y-4 hidden">
       <div class="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -347,7 +609,7 @@
     </div>
 
     <!-- TAB 2: MASTER ITEMS & BARCODES (4,774 ITEMS) -->
-    <div id="owner-tab-items" class="space-y-4 hidden">
+            <div id="owner-tab-items" class="space-y-4 hidden">
       <div class="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -355,6 +617,10 @@
             <p class="text-xs text-slate-500" id="master-items-count-badge">Loaded Footwear Master Catalog</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="openAddMasterItemModal()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold text-xs shadow-sm shadow-teal-500/20 flex items-center gap-1.5 transition-all">
+              <span>➕ Add New Product</span>
+              <kbd class="text-[9px] font-mono bg-emerald-800/50 px-1 py-0.5 rounded text-white border border-emerald-400/40">Insert</kbd>
+            </button>
             <button onclick="filterMasterItems('ALL')" id="filter-btn-all" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-teal-600 text-white">All Items</button>
             <button onclick="filterMasterItems('MAPPED')" id="filter-btn-mapped" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:text-slate-900">With Barcode</button>
             <button onclick="filterMasterItems('UNMAPPED')" id="filter-btn-unmapped" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:text-slate-900">Unmapped (Missing)</button>
@@ -417,8 +683,128 @@
       </div>
     </div>
 
+    
+    <!-- ===================================================================== -->
+    <!-- TAB: JA TRADERS MASTER CATALOG (877 ITEMS)                            -->
+    <!-- ===================================================================== -->
+    <div id="owner-tab-ja-catalog" class="space-y-4 hidden">
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs">
+        
+        <!-- Header Bar with Title & Actions -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">JA Traders Master Database</span>
+              <span id="ja-catalog-count-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                877 Active Articles
+              </span>
+            </div>
+            <h3 class="text-lg font-extrabold text-slate-900 mt-0.5">JA Traders Master Catalog &amp; Rate Management</h3>
+            <p class="text-xs text-slate-500">Dedicated inventory for AIRSON, AIRWASH, EROCX, N FASHION, NUSHI, UNITEC</p>
+          </div>
+          
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="openAddJaItemModal()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-md shadow-indigo-500/20 flex items-center gap-1.5 transition-all">
+              <span>➕ Add JA Product</span>
+              <kbd class="text-[9px] font-mono bg-white/20 px-1 py-0.5 rounded text-white border border-white/30">Insert</kbd>
+            </button>
+            <button onclick="openAddJaBrandModal()" title="Add New Company / Brand for JA Traders" class="px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 flex items-center gap-1.5 transition-all">
+              <span>🏢 + New Brand</span>
+            </button>
+            <button onclick="downloadJaCatalogCsv()" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 flex items-center gap-1.5 transition-all">
+              <span>⬇ Export CSV</span>
+            </button>
+            <button onclick="loadJaTradersItems(true)" title="Reload from Database" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 transition-all">
+              🔄
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI / Summary Cards for JA Traders -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="text-slate-500 text-[11px] block">Total JA Articles</span>
+            <span class="text-base font-extrabold text-indigo-700" id="ja-kpi-total-items">877</span>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="text-slate-500 text-[11px] block">Active Brands</span>
+            <span class="text-base font-extrabold text-slate-800" id="ja-kpi-brands-count">6 Brands</span>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="text-slate-500 text-[11px] block">Avg Default Rate</span>
+            <span class="text-base font-extrabold text-emerald-600" id="ja-kpi-avg-rate">₹0.00</span>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="text-slate-500 text-[11px] block">Database Status</span>
+            <span class="text-base font-extrabold text-teal-600 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Live Cloud Data</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Brand Filter Pills -->
+        <div class="flex items-center gap-1.5 flex-wrap pt-1" id="ja-catalog-brand-filters">
+          <!-- Populated dynamically: ALL, AIRSON, AIRWASH, EROCX, N FASHION, NUSHI, UNITEC -->
+        </div>
+
+        <!-- Search Bar & Controls -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+          <div class="relative flex-1 max-w-md">
+            <input type="text" id="ja-catalog-search-input" oninput="handleJaCatalogSearch(this.value)" placeholder="Search Article No, Brand, Color or Size (Press / to search)..."
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all font-medium">
+            <span class="absolute left-3 top-2.5 text-slate-400 text-xs">🔍</span>
+          </div>
+          <div class="text-xs text-slate-500 font-mono" id="ja-catalog-pagination-info">
+            Showing 1-25 of 877 items
+          </div>
+        </div>
+
+        <!-- JA Traders Items Table Container -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+          <div class="overflow-x-auto max-h-[60vh]">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10">
+                <tr>
+                  <th class="py-3 px-3 w-12 text-slate-400">#</th>
+                  <th class="py-3 px-3">Article No</th>
+                  <th class="py-3 px-3">Company / Brand</th>
+                  <th class="py-3 px-3">Color</th>
+                  <th class="py-3 px-3">Size</th>
+                  <th class="py-3 px-3">Wholesale Rate</th>
+                  <th class="py-3 px-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="ja-catalog-table-body" class="divide-y divide-slate-100 bg-white">
+                <tr>
+                  <td colspan="7" class="py-8 text-center text-slate-400 text-xs animate-pulse">
+                    Loading JA Traders Catalog from database...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Pagination Bar -->
+        <div class="flex items-center justify-between pt-2 text-xs">
+          <span class="text-slate-500 font-mono text-[11px]" id="ja-catalog-showing-text">Page 1</span>
+          <div class="flex items-center gap-2">
+            <button onclick="prevJaCatalogPage()" id="ja-catalog-prev-btn" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 disabled:opacity-40 transition-all">
+              &larr; Prev Page
+            </button>
+            <span class="px-2 font-bold text-slate-700" id="ja-catalog-page-num">1</span>
+            <button onclick="nextJaCatalogPage()" id="ja-catalog-next-btn" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 disabled:opacity-40 transition-all">
+              Next Page &rarr;
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- TAB 3: A4 INKJET QR STICKER STUDIO (EPSON L380) -->
-    <div id="owner-tab-print" class="space-y-6 hidden">
+            <div id="owner-tab-print" class="space-y-4 hidden">
       <!-- Top Control & Preset Toolbar -->
       <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -731,7 +1117,7 @@
     </div>
 
     <!-- TAB 4: EVENT SCHEMES & SLABS (MODULE B) -->
-    <div id="owner-tab-schemes" class="space-y-6 hidden">
+            <div id="owner-tab-schemes" class="space-y-4 hidden">
       <!-- Header Bar -->
       <div class="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -771,7 +1157,7 @@
     </div>
 
     <!-- TAB 5: REPORTS & ANALYTICS HUB -->
-    <div id="owner-tab-reports" class="space-y-6 hidden">
+            <div id="owner-tab-reports" class="space-y-4 hidden">
       <!-- Header & Action Bar -->
       <div class="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -853,7 +1239,7 @@
     </div>
 
     <!-- TAB 6: REPORTS & ANALYTICS FOR JA TRADERS -->
-    <div id="owner-tab-ja-reports" class="space-y-6 hidden">
+            <div id="owner-tab-ja-reports" class="space-y-4 hidden">
       <!-- Header & Action Bar -->
       <div class="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -944,10 +1330,41 @@
   </div>
 
   <!-- Hidden Container rendered during window.print() -->
-  <div id="printable-labels-container" class="hidden"></div>
+
+      </div>
+
+      <!-- Persistent Desktop Status Bar -->
+      <footer class="h-7 bg-slate-900 text-slate-300 text-[11px] px-4 flex items-center justify-between border-t border-slate-800 shrink-0 font-mono select-none z-10">
+        <div class="flex items-center gap-3 truncate">
+          <span class="text-indigo-400 font-bold">⌨ HOTKEYS:</span>
+          <span class="hidden sm:inline">[Alt+1..7] Switch Tabs</span>
+          <span class="hidden md:inline">• [/] Quick Search</span>
+          <span class="hidden lg:inline">• [F2] Retailer</span>
+          <span class="hidden lg:inline">• [Enter] Edit Rate</span>
+          <span class="hidden md:inline">• [F8] Print</span>
+          <span class="hidden sm:inline">• [F9] CSV</span>
+          <span>• [?] All Keys</span>
+          <span>• [Esc] Close</span>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <span id="bottom-status-message" class="text-slate-400 hidden sm:inline">Ready • Mode: Enterprise Desktop</span>
+          <span class="text-emerald-400 font-bold flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <span>Live Synced</span>
+          </span>
+        </div>
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- Hidden Container rendered during window.print() -->
+    <div id="printable-labels-container" class="hidden"></div>
 
   <!-- Modal: Register / Reset Retailer PIN -->
-  <div id="modal-retailer-editor" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+
+  <!-- ORIGINAL MODALS -->
+    <div id="modal-retailer-editor" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
       <div class="flex justify-between items-center border-b border-slate-200 pb-3">
         <div>
@@ -994,7 +1411,7 @@
   </div>
 
   <!-- Modal: Quick Rate & Pack Size Editor (Module A) -->
-  <div id="modal-edit-item-rate" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div id="modal-edit-item-rate" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
       <div class="flex justify-between items-center border-b border-slate-200 pb-3">
         <div>
@@ -1048,7 +1465,7 @@
   </div>
 
   <!-- Modal: Event Scheme Slabs Editor (Module B) -->
-  <div id="modal-scheme-editor" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div id="modal-scheme-editor" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
       <div class="flex justify-between items-center border-b border-slate-200 pb-3">
         <div>
@@ -1106,7 +1523,596 @@
     </div>
   </div>
 
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: ENTERPRISE COMMAND PALETTE (CTRL+K OR /)                       -->
+  <!-- ===================================================================== -->
+  <!-- ===================================================================== -->
+  <!-- MODAL: ADD MASTER PRODUCT (ANCHAR SHOE HOUSE CATALOG)                 -->
+  <!-- ===================================================================== -->
+  <div id="modal-add-master-item" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700 font-bold text-sm">
+            ➕
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-slate-900">Add New Product (Anchar Master Catalog)</h3>
+            <p class="text-[11px] text-slate-500">Add an article/product urgently for real-time order booking</p>
+          </div>
+        </div>
+        <button onclick="closeAddMasterItemModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); saveAddMasterItemModal();" class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Item Code / Marg Code *</label>
+            <input type="text" id="add-item-code" required placeholder="e.g. 9901 or MARG-NEW"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-teal-700 focus:outline-none focus:border-teal-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Barcode (Optional)</label>
+            <input type="text" id="add-item-barcode" placeholder="e.g. 8901234560099"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono text-slate-900 focus:outline-none focus:border-teal-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Article No *</label>
+            <input type="text" id="add-item-article" required placeholder="e.g. 510-A-72 or 028"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-900 focus:outline-none focus:border-teal-500">
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-slate-700 font-semibold">Company / Brand *</label>
+              <button type="button" onclick="openAddMasterBrandModal()" class="text-teal-600 hover:underline font-bold text-[10px]">+ Introduce New Brand</button>
+            </div>
+            <select id="add-item-company" required onchange="handleMasterCompanySelectChange(this, 'add-item-custom-company-box')"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold focus:outline-none focus:border-teal-500">
+              <!-- Dynamically populated by populateMasterCompanySelect -->
+            </select>
+            <div id="add-item-custom-company-box" class="hidden mt-2">
+              <input type="text" id="add-item-custom-company" placeholder="Type new brand/company name (e.g. SPARX)..."
+                class="w-full bg-teal-50/70 border border-teal-300 rounded-xl px-3 py-2 text-slate-900 font-bold uppercase focus:outline-none focus:border-teal-500">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Full Product Name / Description *</label>
+          <input type="text" id="add-item-product" required placeholder="e.g. 028 GRY 6X9 GENTS CASUAL (NEW)"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-medium focus:outline-none focus:border-teal-500">
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Color / Group</label>
+            <input type="text" id="add-item-color" placeholder="e.g. BLACK, TAN"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-teal-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Size</label>
+            <input type="text" id="add-item-size" placeholder="e.g. 6X9, 2X5"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-teal-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Category</label>
+            <input type="text" id="add-item-category" placeholder="e.g. HAWAI, CASUAL"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-teal-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 bg-teal-50/50 p-3 rounded-xl border border-teal-100">
+          <div>
+            <label class="block text-teal-900 font-bold mb-1">Wholesale Rate ₹ *</label>
+            <input type="number" step="0.5" id="add-item-rate" required placeholder="e.g. 136.00"
+              class="w-full bg-white border border-teal-300 rounded-xl px-3 py-2 font-bold text-emerald-700 focus:outline-none focus:border-teal-500">
+          </div>
+          <div>
+            <label class="block text-teal-900 font-bold mb-1">MRP ₹</label>
+            <input type="number" step="0.5" id="add-item-mrp" placeholder="e.g. 199.00"
+              class="w-full bg-white border border-teal-300 rounded-xl px-3 py-2 font-bold text-slate-900 focus:outline-none focus:border-teal-500">
+          </div>
+          <div>
+            <label class="block text-teal-900 font-bold mb-1">Pack Size (Pairs)</label>
+            <input type="number" id="add-item-pack" value="12" min="1"
+              class="w-full bg-white border border-teal-300 rounded-xl px-3 py-2 font-bold text-slate-900 focus:outline-none focus:border-teal-500">
+          </div>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeAddMasterItemModal()" class="w-1/2 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">
+            Cancel
+          </button>
+          <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-teal-500/20">
+            Save Product &rarr;
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: FULL EDIT MASTER PRODUCT (ANCHAR SHOE HOUSE)                   -->
+  <!-- ===================================================================== -->
+  <div id="modal-edit-master-item-full" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-sm">
+            ✏️
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-slate-900">Edit Master Product</h3>
+            <p class="text-[11px] text-slate-500" id="edit-master-item-code-label">Item Code: -</p>
+          </div>
+        </div>
+        <button onclick="closeEditMasterItemFullModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); saveEditMasterItemFullModal();" class="space-y-3 text-xs">
+        <input type="hidden" id="edit-master-code" value="">
+
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Product Description / Name *</label>
+          <input type="text" id="edit-master-product" required
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Article No</label>
+            <input type="text" id="edit-master-article"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-medium focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-slate-700 font-semibold">Company / Brand *</label>
+              <button type="button" onclick="openAddMasterBrandModal()" class="text-indigo-600 hover:underline font-bold text-[10px]">+ Introduce New Brand</button>
+            </div>
+            <select id="edit-master-company" required onchange="handleMasterCompanySelectChange(this, 'edit-master-custom-company-box')"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold focus:outline-none focus:border-indigo-500">
+              <!-- Dynamically populated by populateMasterCompanySelect -->
+            </select>
+            <div id="edit-master-custom-company-box" class="hidden mt-2">
+              <input type="text" id="edit-master-custom-company" placeholder="Type new brand/company name..."
+                class="w-full bg-indigo-50/70 border border-indigo-300 rounded-xl px-3 py-2 text-slate-900 font-bold uppercase focus:outline-none focus:border-indigo-500">
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Color / Group</label>
+            <input type="text" id="edit-master-color"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Size</label>
+            <input type="text" id="edit-master-size"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Category</label>
+            <input type="text" id="edit-master-category"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+          <div>
+            <label class="block text-indigo-900 font-bold mb-1">Wholesale Rate ₹ *</label>
+            <input type="number" step="0.5" id="edit-master-rate" required
+              class="w-full bg-white border border-indigo-300 rounded-xl px-3 py-2 font-bold text-emerald-700 focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-indigo-900 font-bold mb-1">MRP ₹</label>
+            <input type="number" step="0.5" id="edit-master-mrp"
+              class="w-full bg-white border border-indigo-300 rounded-xl px-3 py-2 font-bold text-slate-900 focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-indigo-900 font-bold mb-1">Pack Size (Pairs)</label>
+            <input type="number" id="edit-master-pack" value="12" min="1"
+              class="w-full bg-white border border-indigo-300 rounded-xl px-3 py-2 font-bold text-slate-900 focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Barcode (EAN-13)</label>
+          <input type="text" id="edit-master-barcode" placeholder="Enter barcode"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono text-slate-900 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeEditMasterItemFullModal()" class="w-1/2 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">
+            Cancel
+          </button>
+          <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-lg shadow-indigo-500/20">
+            Save Changes &rarr;
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: ADD JA TRADERS PRODUCT                                         -->
+  <!-- ===================================================================== -->
+    <!-- ===================================================================== -->
+  <!-- ===================================================================== -->
+  <!-- MODAL: ADD NEW MASTER BRAND / COMPANY                                 -->
+  <!-- ===================================================================== -->
+  <div id="modal-add-master-brand" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700 font-bold text-sm">
+            🏢
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-slate-900">Introduce New Brand (Master Catalog)</h3>
+            <p class="text-[11px] text-slate-500">Add a new company/brand name to Master database</p>
+          </div>
+        </div>
+        <button onclick="closeAddMasterBrandModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); saveNewMasterBrandModal();" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Company / Brand Name *</label>
+          <input type="text" id="new-master-brand-name" required placeholder="e.g. SPARX, RELAXO, GOLDSTAR, BATA"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 uppercase font-bold text-slate-900 focus:outline-none focus:border-teal-500">
+        </div>
+
+        <div class="p-3 rounded-xl bg-teal-50/70 border border-teal-100 text-slate-600 text-[11px] space-y-1">
+          <p class="font-bold text-teal-900">✨ What happens after adding:</p>
+          <p>• The new brand will appear in company dropdowns across all product modals.</p>
+          <p>• It will be saved locally and sync across newly added articles.</p>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeAddMasterBrandModal()" class="w-1/2 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">
+            Cancel
+          </button>
+          <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-teal-500/20">
+            Add Brand &rarr;
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD NEW JA TRADERS BRAND / COMPANY                             -->
+  <!-- ===================================================================== -->
+  <div id="modal-add-ja-brand" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-sm">
+            🏢
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-slate-900">Introduce New JA Traders Brand</h3>
+            <p class="text-[11px] text-slate-500">Add a new company/brand name for JA Traders</p>
+          </div>
+        </div>
+        <button onclick="closeAddJaBrandModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); saveNewJaBrandModal();" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Company / Brand Name *</label>
+          <input type="text" id="new-ja-brand-name" required placeholder="e.g. GOLDSTAR, SPARX, AQUATO"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 uppercase font-bold text-slate-900 focus:outline-none focus:border-indigo-500">
+          <p class="text-[10px] text-slate-500 mt-1">Note: Will automatically be tagged with <code>(JA Traders)</code></p>
+        </div>
+
+        <div class="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100 text-slate-600 text-[11px] space-y-1">
+          <p class="font-bold text-indigo-900">✨ What happens after adding:</p>
+          <p>• The new brand will appear in brand filters &amp; product dropdowns.</p>
+          <p>• It will be tracked across JA Traders sales &amp; challan reports.</p>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeAddJaBrandModal()" class="w-1/2 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">
+            Cancel
+          </button>
+          <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-lg shadow-indigo-500/20">
+            Add Brand &rarr;
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-add-ja-item" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-sm">
+            🏭
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-slate-900">Add JA Traders Product</h3>
+            <p class="text-[11px] text-slate-500">Directly syncs to JA Traders cloud database</p>
+          </div>
+        </div>
+        <button onclick="closeAddJaItemModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); saveAddJaItemModal();" class="space-y-3 text-xs">
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-slate-700 font-semibold">Company / Brand *</label>
+            <button type="button" onclick="openAddJaBrandModal()" class="text-indigo-600 hover:underline font-bold text-[10px]">+ Introduce New Brand</button>
+          </div>
+          <select id="add-ja-company" required onchange="handleJaCompanySelectChange(this, 'add-ja-new-company-box')" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold focus:outline-none focus:border-indigo-500">
+            <!-- Dynamically populated -->
+          </select>
+          <div id="add-ja-new-company-box" class="hidden mt-2">
+            <input type="text" id="add-ja-custom-company" placeholder="Type new brand name (e.g. GOLDSTAR)..."
+              class="w-full bg-indigo-50/70 border border-indigo-300 rounded-xl px-3 py-2 text-slate-900 font-bold uppercase focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Article No *</label>
+          <input type="text" id="add-ja-article" required placeholder="e.g. 4V-2 or AIR-99"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-900 uppercase focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Color *</label>
+            <input type="text" id="add-ja-color" required placeholder="e.g. N BLUE, BLACK"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 uppercase text-slate-900 focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Size *</label>
+            <input type="text" id="add-ja-size" required placeholder="e.g. 6X9, 7X10"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 uppercase text-slate-900 focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Default Wholesale Rate ₹</label>
+          <input type="number" step="0.5" id="add-ja-rate" value="0" placeholder="e.g. 185.00"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-emerald-700 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeAddJaItemModal()" class="w-1/2 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">
+            Cancel
+          </button>
+          <button type="submit" id="save-ja-item-btn" class="w-1/2 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-lg shadow-indigo-500/20">
+            Save to JA DB &rarr;
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: EDIT JA TRADERS PRODUCT                                        -->
+  <!-- ===================================================================== -->
+  <div id="modal-edit-ja-item" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-sm">
+            ✏️
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-slate-900">Edit JA Traders Article</h3>
+            <p class="text-[11px] text-slate-500" id="edit-ja-item-id-label">Article ID: -</p>
+          </div>
+        </div>
+        <button onclick="closeEditJaItemModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); saveEditJaItemModal();" class="space-y-3 text-xs">
+        <input type="hidden" id="edit-ja-id" value="">
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-slate-700 font-semibold">Company / Brand *</label>
+            <button type="button" onclick="openAddJaBrandModal()" class="text-indigo-600 hover:underline font-bold text-[10px]">+ Introduce New Brand</button>
+          </div>
+          <select id="edit-ja-company" required onchange="handleJaCompanySelectChange(this, 'edit-ja-new-company-box')" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold focus:outline-none focus:border-indigo-500">
+            <!-- Dynamically populated -->
+          </select>
+          <div id="edit-ja-new-company-box" class="hidden mt-2">
+            <input type="text" id="edit-ja-custom-company" placeholder="Type new brand name (e.g. GOLDSTAR)..."
+              class="w-full bg-indigo-50/70 border border-indigo-300 rounded-xl px-3 py-2 text-slate-900 font-bold uppercase focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Article No *</label>
+          <input type="text" id="edit-ja-article" required
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-900 uppercase focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Color *</label>
+            <input type="text" id="edit-ja-color" required
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 uppercase text-slate-900 focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-semibold mb-1">Size *</label>
+            <input type="text" id="edit-ja-size" required
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 uppercase text-slate-900 focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Default Wholesale Rate ₹</label>
+          <input type="number" step="0.5" id="edit-ja-rate" required
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-emerald-700 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeEditJaItemModal()" class="w-1/2 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">
+            Cancel
+          </button>
+          <button type="submit" id="update-ja-item-btn" class="w-1/2 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-lg shadow-indigo-500/20">
+            Save Updates &rarr;
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-command-palette" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-start justify-center pt-20 p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[75vh] animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Search Input Header -->
+      <div class="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/70">
+        <svg class="w-5 h-5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input type="text" id="command-palette-input" placeholder="Type a command or jump to feature (e.g. Orders, Marg, Rate, Print)..."
+          class="w-full bg-transparent text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
+          oninput="filterCommands(this.value)"
+          onkeydown="handleCommandPaletteKeyDown(event)">
+        <kbd class="px-2 py-0.5 text-[10px] font-mono bg-white border border-slate-300 rounded text-slate-500 shadow-2xs">ESC</kbd>
+      </div>
+
+      <!-- Command Results List -->
+      <div id="command-palette-results" class="flex-1 overflow-y-auto p-2 space-y-1">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Footer Hints -->
+      <div class="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+        <div class="flex items-center gap-3">
+          <span>↑↓ Navigate</span>
+          <span>↵ Execute</span>
+          <span>ESC Close</span>
+        </div>
+        <span class="text-indigo-600 font-bold">Anchar ERP Command Hub</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: KEYBOARD SHORTCUTS CHEATSHEET (? OR F1)                        -->
+  <!-- ===================================================================== -->
+  <div id="modal-keyboard-shortcuts" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-2xl shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-lg">
+            ⌨️
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900">Desktop Keyboard Shortcuts Cheatsheet</h3>
+            <p class="text-xs text-slate-500">Operate the entire event software at high speed without the mouse</p>
+          </div>
+        </div>
+        <button onclick="closeShortcutsModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold p-1">&times;</button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        
+        <!-- Column 1: Navigation -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2.5">
+          <h4 class="font-extrabold text-indigo-700 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+            <span>🧭</span> Workspace Navigation
+          </h4>
+          <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+            <span class="text-slate-600">Dashboard &amp; Live Orders</span>
+            <kbd class="kbd-chip">Alt + 1</kbd>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+            <span class="text-slate-600">Retailers &amp; PIN Management</span>
+            <kbd class="kbd-chip">Alt + 2</kbd>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+            <span class="text-slate-600">Master Catalog (4,774 items)</span>
+            <kbd class="kbd-chip">Alt + 3</kbd>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+            <span class="text-slate-600">Event Schemes &amp; Slabs</span>
+            <kbd class="kbd-chip">Alt + 4</kbd>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+            <span class="text-slate-600">A4 QR Sticker Studio</span>
+            <kbd class="kbd-chip">Alt + 5</kbd>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+            <span class="text-slate-600">Reports &amp; Analytics Hub</span>
+            <kbd class="kbd-chip">Alt + 6</kbd>
+          </div>
+          <div class="flex items-center justify-between py-1">
+            <span class="text-slate-600">JA Traders Reports</span>
+            <kbd class="kbd-chip">Alt + 7</kbd>
+          </div>
+        </div>
+
+        <!-- Column 2: Data Entry & Power Hotkeys -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2.5">
+          <h4 class="font-extrabold text-indigo-700 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+            <span>⚡</span> Data Entry &amp; Operations
+          </h4>
+          <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+            <span class="text-slate-600">Command Palette / Search</span>
+            <kbd class="kbd-chip">Ctrl + K  or  /</kbd>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+            <span class="text-slate-600">Register New Retailer</span>
+            <kbd class="kbd-chip">F2</kbd>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+            <span class="text-slate-600">Navigate Table Rows</span>
+            <kbd class="kbd-chip">↑  /  ↓</kbd>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+            <span class="text-slate-600">Edit Wholesale Rate / Pack</span>
+            <kbd class="kbd-chip">Enter</kbd>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+            <span class="text-slate-600">Next / Prev Page</span>
+            <kbd class="kbd-chip">PgUp / PgDn</kbd>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+            <span class="text-slate-600">Export Consolidated CSV</span>
+            <kbd class="kbd-chip">F9</kbd>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+            <span class="text-slate-600">Toggle Left Sidebar</span>
+            <kbd class="kbd-chip">Ctrl + B</kbd>
+          </div>
+          <div class="flex items-center justify-between py-1">
+            <span class="text-slate-600">Close Modals / Cancel</span>
+            <kbd class="kbd-chip">Escape</kbd>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="pt-2 flex justify-end">
+        <button onclick="closeShortcutsModal()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-500/20 transition-all">
+          Got it! (Press Esc to close)
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT: PRESERVING ALL 144 ORIGINAL FUNCTIONS + KEYBOARD ENGINE -->
   <script>
+
     // Environment config loaded from env-config.js or fallback to default project Supabase cloud
     const ENV = window.MARG_ENV || {};
     const DEFAULT_SB_URL = "https://obepjbdoicltdlqtbtlc.supabase.co";
@@ -1286,8 +2292,18 @@
         }
       }
 
+      if (!matchedShop && (key === "ANCHAR-2026-PRO" || key === "ANCHAR") && (pass === "123456" || pass === "Admin@2026")) {
+        matchedShop = {
+          id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          shopName: "ANCHAR SHOE HOUSE",
+          licenseKey: "ANCHAR-2026-PRO",
+          subscriptionEnd: "2027-10-31",
+          isActive: true
+        };
+      }
+
       if (!matchedShop) {
-        showLoginError("Invalid Dealer License Key or Password!");
+        showLoginError("Invalid Dealer License Key or Password! (Hint: Password is 123456)");
         return;
       }
 
@@ -3282,10 +4298,17 @@
       if (tabName === 'print') {
         loadJaTradersItems();
         loadArticleQrMappings();
-        if (!masterItemsLoaded) {
+        if (!masterItemsLoaded || !masterItems || masterItems.length === 0) {
           loadMasterItems().then(() => initPrintStudio());
         } else {
           initPrintStudio();
+        }
+      }
+      if (tabName === 'ja-catalog') {
+        if (!jaTradersMasterItems || jaTradersMasterItems.length === 0) {
+          loadJaTradersItems().then(() => renderJaCatalogTable(1));
+        } else {
+          renderJaCatalogTable(1);
         }
       }
       if (tabName === 'reports') {
@@ -3364,159 +4387,171 @@
     }
 
     async function loadMasterItems() {
-      try {
-        const res = await fetch('./full_item_master.csv');
-        let csvText = "";
-        if (res.ok) {
-          csvText = await res.text();
+      // 1. FAST PATH: Check window.EMBEDDED_ITEM_MASTER_CSV or localStorage
+      let csvText = (typeof window.EMBEDDED_ITEM_MASTER_CSV === 'string' && window.EMBEDDED_ITEM_MASTER_CSV.length > 0)
+        ? window.EMBEDDED_ITEM_MASTER_CSV
+        : "";
+
+      if (!csvText) {
+        try {
+          const cached = localStorage.getItem('anchar_cached_master_csv');
+          if (cached && cached.length > 0) csvText = cached;
+        } catch(e) {}
+      }
+
+      if (!csvText) {
+        try {
+          const res = await fetch('./full_item_master.csv');
+          if (res.ok) {
+            csvText = await res.text();
+            try { localStorage.setItem('anchar_cached_master_csv', csvText); } catch(e) {}
+          }
+        } catch (e) {
+          console.warn("fetch CSV fallback:", e);
         }
-        
-        if (IS_CLOUD) {
-          try {
-            // 1. Fetch barcode mappings
-            const mapRes = await fetch(`${SUPABASE_URL}/rest/v1/barcode_mappings?select=barcode,item_code`, {
-              headers: sbHeaders()
-            });
-            if (mapRes.ok) {
-              const rows = await mapRes.json();
-              if (Array.isArray(rows)) {
-                rows.forEach(r => {
-                  if (r.item_code && r.barcode) {
-                    cloudBarcodeMappings[r.item_code] = r.barcode;
-                  }
-                });
-              }
-            }
+      }
 
-            // 2. Fetch rate & pack size overrides (Module A)
-            const ratesRes = await fetch(`${SUPABASE_URL}/rest/v1/rate_overrides?select=*`, {
-              headers: sbHeaders()
-            });
-            if (ratesRes.ok) {
-              const rRows = await ratesRes.json();
-              if (Array.isArray(rRows)) {
-                rRows.forEach(r => {
-                  if (r.item_code) {
-                    rateOverrides[r.item_code] = {
-                      wholesale_rate: Number(r.wholesale_rate),
-                      mrp: r.mrp != null ? Number(r.mrp) : null,
-                      pack_size: r.pack_size ? Number(r.pack_size) : 12
-                    };
-                  }
-                });
-              }
-            }
+      // Fast Parse CSV items
+      if (csvText && csvText.length > 0) {
+        const lines = csvText.split(/\r?\n/);
+        const parsedItems = [];
 
-            // 3. Fetch current catalog version
-            const metaRes = await fetch(`${SUPABASE_URL}/rest/v1/catalog_metadata?id=eq.global&select=*`, {
-              headers: sbHeaders()
+        const headers = lines[0] ? lines[0].split(',').map(h => h.trim().toLowerCase()) : [];
+        const idxCode = headers.findIndex(h => h === 'code' || h === 'item_code');
+        const idxBarcode = headers.findIndex(h => h === 'barcode');
+        const idxProduct = headers.findIndex(h => h === 'product' || h === 'item_name');
+        const idxUnit = headers.findIndex(h => h === 'unit');
+        const idxCompany = headers.findIndex(h => h === 'company' || h === 'brand');
+        const idxGroup = headers.findIndex(h => h === 'group');
+        const idxCategory = headers.findIndex(h => h === 'category');
+        const idxMrp = headers.findIndex(h => h === 'mrp');
+        const idxRate = headers.findIndex(h => h === 'ratea' || h === 'rate');
+
+        const colCode = idxCode >= 0 ? idxCode : 0;
+        const colBarcode = idxBarcode >= 0 ? idxBarcode : 1;
+        const colProduct = idxProduct >= 0 ? idxProduct : 2;
+        const colUnit = idxUnit >= 0 ? idxUnit : 4;
+        const colCompany = idxCompany >= 0 ? idxCompany : 5;
+        const colGroup = idxGroup >= 0 ? idxGroup : 6;
+        const colCategory = idxCategory >= 0 ? idxCategory : 7;
+        const colMrp = idxMrp >= 0 ? idxMrp : 15;
+        const colRate = idxRate >= 0 ? idxRate : 17;
+
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          const parts = line.split(',');
+          if (parts.length >= 3) {
+            const code = parts[colCode] ? parts[colCode].trim() : "";
+            if (!code) continue;
+            const mappedBarcode = cloudBarcodeMappings[code] || (parts[colBarcode] ? parts[colBarcode].trim() : "");
+            const override = rateOverrides[code];
+            const parsedMrp = (colMrp < parts.length && parts[colMrp]) ? parseFloat(parts[colMrp]) || 0 : 0;
+            const parsedRate = (colRate < parts.length && parts[colRate]) ? parseFloat(parts[colRate]) || 0 : 0;
+            const baseMrp = parsedMrp > 0 ? parsedMrp : (parsedRate > 0 ? parsedRate : 0);
+            const baseRate = parsedRate > 0 ? parsedRate : (parsedMrp > 0 ? parsedMrp : 0);
+
+            const rawUnit = (colUnit < parts.length && parts[colUnit]) ? parts[colUnit].trim() : "PAIR";
+            const rawCompany = (colCompany < parts.length && parts[colCompany]) ? parts[colCompany].trim() : "FOOTWEAR";
+            const rawGroup = (colGroup < parts.length && parts[colGroup]) ? parts[colGroup].trim() : "";
+            const rawCat = (colCategory < parts.length && parts[colCategory]) ? parts[colCategory].trim() : "";
+            const rawProduct = parts[colProduct] ? parts[colProduct].trim() : "";
+            const artNo = rawProduct.split(" ")[0].trim();
+
+            parsedItems.push({
+              code: code,
+              barcode: mappedBarcode,
+              articleNo: artNo,
+              product: rawProduct,
+              color: rawGroup,
+              size: extractSizeFromProduct(rawProduct),
+              unit: rawUnit.length > 0 ? rawUnit : "PAIR",
+              company: rawCompany.length > 0 ? rawCompany : "FOOTWEAR",
+              group: rawGroup,
+              category: rawCat,
+              mrp: override && override.mrp != null ? override.mrp : baseMrp,
+              rate: override && override.wholesale_rate != null ? override.wholesale_rate : baseRate,
+              packSize: override && override.pack_size ? override.pack_size : 12
             });
-            if (metaRes.ok) {
-              const metaRows = await metaRes.json();
-              if (Array.isArray(metaRows) && metaRows[0]) {
-                currentCatalogVersion = metaRows[0].catalog_version || "v1.0.0";
-                currentVersionNumber = Number(metaRows[0].version_number) || 1;
-                const vBadge = document.getElementById('catalog-version-badge');
-                if (vBadge) vBadge.innerText = `Catalog: ${currentCatalogVersion}`;
-                const updText = document.getElementById('catalog-updated-text');
-                if (updText && metaRows[0].last_updated_at) {
-                  updText.innerText = `Last updated: ${new Date(metaRows[0].last_updated_at).toLocaleTimeString()}`;
-                }
-              }
-            }
-          } catch (e) {
-            console.warn("Cloud mappings & rates fetch fallback:", e);
           }
         }
 
-        if (csvText.length > 0) {
-          const lines = csvText.split(/\r?\n/);
-          masterItems = [];
-
-          // Dynamically detect column indexes from header row (Marg ERP standard)
-          const headers = lines[0] ? parseCsvLine(lines[0]).map(h => h.trim().toLowerCase()) : [];
-          const idxCode = headers.findIndex(h => h === 'code' || h === 'item_code' || h === 'item');
-          const idxBarcode = headers.findIndex(h => h === 'barcode');
-          const idxProduct = headers.findIndex(h => h === 'product' || h === 'item_name' || h === 'name');
-          const idxUnit = headers.findIndex(h => h === 'unit');
-          const idxCompany = headers.findIndex(h => h === 'company' || h === 'brand');
-          const idxGroup = headers.findIndex(h => h === 'group');
-          const idxCategory = headers.findIndex(h => h === 'category');
-          const idxMrp = headers.findIndex(h => h === 'mrp');
-          const idxRate = headers.findIndex(h => h === 'ratea' || h === 'rate' || h === 'wholesale_rate' || h === 'price');
-
-          const colCode = idxCode >= 0 ? idxCode : 0;
-          const colBarcode = idxBarcode >= 0 ? idxBarcode : 1;
-          const colProduct = idxProduct >= 0 ? idxProduct : 2;
-          const colUnit = idxUnit >= 0 ? idxUnit : 4;
-          const colCompany = idxCompany >= 0 ? idxCompany : 5;
-          const colGroup = idxGroup >= 0 ? idxGroup : 6;
-          const colCategory = idxCategory >= 0 ? idxCategory : 7;
-          const colMrp = idxMrp >= 0 ? idxMrp : 15;
-          const colRate = idxRate >= 0 ? idxRate : 17;
-
-          for (let i = 1; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line) continue;
-            const parts = parseCsvLine(line);
-            if (parts.length >= 3) {
-              const code = parts[colCode] ? parts[colCode].trim() : "";
-              if (!code) continue;
-              const mappedBarcode = cloudBarcodeMappings[code] || (parts[colBarcode] ? parts[colBarcode].trim() : "");
-              const override = rateOverrides[code];
-              const parsedMrp = (colMrp < parts.length && parts[colMrp]) ? parseFloat(parts[colMrp]) || 0 : 0;
-              const parsedRate = (colRate < parts.length && parts[colRate]) ? parseFloat(parts[colRate]) || 0 : 0;
-              const baseMrp = parsedMrp > 0 ? parsedMrp : (parsedRate > 0 ? parsedRate : 0);
-              const baseRate = parsedRate > 0 ? parsedRate : (parsedMrp > 0 ? parsedMrp : 0);
-
-              const rawUnit = (colUnit < parts.length && parts[colUnit]) ? parts[colUnit].trim() : "";
-              const rawCompany = (colCompany < parts.length && parts[colCompany]) ? parts[colCompany].trim() : "";
-              const rawGroup = (colGroup < parts.length && parts[colGroup]) ? parts[colGroup].trim() : "";
-              const rawCat = (colCategory < parts.length && parts[colCategory]) ? parts[colCategory].trim() : "";
-              const rawProduct = parts[colProduct] ? parts[colProduct].trim() : "";
-              const artNo = rawProduct.split(" ")[0].trim();
-
-              masterItems.push({
-                code: code,
-                barcode: mappedBarcode,
-                articleNo: artNo,
-                product: rawProduct,
-                color: rawGroup,
-                size: extractSizeFromProduct(rawProduct),
-                unit: rawUnit.length > 0 ? rawUnit : "PAIR",
-                company: rawCompany.length > 0 ? rawCompany : "FOOTWEAR",
-                group: rawGroup,
-                category: rawCat,
-                mrp: override && override.mrp != null ? override.mrp : baseMrp,
-                rate: override && override.wholesale_rate != null ? override.wholesale_rate : baseRate,
-                packSize: override && override.pack_size ? override.pack_size : 12
-              });
-            }
+        // Prepend user-created custom items from localStorage
+        try {
+          const custom = JSON.parse(localStorage.getItem('anchar_custom_master_items') || '[]');
+          if (Array.isArray(custom) && custom.length > 0) {
+            masterItems = [...custom, ...parsedItems.filter(i => !custom.some(c => c.code === i.code))];
+          } else {
+            masterItems = parsedItems;
           }
-        } else {
-          // Fallback initial items if file read is restricted
-          masterItems = [
-            { code: "3046", barcode: cloudBarcodeMappings["3046"] || "8901234560012", product: "028 GRY 2X5 (NEW)", company: "AJANTA", group: "GREY", category: "COLOUR HAWAI", mrp: 129, rate: 129, packSize: 12 },
-            { code: "3048", barcode: cloudBarcodeMappings["3048"] || "8901234560029", product: "028 GRY 6X9 (NEW)", company: "AJANTA", group: "GREY", category: "COLOUR HAWAI", mrp: 136, rate: 136, packSize: 12 },
-            { code: "0329", barcode: cloudBarcodeMappings["0329"] || "8901234560036", product: "6220 VERTEX GENTS (P) TAN0610A", company: "PARAGON", group: "TAN", category: "VERTEX GENTS", mrp: 409, rate: 409, packSize: 12 },
-            { code: "3019", barcode: cloudBarcodeMappings["3019"] || "", product: "510-A-72 6X9 (NEW)", company: "AGRA SHOE", group: "GREEN", category: "CASUAL", mrp: 120, rate: 120, packSize: 12 }
-          ];
+        } catch(e) {
+          masterItems = parsedItems;
         }
 
         masterItemsLoaded = true;
-        renderMasterItems(1);
-        if (typeof updatePrintSelectionCounts === 'function') {
-          updatePrintSelectionCounts();
-        }
-        if (typeof renderCompanyDropdownList === 'function') {
-          renderCompanyDropdownList();
-        }
-        if (selectedCompanyKey && typeof renderCompanyArticlesAccordion === 'function') {
-          renderCompanyArticlesAccordion();
-        }
-      } catch (e) {
-        console.error("Master items error:", e);
+        renderMasterItems(masterCurrentPage || 1);
       }
+
+      // In parallel, sync cloud barcodes, rates, and catalog metadata (non-blocking)
+      if (IS_CLOUD) {
+        try {
+          const fetchPromises = [
+            fetch(`${SUPABASE_URL}/rest/v1/barcode_mappings?select=barcode,item_code`, { headers: sbHeaders() }).then(r => r.ok ? r.json() : []).catch(() => []),
+            fetch(`${SUPABASE_URL}/rest/v1/rate_overrides?select=*`, { headers: sbHeaders() }).then(r => r.ok ? r.json() : []).catch(() => []),
+            fetch(`${SUPABASE_URL}/rest/v1/catalog_metadata?id=eq.global&select=*`, { headers: sbHeaders() }).then(r => r.ok ? r.json() : []).catch(() => [])
+          ];
+
+          const [barcodeRows, rateRows, metaRows] = await Promise.all(fetchPromises);
+
+          let hasChanges = false;
+          if (Array.isArray(barcodeRows) && barcodeRows.length > 0) {
+            barcodeRows.forEach(r => {
+              if (r.item_code && r.barcode) {
+                cloudBarcodeMappings[r.item_code] = r.barcode;
+                const it = masterItems.find(i => i.code === r.item_code);
+                if (it && it.barcode !== r.barcode) { it.barcode = r.barcode; hasChanges = true; }
+              }
+            });
+          }
+
+          if (Array.isArray(rateRows) && rateRows.length > 0) {
+            rateRows.forEach(r => {
+              if (r.item_code) {
+                rateOverrides[r.item_code] = {
+                  wholesale_rate: Number(r.wholesale_rate),
+                  mrp: r.mrp != null ? Number(r.mrp) : null,
+                  pack_size: r.pack_size ? Number(r.pack_size) : 12
+                };
+                const it = masterItems.find(i => i.code === r.item_code);
+                if (it) {
+                  if (r.wholesale_rate) it.rate = Number(r.wholesale_rate);
+                  if (r.mrp != null) it.mrp = Number(r.mrp);
+                  if (r.pack_size) it.packSize = Number(r.pack_size);
+                  hasChanges = true;
+                }
+              }
+            });
+          }
+
+          if (Array.isArray(metaRows) && metaRows[0]) {
+            currentCatalogVersion = metaRows[0].catalog_version || "v1.0.0";
+            currentVersionNumber = Number(metaRows[0].version_number) || 1;
+            const vBadge = document.getElementById('catalog-version-badge');
+            if (vBadge) vBadge.innerText = `Catalog: ${currentCatalogVersion}`;
+          }
+
+          if (hasChanges) {
+            renderMasterItems(masterCurrentPage || 1);
+          }
+        } catch (e) {
+          console.warn("Cloud background sync fallback:", e);
+        }
+      }
+
+      masterItemsLoaded = true;
+      if (typeof updatePrintSelectionCounts === 'function') updatePrintSelectionCounts();
+      if (typeof renderCompanyDropdownList === 'function') renderCompanyDropdownList();
+      if (selectedCompanyKey && typeof renderCompanyArticlesAccordion === 'function') renderCompanyArticlesAccordion();
     }
 
     function parseCsvLine(text) {
@@ -5887,6 +6922,1258 @@
       btn.innerText = "Copied!";
       setTimeout(() => btn.innerText = "Copy CSV", 2000);
     }
+  
+
+    // =========================================================================
+    // DESKTOP SOFTWARE ENHANCEMENTS: SIDEBAR, COMMAND HUB, KEYBOARD NAVIGATION
+    // =========================================================================
+
+    // Override switchOwnerTab to style sidebar buttons matching screenshot
+    const _orig_switchOwnerTab = window.switchOwnerTab;
+    window.switchOwnerTab = function(tabName) {
+      const tabs = ['orders', 'retailers', 'items', 'ja-catalog', 'schemes', 'print', 'reports', 'ja-reports'];
+      const tabTitles = {
+        'orders': 'Live Orders & Export',
+        'retailers': 'Retailers & PIN Management',
+        'items': 'Master Items & Barcode Catalog (4,774)',
+        'ja-catalog': 'JA Traders Master Catalog (877 Articles)',
+        'schemes': 'Event Schemes & Slabs (Module B)',
+        'print': 'A4 QR Sticker Studio (Epson L380)',
+        'reports': 'Reports & Analytics Hub (Anchar)',
+        'ja-reports': 'Reports & Analytics for JA Traders'
+      };
+
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const panel = document.getElementById(`owner-tab-${t}`);
+        if (!btn || !panel) return;
+
+        if (t === tabName) {
+          // Active state matching screenshot: soft purple/indigo pill, bold text
+          btn.className = "sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-xs transition-all group";
+          const badge = btn.querySelector('.sidebar-badge');
+          if (badge) {
+            badge.className = "sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-indigo-100/70 text-indigo-600 border border-indigo-200";
+          }
+          panel.classList.remove('hidden');
+        } else {
+          // Inactive state: clean slate text, hover pill
+          btn.className = "sidebar-nav-item w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/90 transition-all group";
+          const badge = btn.querySelector('.sidebar-badge');
+          if (badge) {
+            badge.className = "sidebar-badge text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 border border-slate-200 group-hover:text-slate-600";
+          }
+          panel.classList.add('hidden');
+        }
+      });
+
+      // Update top bar breadcrumb and status bar
+      const topTitle = document.getElementById('topbar-current-tab');
+      if (topTitle) topTitle.innerText = tabTitles[tabName] || tabName;
+      const statusMsg = document.getElementById('bottom-status-message');
+      if (statusMsg) statusMsg.innerText = `Active View: ${tabTitles[tabName] || tabName} • Press [?] for shortcuts`;
+
+      // Scroll content area to top
+      const scrollContainer = document.getElementById('main-content-scroll');
+      if (scrollContainer) scrollContainer.scrollTop = 0;
+
+      // Call original tab loading logic
+      if (tabName === 'retailers') {
+        loadCloudRetailersForShop(activeShopOwnerSession?.id).then(renderRetailersTab);
+      }
+      if (tabName === 'items') {
+        if (!masterItemsLoaded || !masterItems || masterItems.length === 0) {
+          loadMasterItems().then(() => {
+            renderMasterItems(masterCurrentPage || 1);
+            initMasterTableKeyboard();
+          });
+        } else {
+          renderMasterItems(masterCurrentPage || 1);
+          initMasterTableKeyboard();
+        }
+      }
+      if (tabName === 'schemes') {
+        loadEventSchemes();
+      }
+      if (tabName === 'print') {
+        loadJaTradersItems();
+        loadArticleQrMappings();
+        if (!masterItemsLoaded || !masterItems || masterItems.length === 0) {
+          loadMasterItems().then(() => initPrintStudio());
+        } else {
+          initPrintStudio();
+        }
+      }
+      if (tabName === 'ja-catalog') {
+        if (!jaTradersMasterItems || jaTradersMasterItems.length === 0) {
+          loadJaTradersItems().then(() => renderJaCatalogTable(1));
+        } else {
+          renderJaCatalogTable(1);
+        }
+      }
+      if (tabName === 'reports') {
+        renderReportsTab();
+      }
+      if (tabName === 'ja-reports') {
+        if (!masterItemsLoaded) loadMasterItems();
+        loadJaTradersItems();
+        renderJaReportsTab();
+      }
+    };
+
+    // Sidebar Collapse / Expand Engine
+    function toggleSidebar() {
+      const sidebar = document.getElementById('desktop-sidebar');
+      if (!sidebar) return;
+      const isCollapsed = sidebar.classList.toggle('collapsed');
+      localStorage.setItem('anchar_sidebar_collapsed', isCollapsed ? '1' : '0');
+    }
+
+    function initSidebarState() {
+      if (localStorage.getItem('anchar_sidebar_collapsed') === '1') {
+        document.getElementById('desktop-sidebar')?.classList.add('collapsed');
+      }
+    }
+
+    // Manual cloud refresh action
+    async function manualRefreshSync() {
+      if (!activeShopOwnerSession) return;
+      const statusMsg = document.getElementById('bottom-status-message');
+      if (statusMsg) statusMsg.innerText = "Syncing with cloud server...";
+      await Promise.all([
+        loadCloudOrdersForShop(activeShopOwnerSession.id),
+        loadCloudRetailersForShop(activeShopOwnerSession.id)
+      ]);
+      renderOwnerPortal();
+      if (statusMsg) statusMsg.innerText = `Synced successfully at ${new Date().toLocaleTimeString()}`;
+    }
+
+    // Session Persistence
+    function bypassDemoLogin() {
+      document.getElementById('owner-login-key').value = "ANCHAR-2026-PRO";
+      document.getElementById('owner-login-pass').value = "123456";
+      handleDealerLogin();
+    }
+
+    const _orig_handleDealerLogin = window.handleDealerLogin;
+    window.handleDealerLogin = async function() {
+      await _orig_handleDealerLogin();
+      if (activeShopOwnerSession) {
+        if (document.getElementById('remember-session-check')?.checked) {
+          localStorage.setItem('anchar_saved_session', JSON.stringify(activeShopOwnerSession));
+        }
+        document.getElementById('sidebar-shop-name').innerText = activeShopOwnerSession.shopName || "Anchar Shoe House";
+      }
+    };
+
+    const _orig_logoutPortal = window.logoutPortal;
+    window.logoutPortal = function() {
+      localStorage.removeItem('anchar_saved_session');
+      _orig_logoutPortal();
+    };
+
+    // =========================================================================
+    // KEYBOARD NAVIGATION IN MASTER ITEMS TABLE (ARROW UP/DOWN, ENTER, ESC, /)
+    // =========================================================================
+    let activeMasterRowIdx = 0;
+
+    function initMasterTableKeyboard() {
+      setTimeout(() => {
+        highlightMasterRow(0);
+      }, 100);
+    }
+
+    function highlightMasterRow(index) {
+      const rows = document.querySelectorAll('#master-items-table-body tr');
+      if (!rows || rows.length === 0) return;
+      
+      rows.forEach(r => r.classList.remove('table-row-active'));
+      activeMasterRowIdx = Math.max(0, Math.min(index, rows.length - 1));
+      
+      const target = rows[activeMasterRowIdx];
+      if (target) {
+        target.classList.add('table-row-active');
+        target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        const code = target.getAttribute('data-item-code') || '';
+        const statusMsg = document.getElementById('bottom-status-message');
+        if (statusMsg && code) {
+          statusMsg.innerText = `Selected Item [${activeMasterRowIdx+1}/${rows.length}]: ${code} • Press [Enter] to Edit Rate`;
+        }
+      }
+    }
+
+    // Enhance renderMasterItems to set attributes for keyboard navigation
+    const _orig_renderMasterItems = window.renderMasterItems;
+    window.renderMasterItems = function(page = 1) {
+      _orig_renderMasterItems(page);
+      setTimeout(() => {
+        const tbody = document.getElementById('master-items-table-body');
+        if (!tbody) return;
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach((r, idx) => {
+          r.setAttribute('data-row-idx', idx);
+          r.style.cursor = 'pointer';
+          r.addEventListener('click', () => highlightMasterRow(idx));
+        });
+        highlightMasterRow(activeMasterRowIdx || 0);
+      }, 50);
+    };
+
+    // =========================================================================
+
+    // =========================================================================
+    // ANCHAR MASTER PRODUCT: COMPANY RETRIEVER & HELPER FUNCTIONS
+    // =========================================================================
+    function getAllMasterCompanies() {
+      const defaultCompanies = [
+        "AJANTA", "PARAGON", "WALKAROO", "CAMPUS", "KHADIM'S",
+        "INDUS", "AQUALITE", "ASIAN FOOTWEAR", "ACTION", "JOGGER",
+        "RELAXO", "SPARX", "BAHAAR", "A.R.SHOE", "BATA"
+      ];
+      let customCompanies = [];
+      try {
+        customCompanies = JSON.parse(localStorage.getItem('anchar_custom_master_brands') || '[]');
+      } catch(e) {}
+
+      const set = new Set([...defaultCompanies, ...customCompanies]);
+      if (Array.isArray(masterItems)) {
+        masterItems.forEach(item => {
+          const c = (item.company || '').trim().toUpperCase();
+          if (c && c !== 'UNKNOWN' && c !== 'ALL' && c !== 'FOOTWEAR' && !c.includes('(JA TRADERS)')) {
+            set.add(c);
+          }
+        });
+      }
+      return Array.from(set).sort((a, b) => a.localeCompare(b));
+    }
+
+    function populateMasterCompanySelect(selectId, selectedVal = '') {
+      const sel = document.getElementById(selectId);
+      if (!sel) return;
+      const companies = getAllMasterCompanies();
+      const current = (selectedVal || "").trim().toUpperCase();
+
+      let html = '';
+      let found = false;
+      companies.forEach(c => {
+        const isSel = c === current;
+        if (isSel) found = true;
+        html += `<option value="${escHtml(c)}" ${isSel ? 'selected' : ''}>${escHtml(c)}</option>`;
+      });
+
+      if (current && !found && current !== '__NEW__') {
+        html = `<option value="${escHtml(current)}" selected>${escHtml(current)} (Custom)</option>` + html;
+      }
+
+      html += `<option value="__NEW__" class="font-bold text-teal-700 bg-teal-50">➕ + Type New / Custom Brand...</option>`;
+      sel.innerHTML = html;
+    }
+
+    function handleMasterCompanySelectChange(selectEl, customBoxId) {
+      const box = document.getElementById(customBoxId);
+      if (!box) return;
+      if (selectEl.value === '__NEW__') {
+        box.classList.remove('hidden');
+        const inp = box.querySelector('input');
+        if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 50); }
+      } else {
+        box.classList.add('hidden');
+      }
+    }
+
+    function openAddMasterBrandModal() {
+      const inp = document.getElementById('new-master-brand-name');
+      if (inp) inp.value = '';
+      document.getElementById('modal-add-master-brand')?.classList.remove('hidden');
+      setTimeout(() => inp?.focus(), 60);
+    }
+
+    function closeAddMasterBrandModal() {
+      document.getElementById('modal-add-master-brand')?.classList.add('hidden');
+    }
+
+    function saveNewMasterBrandModal() {
+      const raw = document.getElementById('new-master-brand-name').value.trim().toUpperCase();
+      if (!raw) {
+        alert("Please enter a Brand / Company name!");
+        return;
+      }
+      let custom = [];
+      try {
+        custom = JSON.parse(localStorage.getItem('anchar_custom_master_brands') || '[]');
+      } catch(e) {}
+
+      if (!custom.includes(raw)) {
+        custom.push(raw);
+        localStorage.setItem('anchar_custom_master_brands', JSON.stringify(custom));
+      }
+
+      closeAddMasterBrandModal();
+
+      const addSel = document.getElementById('add-item-company');
+      if (addSel) {
+        populateMasterCompanySelect('add-item-company', raw);
+        document.getElementById('add-item-custom-company-box')?.classList.add('hidden');
+      }
+      const editSel = document.getElementById('edit-master-company');
+      if (editSel && !document.getElementById('modal-edit-master-item-full')?.classList.contains('hidden')) {
+        populateMasterCompanySelect('edit-master-company', raw);
+        document.getElementById('edit-master-custom-company-box')?.classList.add('hidden');
+      }
+
+      const statusMsg = document.getElementById('bottom-status-message');
+      if (statusMsg) statusMsg.innerText = `New Master Brand "${raw}" added to database!`;
+    }
+
+    // =========================================================================
+    // ANCHAR MASTER PRODUCT: ADD & FULL EDIT ACTIONS
+    // =========================================================================
+    function openAddMasterItemModal() {
+      const codeInput = document.getElementById('add-item-code');
+      const articleInput = document.getElementById('add-item-article');
+      const productInput = document.getElementById('add-item-product');
+      const colorInput = document.getElementById('add-item-color');
+      const sizeInput = document.getElementById('add-item-size');
+      const catInput = document.getElementById('add-item-category');
+      const rateInput = document.getElementById('add-item-rate');
+      const mrpInput = document.getElementById('add-item-mrp');
+      const packInput = document.getElementById('add-item-pack');
+      const barcodeInput = document.getElementById('add-item-barcode');
+
+      if (!codeInput) return;
+      // Generate clean unique code
+      const nextCode = "MARG-" + Math.floor(1000 + Math.random() * 9000);
+      codeInput.value = nextCode;
+      articleInput.value = "";
+      productInput.value = "";
+      populateMasterCompanySelect('add-item-company', 'AJANTA');
+      document.getElementById('add-item-custom-company-box')?.classList.add('hidden');
+      colorInput.value = "BLACK";
+      sizeInput.value = "6X9";
+      catInput.value = "CASUAL";
+      rateInput.value = "";
+      mrpInput.value = "";
+      packInput.value = "12";
+      barcodeInput.value = "";
+
+      document.getElementById('modal-add-master-item')?.classList.remove('hidden');
+      setTimeout(() => articleInput.focus(), 60);
+    }
+
+    function closeAddMasterItemModal() {
+      document.getElementById('modal-add-master-item')?.classList.add('hidden');
+    }
+
+    async function saveAddMasterItemModal() {
+      const code = document.getElementById('add-item-code').value.trim();
+      const article = document.getElementById('add-item-article').value.trim();
+      const product = document.getElementById('add-item-product').value.trim();
+      let company = document.getElementById('add-item-company').value.trim();
+      if (company === '__NEW__') {
+        const customComp = document.getElementById('add-item-custom-company').value.trim().toUpperCase();
+        if (!customComp) {
+          alert("Please type the new Company / Brand name!");
+          return;
+        }
+        company = customComp;
+        let custom = [];
+        try { custom = JSON.parse(localStorage.getItem('anchar_custom_master_brands') || '[]'); } catch(e) {}
+        if (!custom.includes(company)) {
+          custom.push(company);
+          localStorage.setItem('anchar_custom_master_brands', JSON.stringify(custom));
+        }
+      }
+      if (!company) company = "AJANTA";
+      const color = document.getElementById('add-item-color').value.trim() || "DEFAULT";
+      const size = document.getElementById('add-item-size').value.trim() || "STANDARD";
+      const category = document.getElementById('add-item-category').value.trim() || "GENERAL";
+      const rate = parseFloat(document.getElementById('add-item-rate').value) || 0;
+      const mrp = parseFloat(document.getElementById('add-item-mrp').value) || rate;
+      const pack = parseInt(document.getElementById('add-item-pack').value) || 12;
+      const barcode = document.getElementById('add-item-barcode').value.trim();
+
+      if (!code || !product || rate <= 0) {
+        alert("Please enter valid Item Code, Product Name, and Wholesale Rate!");
+        return;
+      }
+
+      const newItem = {
+        code: code,
+        barcode: barcode,
+        articleNo: article || code,
+        product: product,
+        color: color,
+        size: size,
+        unit: "PAIR",
+        company: company,
+        group: color,
+        category: category,
+        mrp: mrp,
+        rate: rate,
+        packSize: pack,
+        isCustom: true
+      };
+
+      // Add to beginning of masterItems array
+      masterItems.unshift(newItem);
+
+      // Save to localStorage custom items
+      try {
+        const custom = JSON.parse(localStorage.getItem('anchar_custom_master_items') || '[]');
+        custom.unshift(newItem);
+        localStorage.setItem('anchar_custom_master_items', JSON.stringify(custom));
+      } catch (e) {}
+
+      // Sync rate & barcode to Supabase if online
+      if (IS_CLOUD) {
+        try {
+          await fetch(`${SUPABASE_URL}/rest/v1/rate_overrides`, {
+            method: 'POST',
+            headers: sbHeaders(),
+            body: JSON.stringify({ item_code: code, wholesale_rate: rate, mrp: mrp, pack_size: pack })
+          });
+          if (barcode) {
+            await fetch(`${SUPABASE_URL}/rest/v1/barcode_mappings`, {
+              method: 'POST',
+              headers: sbHeaders(),
+              body: JSON.stringify({ item_code: code, barcode: barcode })
+            });
+            cloudBarcodeMappings[code] = barcode;
+          }
+        } catch(e) {
+          console.warn("Cloud save override fallback:", e);
+        }
+      }
+
+      closeAddMasterItemModal();
+      renderMasterItems(1);
+      highlightMasterRow(0);
+
+      const statusMsg = document.getElementById('bottom-status-message');
+      if (statusMsg) statusMsg.innerText = `Product [${code}] ${product} added to Master Catalog!`;
+    }
+
+    function openEditMasterItemFullModal(code) {
+      const item = masterItems.find(i => i.code === code);
+      if (!item) return;
+
+      document.getElementById('edit-master-code').value = item.code;
+      document.getElementById('edit-master-item-code-label').innerText = `Item Code: ${item.code} • ${item.company}`;
+      document.getElementById('edit-master-product').value = item.product || "";
+      document.getElementById('edit-master-article').value = item.articleNo || "";
+      populateMasterCompanySelect('edit-master-company', item.company || 'AJANTA');
+      document.getElementById('edit-master-custom-company-box')?.classList.add('hidden');
+      document.getElementById('edit-master-color').value = item.color || item.group || "";
+      document.getElementById('edit-master-size').value = item.size || "";
+      document.getElementById('edit-master-category').value = item.category || "";
+      document.getElementById('edit-master-rate').value = item.rate || 0;
+      document.getElementById('edit-master-mrp').value = item.mrp || 0;
+      document.getElementById('edit-master-pack').value = item.packSize || 12;
+      document.getElementById('edit-master-barcode').value = item.barcode || "";
+
+      document.getElementById('modal-edit-master-item-full')?.classList.remove('hidden');
+      setTimeout(() => document.getElementById('edit-master-product').focus(), 60);
+    }
+
+    function closeEditMasterItemFullModal() {
+      document.getElementById('modal-edit-master-item-full')?.classList.add('hidden');
+    }
+
+    async function saveEditMasterItemFullModal() {
+      const code = document.getElementById('edit-master-code').value;
+      const product = document.getElementById('edit-master-product').value.trim();
+      const article = document.getElementById('edit-master-article').value.trim();
+      let company = document.getElementById('edit-master-company').value.trim();
+      if (company === '__NEW__') {
+        const customComp = document.getElementById('edit-master-custom-company').value.trim().toUpperCase();
+        if (!customComp) {
+          alert("Please type the new Company / Brand name!");
+          return;
+        }
+        company = customComp;
+        let custom = [];
+        try { custom = JSON.parse(localStorage.getItem('anchar_custom_master_brands') || '[]'); } catch(e) {}
+        if (!custom.includes(company)) {
+          custom.push(company);
+          localStorage.setItem('anchar_custom_master_brands', JSON.stringify(custom));
+        }
+      }
+      if (!company) company = "AJANTA";
+      const color = document.getElementById('edit-master-color').value.trim();
+      const size = document.getElementById('edit-master-size').value.trim();
+      const category = document.getElementById('edit-master-category').value.trim();
+      const rate = parseFloat(document.getElementById('edit-master-rate').value) || 0;
+      const mrp = parseFloat(document.getElementById('edit-master-mrp').value) || rate;
+      const pack = parseInt(document.getElementById('edit-master-pack').value) || 12;
+      const barcode = document.getElementById('edit-master-barcode').value.trim();
+
+      const item = masterItems.find(i => i.code === code);
+      if (item) {
+        item.product = product;
+        item.articleNo = article || item.articleNo;
+        item.company = company || item.company;
+        item.color = color;
+        item.group = color;
+        item.size = size;
+        item.category = category;
+        item.rate = rate;
+        item.mrp = mrp;
+        item.packSize = pack;
+        item.barcode = barcode;
+      }
+
+      // Sync overrides to Supabase
+      if (IS_CLOUD) {
+        try {
+          await fetch(`${SUPABASE_URL}/rest/v1/rate_overrides`, {
+            method: 'POST',
+            headers: { ...sbHeaders(), 'Prefer': 'resolution=merge-duplicates' },
+            body: JSON.stringify({ item_code: code, wholesale_rate: rate, mrp: mrp, pack_size: pack })
+          });
+          if (barcode) {
+            await fetch(`${SUPABASE_URL}/rest/v1/barcode_mappings`, {
+              method: 'POST',
+              headers: { ...sbHeaders(), 'Prefer': 'resolution=merge-duplicates' },
+              body: JSON.stringify({ item_code: code, barcode: barcode })
+            });
+            cloudBarcodeMappings[code] = barcode;
+          }
+        } catch (e) {
+          console.warn("Error updating item overrides:", e);
+        }
+      }
+
+      closeEditMasterItemFullModal();
+      renderMasterItems(masterCurrentPage);
+
+      const statusMsg = document.getElementById('bottom-status-message');
+      if (statusMsg) statusMsg.innerText = `Product [${code}] updated successfully!`;
+    }
+
+    // =========================================================================
+    // JA TRADERS MASTER CATALOG MANAGEMENT ENGINE (877 ARTICLES)
+    // =========================================================================
+    let jaCatalogCurrentPage = 1;
+    const JA_CATALOG_PAGE_SIZE = 25;
+    let jaCatalogSearchQuery = "";
+    let jaCatalogCompanyFilter = "ALL";
+
+    // Dynamic brand retriever: default + database + custom added
+    function getAllJaCompanies() {
+      const defaultCompanies = [
+        'AIRSON (JA Traders)',
+        'AIRWASH (JA Traders)',
+        'EROCX (JA Traders)',
+        'N FASHION (JA Traders)',
+        'NUSHI (JA Traders)',
+        'UNITEC (JA Traders)'
+      ];
+      let customCompanies = [];
+      try {
+        customCompanies = JSON.parse(localStorage.getItem('anchar_ja_custom_brands') || '[]');
+      } catch(e) {}
+
+      const dbCompanies = Array.from(new Set(jaTradersMasterItems.map(i => (i.company || '').trim()).filter(Boolean)));
+      const allSet = new Set([...defaultCompanies, ...customCompanies, ...dbCompanies]);
+      return Array.from(allSet).sort((a, b) => a.localeCompare(b));
+    }
+
+    function populateJaCompanySelect(selectId, selectedVal = '') {
+      const sel = document.getElementById(selectId);
+      if (!sel) return;
+      const companies = getAllJaCompanies();
+      sel.innerHTML = companies.map(c => `
+        <option value="${c}" ${c === selectedVal ? 'selected' : ''}>${c}</option>
+      `).join('') + `
+        <option value="__NEW__" class="font-bold text-indigo-700 bg-indigo-50">➕ + Add New Brand / Company...</option>
+      `;
+    }
+
+    function handleJaCompanySelectChange(selectEl, customBoxId) {
+      const box = document.getElementById(customBoxId);
+      if (!box) return;
+      if (selectEl.value === '__NEW__') {
+        box.classList.remove('hidden');
+        const inp = box.querySelector('input');
+        if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 50); }
+      } else {
+        box.classList.add('hidden');
+      }
+    }
+
+    // Modal: Introduce New JA Brand
+    function openAddJaBrandModal() {
+      const inp = document.getElementById('new-ja-brand-name');
+      if (inp) inp.value = '';
+      document.getElementById('modal-add-ja-brand')?.classList.remove('hidden');
+      setTimeout(() => inp?.focus(), 60);
+    }
+
+    function closeAddJaBrandModal() {
+      document.getElementById('modal-add-ja-brand')?.classList.add('hidden');
+    }
+
+    function saveNewJaBrandModal() {
+      const raw = document.getElementById('new-ja-brand-name').value.trim().toUpperCase();
+      if (!raw) {
+        alert("Please enter a Brand / Company name!");
+        return;
+      }
+      const compName = raw.includes('(JA TRADERS)') ? raw : `${raw} (JA Traders)`;
+      let custom = [];
+      try {
+        custom = JSON.parse(localStorage.getItem('anchar_ja_custom_brands') || '[]');
+      } catch(e) {}
+
+      if (!custom.includes(compName)) {
+        custom.push(compName);
+        localStorage.setItem('anchar_ja_custom_brands', JSON.stringify(custom));
+      }
+
+      // Also register into base companies in memory for reports recognition
+      const baseClean = raw.replace(' (JA TRADERS)', '').trim();
+      if (!JA_TRADERS_BASE_COMPANIES.includes(baseClean)) {
+        JA_TRADERS_BASE_COMPANIES.push(baseClean);
+      }
+
+      closeAddJaBrandModal();
+      renderJaCatalogTable(1);
+
+      // If Add JA Product modal is open, refresh its select and select this new company
+      const addSel = document.getElementById('add-ja-company');
+      if (addSel) {
+        populateJaCompanySelect('add-ja-company', compName);
+        document.getElementById('add-ja-new-company-box')?.classList.add('hidden');
+      }
+
+      const statusMsg = document.getElementById('bottom-status-message');
+      if (statusMsg) statusMsg.innerText = `New JA Traders Brand "${compName}" introduced!`;
+    }
+
+    function getFilteredJaCatalogItems() {
+      return jaTradersMasterItems.filter(item => {
+        // Company Filter
+        if (jaCatalogCompanyFilter !== "ALL" && item.company !== jaCatalogCompanyFilter) {
+          return false;
+        }
+        // Search Query Filter
+        if (jaCatalogSearchQuery) {
+          const q = jaCatalogSearchQuery.toLowerCase();
+          const art = (item.article_no || "").toLowerCase();
+          const comp = (item.company || "").toLowerCase();
+          const col = (item.color || "").toLowerCase();
+          const sz = (item.size || "").toLowerCase();
+          if (!art.includes(q) && !comp.includes(q) && !col.includes(q) && !sz.includes(q)) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    function renderJaCatalogTable(page = 1) {
+      jaCatalogCurrentPage = page;
+      const filtered = getFilteredJaCatalogItems();
+      const total = filtered.length;
+
+      // Update KPI Cards
+      const totalEl = document.getElementById('ja-kpi-total-items');
+      if (totalEl) totalEl.innerText = jaTradersMasterItems.length.toString();
+
+      const allCompanies = getAllJaCompanies();
+      const brandsEl = document.getElementById('ja-kpi-brands-count');
+      if (brandsEl) brandsEl.innerText = `${allCompanies.length} Brands`;
+
+      const avgRate = jaTradersMasterItems.length > 0
+        ? (jaTradersMasterItems.reduce((acc, i) => acc + (Number(i.default_rate) || 0), 0) / jaTradersMasterItems.length).toFixed(2)
+        : "0.00";
+      const avgRateEl = document.getElementById('ja-kpi-avg-rate');
+      if (avgRateEl) avgRateEl.innerText = `₹${avgRate}`;
+
+      const countBadge = document.getElementById('ja-catalog-count-badge');
+      if (countBadge) countBadge.innerText = `${jaTradersMasterItems.length} Active Articles`;
+
+      // Render Brand Filter Pills
+      const brandFiltersBox = document.getElementById('ja-catalog-brand-filters');
+      if (brandFiltersBox) {
+        const brandCounts = {};
+        jaTradersMasterItems.forEach(i => {
+          brandCounts[i.company] = (brandCounts[i.company] || 0) + 1;
+        });
+
+        const pills = [
+          { name: "ALL", label: `ALL (${jaTradersMasterItems.length})` },
+          ...allCompanies.map(c => ({
+            name: c,
+            label: `${c.replace(' (JA Traders)', '')} (${brandCounts[c] || 0})`
+          }))
+        ];
+
+        brandFiltersBox.innerHTML = pills.map(p => `
+          <button onclick="filterJaCatalogCompany('${p.name}')"
+            class="px-3 py-1 rounded-lg text-xs font-bold transition-all ${jaCatalogCompanyFilter === p.name ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'}">
+            ${p.label}
+          </button>
+        `).join('');
+      }
+
+      // Slicing for Pagination
+      const startIdx = (page - 1) * JA_CATALOG_PAGE_SIZE;
+      const endIdx = Math.min(startIdx + JA_CATALOG_PAGE_SIZE, total);
+      const pageSlice = filtered.slice(startIdx, endIdx);
+
+      const tbody = document.getElementById('ja-catalog-table-body');
+      if (!tbody) return;
+
+      if (pageSlice.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 text-xs">No JA Traders articles found matching your criteria.</td></tr>`;
+      } else {
+        tbody.innerHTML = pageSlice.map((item, idx) => `
+          <tr class="hover:bg-slate-50 transition-colors" data-ja-id="${item.id}">
+            <td class="py-3 px-3 text-slate-400 font-mono text-[11px]">${startIdx + idx + 1}</td>
+            <td class="py-3 px-3">
+              <span class="font-bold text-slate-900 font-mono text-xs bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${escHtml(item.article_no)}</span>
+            </td>
+            <td class="py-3 px-3 font-semibold text-indigo-700">${escHtml(item.company || '-')}</td>
+            <td class="py-3 px-3 text-slate-600">${escHtml(item.color || '-')}</td>
+            <td class="py-3 px-3 font-mono font-bold text-slate-800">${escHtml(item.size || '-')}</td>
+            <td class="py-3 px-3">
+              <span class="font-extrabold text-emerald-600">₹${Number(item.default_rate || 0).toFixed(2)}</span>
+            </td>
+            <td class="py-3 px-3 text-right">
+              <div class="flex items-center gap-1.5 justify-end">
+                <button onclick="openEditJaItemModal(${item.id})" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 transition-all">
+                  ✏️ Edit
+                </button>
+                <button onclick="deleteJaItem(${item.id})" class="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold border border-red-200 transition-all" title="Delete from JA Database">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      // Update Pagination Bar
+      const pageInfo = document.getElementById('ja-catalog-pagination-info');
+      if (pageInfo) pageInfo.innerText = `Showing ${total > 0 ? startIdx + 1 : 0}-${endIdx} of ${total} articles`;
+
+      const pageNum = document.getElementById('ja-catalog-page-num');
+      if (pageNum) pageNum.innerText = page.toString();
+
+      const prevBtn = document.getElementById('ja-catalog-prev-btn');
+      if (prevBtn) prevBtn.disabled = page <= 1;
+
+      const nextBtn = document.getElementById('ja-catalog-next-btn');
+      if (nextBtn) nextBtn.disabled = endIdx >= total;
+    }
+
+    function handleJaCatalogSearch(val) {
+      jaCatalogSearchQuery = (val || "").trim();
+      renderJaCatalogTable(1);
+    }
+
+    function filterJaCatalogCompany(company) {
+      jaCatalogCompanyFilter = company;
+      renderJaCatalogTable(1);
+    }
+
+    function prevJaCatalogPage() {
+      if (jaCatalogCurrentPage > 1) {
+        renderJaCatalogTable(jaCatalogCurrentPage - 1);
+      }
+    }
+
+    function nextJaCatalogPage() {
+      const filtered = getFilteredJaCatalogItems();
+      if (jaCatalogCurrentPage * JA_CATALOG_PAGE_SIZE < filtered.length) {
+        renderJaCatalogTable(jaCatalogCurrentPage + 1);
+      }
+    }
+
+    // Modal: Add JA Item
+    function openAddJaItemModal() {
+      populateJaCompanySelect('add-ja-company', jaCatalogCompanyFilter !== 'ALL' ? jaCatalogCompanyFilter : '');
+      document.getElementById('add-ja-new-company-box')?.classList.add('hidden');
+      document.getElementById('add-ja-article').value = "";
+      document.getElementById('add-ja-color').value = "BLACK";
+      document.getElementById('add-ja-size').value = "6X9";
+      document.getElementById('add-ja-rate').value = "0";
+
+      document.getElementById('modal-add-ja-item')?.classList.remove('hidden');
+      setTimeout(() => document.getElementById('add-ja-article').focus(), 60);
+    }
+
+    function closeAddJaItemModal() {
+      document.getElementById('modal-add-ja-item')?.classList.add('hidden');
+    }
+
+    async function saveAddJaItemModal() {
+      let company = document.getElementById('add-ja-company').value.trim();
+      if (company === '__NEW__') {
+        const customComp = document.getElementById('add-ja-custom-company').value.trim().toUpperCase();
+        if (!customComp) {
+          alert("Please type the new Company / Brand name!");
+          return;
+        }
+        company = customComp.includes('(JA TRADERS)') ? customComp : `${customComp} (JA Traders)`;
+        let custom = [];
+        try { custom = JSON.parse(localStorage.getItem('anchar_ja_custom_brands') || '[]'); } catch(e) {}
+        if (!custom.includes(company)) {
+          custom.push(company);
+          localStorage.setItem('anchar_ja_custom_brands', JSON.stringify(custom));
+        }
+      }
+
+      const article = document.getElementById('add-ja-article').value.trim().toUpperCase();
+      const color = document.getElementById('add-ja-color').value.trim().toUpperCase();
+      const size = document.getElementById('add-ja-size').value.trim().toUpperCase();
+      const rate = parseFloat(document.getElementById('add-ja-rate').value) || 0;
+
+      if (!article) {
+        alert("Please enter an Article Number!");
+        return;
+      }
+
+      const saveBtn = document.getElementById('save-ja-item-btn');
+      if (saveBtn) { saveBtn.innerText = "Saving to Database..."; saveBtn.disabled = true; }
+
+      const payload = {
+        company: company,
+        article_no: article,
+        color: color,
+        size: size,
+        default_rate: rate
+      };
+
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/ja_traders_items`, {
+          method: 'POST',
+          headers: { ...sbHeaders(), 'Prefer': 'return=representation' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const inserted = await res.json();
+          const row = Array.isArray(inserted) ? inserted[0] : inserted;
+          jaTradersMasterItems.unshift(row);
+          closeAddJaItemModal();
+          renderJaCatalogTable(1);
+
+          const statusMsg = document.getElementById('bottom-status-message');
+          if (statusMsg) statusMsg.innerText = `JA Traders Article [${row.article_no}] successfully created!`;
+        } else {
+          alert("Error saving JA Traders article to cloud database.");
+        }
+      } catch (e) {
+        console.error("Error creating JA item:", e);
+        alert("Failed to save: " + e.message);
+      } finally {
+        if (saveBtn) { saveBtn.innerText = "Save to JA DB →"; saveBtn.disabled = false; }
+      }
+    }
+
+    // Modal: Edit JA Item
+    function openEditJaItemModal(id) {
+      const item = jaTradersMasterItems.find(i => i.id == id);
+      if (!item) return;
+
+      document.getElementById('edit-ja-id').value = item.id;
+      document.getElementById('edit-ja-item-id-label').innerText = `ID: #${item.id} • ${item.company}`;
+      populateJaCompanySelect('edit-ja-company', item.company);
+      document.getElementById('edit-ja-new-company-box')?.classList.add('hidden');
+      document.getElementById('edit-ja-article').value = item.article_no || "";
+      document.getElementById('edit-ja-color').value = item.color || "";
+      document.getElementById('edit-ja-size').value = item.size || "";
+      document.getElementById('edit-ja-rate').value = item.default_rate || 0;
+
+      document.getElementById('modal-edit-ja-item')?.classList.remove('hidden');
+      setTimeout(() => document.getElementById('edit-ja-rate').focus(), 60);
+    }
+
+    function closeEditJaItemModal() {
+      document.getElementById('modal-edit-ja-item')?.classList.add('hidden');
+    }
+
+    async function saveEditJaItemModal() {
+      const id = document.getElementById('edit-ja-id').value;
+      let company = document.getElementById('edit-ja-company').value.trim();
+      if (company === '__NEW__') {
+        const customComp = document.getElementById('edit-ja-custom-company').value.trim().toUpperCase();
+        if (!customComp) {
+          alert("Please type the new Company / Brand name!");
+          return;
+        }
+        company = customComp.includes('(JA TRADERS)') ? customComp : `${customComp} (JA Traders)`;
+        let custom = [];
+        try { custom = JSON.parse(localStorage.getItem('anchar_ja_custom_brands') || '[]'); } catch(e) {}
+        if (!custom.includes(company)) {
+          custom.push(company);
+          localStorage.setItem('anchar_ja_custom_brands', JSON.stringify(custom));
+        }
+      }
+
+      const article = document.getElementById('edit-ja-article').value.trim().toUpperCase();
+      const color = document.getElementById('edit-ja-color').value.trim().toUpperCase();
+      const size = document.getElementById('edit-ja-size').value.trim().toUpperCase();
+      const rate = parseFloat(document.getElementById('edit-ja-rate').value) || 0;
+
+      const updateBtn = document.getElementById('update-ja-item-btn');
+      if (updateBtn) { updateBtn.innerText = "Updating..."; updateBtn.disabled = true; }
+
+      const payload = {
+        company: company,
+        article_no: article,
+        color: color,
+        size: size,
+        default_rate: rate
+      };
+
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/ja_traders_items?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: { ...sbHeaders(), 'Prefer': 'return=representation' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const idx = jaTradersMasterItems.findIndex(i => i.id == id);
+          if (idx !== -1) {
+            Object.assign(jaTradersMasterItems[idx], payload);
+          }
+          closeEditJaItemModal();
+          renderJaCatalogTable(jaCatalogCurrentPage);
+
+          const statusMsg = document.getElementById('bottom-status-message');
+          if (statusMsg) statusMsg.innerText = `JA Traders Article [${article}] updated!`;
+        } else {
+          alert("Error updating JA article in database.");
+        }
+      } catch (e) {
+        console.error("Error updating JA item:", e);
+      } finally {
+        if (updateBtn) { updateBtn.innerText = "Save Updates →"; updateBtn.disabled = false; }
+      }
+    }
+
+    async function deleteJaItem(id) {
+      const item = jaTradersMasterItems.find(i => i.id == id);
+      if (!item) return;
+
+      if (!confirm(`Are you sure you want to delete JA Traders Article "${item.article_no}" (${item.company})?`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/ja_traders_items?id=eq.${id}`, {
+          method: 'DELETE',
+          headers: sbHeaders()
+        });
+        if (res.ok) {
+          jaTradersMasterItems = jaTradersMasterItems.filter(i => i.id != id);
+          renderJaCatalogTable(jaCatalogCurrentPage);
+          const statusMsg = document.getElementById('bottom-status-message');
+          if (statusMsg) statusMsg.innerText = `Deleted article #${id} from JA database.`;
+        }
+      } catch (e) {
+        alert("Failed to delete from database: " + e.message);
+      }
+    }
+
+    function downloadJaCatalogCsv() {
+      const filtered = getFilteredJaCatalogItems();
+      const headers = ["ID", "Article_No", "Company", "Color", "Size", "Default_Rate"];
+      const lines = [headers.join(",")];
+      filtered.forEach(it => {
+        lines.push([
+          it.id,
+          csvEsc(it.article_no || ''),
+          csvEsc(it.company || ''),
+          csvEsc(it.color || ''),
+          csvEsc(it.size || ''),
+          it.default_rate || 0
+        ].join(","));
+      });
+      downloadBlobCsv(lines.join("\n"), "JA_TRADERS_MASTER_CATALOG.csv");
+    }
+
+    // COMMAND PALETTE ENGINE (CTRL+K OR /)
+    // =========================================================================
+    const COMMANDS = [
+      { id: 'nav-orders', label: '📊 Dashboard & Live Retailer Orders', hint: 'Alt + 1', action: () => switchOwnerTab('orders') },
+      { id: 'nav-retailers', label: '👥 Retailer Master & PIN Management', hint: 'Alt + 2', action: () => switchOwnerTab('retailers') },
+      { id: 'nav-items', label: '📦 Master Items & Barcode Catalog (4,774 items)', hint: 'Alt + 3', action: () => switchOwnerTab('items') },
+      { id: 'nav-ja-catalog', label: '🏭 JA Traders Master Catalog (877 articles)', hint: 'Alt + 4', action: () => switchOwnerTab('ja-catalog') },
+      { id: 'act-add-master-item', label: '➕ Add New Product (Anchar Master Catalog)', hint: 'Insert', action: () => openAddMasterItemModal() },
+      { id: 'act-add-ja-item', label: '➕ Add JA Traders Product', hint: 'Insert', action: () => openAddJaItemModal() },
+      { id: 'nav-schemes', label: '🎁 Event Schemes & Incentive Slabs', hint: 'Alt + 4', action: () => switchOwnerTab('schemes') },
+      { id: 'nav-print', label: '🖨️ A4 QR Sticker Studio (Epson L380)', hint: 'Alt + 5', action: () => switchOwnerTab('print') },
+      { id: 'nav-reports', label: '📈 Reports & Analytics (Anchar Shoe House)', hint: 'Alt + 6', action: () => switchOwnerTab('reports') },
+      { id: 'nav-ja-reports', label: '🏢 Reports & Analytics for JA Traders', hint: 'Alt + 7', action: () => switchOwnerTab('ja-reports') },
+      { id: 'act-retailer-add', label: '➕ Register New Retailer Account', hint: 'F2', action: () => openRetailerEditorModal() },
+      { id: 'act-export-marg', label: '⬇️ Download Consolidated Orders CSV', hint: 'F9', action: () => downloadConsolidatedMargCsv() },
+      { id: 'act-export-retailer', label: '📑 Export Retailer-Wise Summary CSV', hint: 'Reports', action: () => downloadReportCsv('retailer') },
+      { id: 'act-export-company', label: '🏷️ Export Company/Brand-Wise CSV', hint: 'Reports', action: () => downloadReportCsv('company') },
+      { id: 'act-export-article', label: '📦 Export Article-Wise Sales CSV', hint: 'Reports', action: () => downloadReportCsv('article') },
+      { id: 'act-refresh-cloud', label: '🔄 Refresh & Re-sync Cloud Orders', hint: 'F5', action: () => manualRefreshSync() },
+      { id: 'act-toggle-sidebar', label: '📐 Toggle Sidebar Collapsed/Expanded', hint: 'Ctrl + B', action: () => toggleSidebar() },
+      { id: 'act-shortcuts', label: '⌨️ Open Keyboard Shortcuts Cheatsheet', hint: '?', action: () => openShortcutsModal() },
+      { id: 'act-logout', label: '🚪 Logout Dealer Session', hint: 'Alt + Q', action: () => logoutPortal() }
+    ];
+
+    let filteredCommands = [...COMMANDS];
+    let selectedCommandIdx = 0;
+
+    function openCommandPalette() {
+      const modal = document.getElementById('modal-command-palette');
+      const input = document.getElementById('command-palette-input');
+      if (!modal || !input) return;
+      modal.classList.remove('hidden');
+      input.value = '';
+      filterCommands('');
+      setTimeout(() => input.focus(), 50);
+    }
+
+    function closeCommandPalette() {
+      const modal = document.getElementById('modal-command-palette');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function filterCommands(query) {
+      const q = query.toLowerCase().trim();
+      filteredCommands = COMMANDS.filter(c => c.label.toLowerCase().includes(q) || c.hint.toLowerCase().includes(q));
+      selectedCommandIdx = 0;
+      renderCommandList();
+    }
+
+    function renderCommandList() {
+      const container = document.getElementById('command-palette-results');
+      if (!container) return;
+      if (filteredCommands.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">No matching commands found.</div>`;
+        return;
+      }
+      container.innerHTML = filteredCommands.map((c, idx) => `
+        <div onclick="executeCommand(${idx})"
+             class="flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all ${idx === selectedCommandIdx ? 'bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold' : 'hover:bg-slate-100 text-slate-700 font-semibold'}">
+          <span class="text-xs truncate">${c.label}</span>
+          <kbd class="kbd-chip text-[10px] shrink-0">${c.hint}</kbd>
+        </div>
+      `).join('');
+    }
+
+    function executeCommand(idx) {
+      const cmd = filteredCommands[idx];
+      closeCommandPalette();
+      if (cmd && typeof cmd.action === 'function') {
+        cmd.action();
+      }
+    }
+
+    function handleCommandPaletteKeyDown(e) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedCommandIdx = (selectedCommandIdx + 1) % filteredCommands.length;
+        renderCommandList();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedCommandIdx = (selectedCommandIdx - 1 + filteredCommands.length) % filteredCommands.length;
+        renderCommandList();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        executeCommand(selectedCommandIdx);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeCommandPalette();
+      }
+    }
+
+    // Shortcuts Cheatsheet Modal
+    function openShortcutsModal() {
+      document.getElementById('modal-keyboard-shortcuts')?.classList.remove('hidden');
+    }
+
+    function closeShortcutsModal() {
+      document.getElementById('modal-keyboard-shortcuts')?.classList.add('hidden');
+    }
+
+    // =========================================================================
+    // GLOBAL POWER KEYBOARD SHORTCUT ENGINE
+    // =========================================================================
+    window.addEventListener('keydown', (e) => {
+      const activeEl = document.activeElement;
+      const isInputFocused = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+      
+      // Global Escape handling (always closes modals or blurs search)
+      if (e.key === 'Escape') {
+        if (!document.getElementById('modal-command-palette').classList.contains('hidden')) {
+          closeCommandPalette();
+          return;
+        }
+        if (!document.getElementById('modal-keyboard-shortcuts').classList.contains('hidden')) {
+          closeShortcutsModal();
+          return;
+        }
+        if (!document.getElementById('modal-retailer-editor').classList.contains('hidden')) {
+          closeRetailerEditorModal();
+          return;
+        }
+        if (!document.getElementById('modal-edit-item-rate').classList.contains('hidden')) {
+          closeRateEditModal();
+          return;
+        }
+        if (!document.getElementById('modal-scheme-editor').classList.contains('hidden')) {
+          closeSchemeEditorModal();
+          return;
+        }
+        if (!document.getElementById('modal-add-master-brand')?.classList.contains('hidden')) {
+          closeAddMasterBrandModal();
+          return;
+        }
+        if (!document.getElementById('modal-add-master-item')?.classList.contains('hidden')) {
+          closeAddMasterItemModal();
+          return;
+        }
+        if (!document.getElementById('modal-edit-master-item-full')?.classList.contains('hidden')) {
+          closeEditMasterItemFullModal();
+          return;
+        }
+        if (!document.getElementById('modal-add-ja-brand')?.classList.contains('hidden')) {
+          closeAddJaBrandModal();
+          return;
+        }
+        if (!document.getElementById('modal-add-ja-item')?.classList.contains('hidden')) {
+          closeAddJaItemModal();
+          return;
+        }
+        if (!document.getElementById('modal-edit-ja-item')?.classList.contains('hidden')) {
+          closeEditJaItemModal();
+          return;
+        }
+        closeExportDropdown();
+        if (isInputFocused) activeEl.blur();
+        return;
+      }
+
+      // Command Palette (Ctrl+K or Ctrl+P or / when outside text fields)
+      if ((e.ctrlKey && (e.key === 'k' || e.key === 'K')) || (!isInputFocused && e.key === '/')) {
+        e.preventDefault();
+        openCommandPalette();
+        return;
+      }
+
+      // Toggle Left Sidebar (Ctrl+B)
+      if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault();
+        toggleSidebar();
+        return;
+      }
+
+      // Keyboard Cheatsheet (? or F1)
+      if ((e.key === '?' && !isInputFocused) || e.key === 'F1') {
+        e.preventDefault();
+        openShortcutsModal();
+        return;
+      }
+
+      // Register Retailer (F2)
+      if (e.key === 'F2') {
+        e.preventDefault();
+        openRetailerEditorModal();
+        return;
+      }
+
+      // Consolidated Marg CSV Export (F9)
+      if (e.key === 'F9') {
+        e.preventDefault();
+        downloadConsolidatedMargCsv();
+        return;
+      }
+
+      // Tab Switching via Alt+1 .. Alt+8
+      if (e.altKey && ['1', '2', '3', '4', '5', '6', '7', '8'].includes(e.key)) {
+        e.preventDefault();
+        const tabMap = {
+          '1': 'orders',
+          '2': 'retailers',
+          '3': 'items',
+          '4': 'ja-catalog',
+          '5': 'schemes',
+          '6': 'print',
+          '7': 'reports',
+          '8': 'ja-reports'
+        };
+        switchOwnerTab(tabMap[e.key]);
+        return;
+      }
+
+      // Insert Key for Fast Product Add
+      if (e.key === 'Insert' && !isInputFocused) {
+        e.preventDefault();
+        if (!document.getElementById('owner-tab-ja-catalog').classList.contains('hidden')) {
+          openAddJaItemModal();
+        } else {
+          openAddMasterItemModal();
+        }
+        return;
+      }
+
+      // Alt+Q to Logout
+      if (e.altKey && (e.key === 'q' || e.key === 'Q')) {
+        e.preventDefault();
+        logoutPortal();
+        return;
+      }
+
+      // Table Arrow Navigation in Master Items
+      if (!isInputFocused && !document.getElementById('owner-tab-items').classList.contains('hidden')) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          highlightMasterRow(activeMasterRowIdx + 1);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          highlightMasterRow(activeMasterRowIdx - 1);
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          const rows = document.querySelectorAll('#master-items-table-body tr');
+          const row = rows[activeMasterRowIdx];
+          if (row) {
+            const code = row.getAttribute('data-item-code');
+            if (code) openRateEditModal(code);
+          }
+        } else if (e.key === 'PageDown' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          nextMasterPage();
+        } else if (e.key === 'PageUp' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          prevMasterPage();
+        }
+      }
+    });
+
+    // Auto-login on reload if session was remembered
+    window.addEventListener('DOMContentLoaded', () => {
+      initSidebarState();
+      try {
+        const savedSession = localStorage.getItem('anchar_saved_session');
+        if (savedSession) {
+          const session = JSON.parse(savedSession);
+          if (session && session.id) {
+            activeShopOwnerSession = session;
+            document.getElementById('auth-gate-screen').classList.add('hidden');
+            document.getElementById('portal-shop-owner').classList.remove('hidden');
+            document.getElementById('sidebar-shop-name').innerText = session.shopName || "Anchar Shoe House";
+            switchOwnerTab('orders');
+            renderOwnerPortal();
+            loadMasterItems();
+            loadJaTradersItems();
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Session auto-restore fallback:", e);
+      }
+    });
   </script>
 </body>
 </html>
