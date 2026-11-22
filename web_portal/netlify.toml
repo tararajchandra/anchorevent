@@ -6,3 +6,8 @@
   # Only the public Supabase URL + anon key are injected into the browser bundle.
   SECRETS_SCAN_OMIT_PATHS = "env-config.js"
   SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL,SUPABASE_ANON_KEY"
+
+[[redirects]]
+  from = "/"
+  to = "/app.html"
+  status = 200
