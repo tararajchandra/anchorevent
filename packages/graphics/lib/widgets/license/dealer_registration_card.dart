@@ -512,37 +512,39 @@ class _DealerRegistrationCardState extends State<DealerRegistrationCard> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Row(children: <Widget>[
-                      Container(
-                        width: 48.0,
-                        height: 48.0,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary
-                              .withAlpha(isDark ? 50 : 25),
-                          borderRadius: BorderRadius.circular(16.0),
-                          border: Border.all(color: theme.colorScheme.primary),
+                    if (widget.authStep != DealerAuthStepEnum.loginWithPin) ...<Widget>[
+                      Row(children: <Widget>[
+                        Container(
+                          width: 48.0,
+                          height: 48.0,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary
+                                .withAlpha(isDark ? 50 : 25),
+                            borderRadius: BorderRadius.circular(16.0),
+                            border: Border.all(color: theme.colorScheme.primary),
+                          ),
+                          child: Icon(Icons.storefront_rounded,
+                              color: theme.colorScheme.primary, size: 26.0),
                         ),
-                        child: Icon(Icons.storefront_rounded,
-                            color: theme.colorScheme.primary, size: 26.0),
-                      ),
-                      const SizedBox(width: 14.0),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(widget.title,
-                                style: theme.textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w800)),
-                            const SizedBox(height: 2.0),
-                            Text(widget.subtitle,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.textTheme.bodySmall?.color
-                                        ?.withAlpha(160))),
-                          ],
+                        const SizedBox(width: 14.0),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(widget.title,
+                                  style: theme.textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w800)),
+                              const SizedBox(height: 2.0),
+                              Text(widget.subtitle,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.textTheme.bodySmall?.color
+                                          ?.withAlpha(160))),
+                            ],
+                          ),
                         ),
-                      ),
-                    ]),
-                    const SizedBox(height: 20.0),
+                      ]),
+                      const SizedBox(height: 20.0),
+                    ],
                     if (ok.trim().isNotEmpty)
                       _banner(theme, ok, GraphicsColorConsts.accentEmerald),
                     if (err.trim().isNotEmpty)

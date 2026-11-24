@@ -35,6 +35,14 @@ void main() {
       );
       expect(find.byType(Image), findsOneWidget);
       expect(
+        find.text(GraphicsStringConsts.dealerRegistrationHeader),
+        findsNothing,
+      );
+      expect(
+        find.text(GraphicsStringConsts.dealerRegistrationSubtitle),
+        findsNothing,
+      );
+      expect(
         find.text(GraphicsStringConsts.loginAndStartBookingCta),
         findsOneWidget,
       );
@@ -45,6 +53,10 @@ void main() {
       await tester.tap(openRegisterBtn);
       await tester.pumpAndSettle();
 
+      expect(
+        find.text(GraphicsStringConsts.dealerRegistrationHeader),
+        findsOneWidget,
+      );
       expect(find.text('Register & Set 5-Digit PIN'), findsOneWidget);
 
       // Step 1: Enter 10-digit mobile number and verify shop auto-fetch.
