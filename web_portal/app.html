@@ -3189,6 +3189,202 @@
       renderReportsTable();
     }
 
+    const collapsedChallanRetailerKeys = new Set();
+    const collapsedJaChallanRetailerKeys = new Set();
+
+    function getChallanRetailerFilterKey(row) {
+      const rawPhone = String(row.phone || '').trim();
+      const hasPhone = rawPhone.length > 0 && rawPhone !== 'N/A' && rawPhone !== 'App User';
+      return hasPhone ? rawPhone : `PARTY:${String(row.retailerName || '').trim().toUpperCase()}`;
+    }
+
+    function groupRetailerChallanRows(filteredRows) {
+      const groupMap = new Map();
+      filteredRows.forEach(x => {
+        const filterKey = getChallanRetailerFilterKey(x);
+        if (!groupMap.has(filterKey)) {
+          groupMap.set(filterKey, {
+            filterKey,
+            retailerName: x.retailerName || 'RETAILER',
+            phone: x.phone || 'N/A',
+            items: [],
+            orderNos: new Set(),
+            totalPairs: 0,
+            totalAmount: 0
+          });
+        }
+        const grp = groupMap.get(filterKey);
+        grp.items.push(x);
+        if (x.orderNo) grp.orderNos.add(x.orderNo);
+        grp.totalPairs += Number(x.qtyPairs || 0);
+        grp.totalAmount += Number(x.lineAmount || 0);
+      });
+      return Array.from(groupMap.values());
+    }
+
+    function toggleChallanGroupExpand(filterKey, isJa = false) {
+      const setRef = isJa ? collapsedJaChallanRetailerKeys : collapsedChallanRetailerKeys;
+      if (setRef.has(filterKey)) {
+        setRef.delete(filterKey);
+      } else {
+        setRef.add(filterKey);
+      }
+      if (isJa) {
+        renderJaReportsTable();
+      } else {
+        renderReportsTable();
+      }
+    }
+
+    function setAllChallanGroupsCollapsed(collapse, isJa = false) {
+      const setRef = isJa ? collapsedJaChallanRetailerKeys : collapsedChallanRetailerKeys;
+      setRef.clear();
+      if (collapse) {
+        const { rows } = isJa ? getJaReportDataAndCsv('retailer_items') : getReportDataAndCsv('retailer_items');
+        groupRetailerChallanRows(rows).forEach(g => setRef.add(g.filterKey));
+      }
+      if (isJa) {
+        renderJaReportsTable();
+      } else {
+        renderReportsTable();
+      }
+    }
+
+    function renderGroupedRetailerChallanHtml(filteredRows, options = {}) {
+      const isJa = Boolean(options.isJa);
+      const groups = groupRetailerChallanRows(filteredRows);
+      const collapsedSet = isJa ? collapsedJaChallanRetailerKeys : collapsedChallanRetailerKeys;
+      const csvFnName = isJa ? 'downloadSingleRetailerJaChallanCsv' : 'downloadSingleRetailerChallanCsv';
+      const brandColTitle = isJa ? 'JA Brand' : 'Brand';
+      const totalLabelPrefix = isJa ? 'JA Grand Total' : 'Grand Total';
+
+      const cardBorder = isJa ? 'border-amber-200' : 'border-slate-200';
+      const headerBg = isJa ? 'bg-amber-50/70 hover:bg-amber-50' : 'bg-teal-50/50 hover:bg-teal-50/80';
+      const badgeCls = isJa ? 'bg-amber-100 text-amber-800' : 'bg-teal-100 text-teal-800';
+      const theadCls = isJa
+        ? 'bg-amber-50/40 text-slate-600 border-b border-amber-200'
+        : 'bg-slate-50 text-slate-500 border-b border-slate-200';
+      const rowHoverCls = isJa ? 'hover:bg-amber-50/30' : 'hover:bg-slate-50';
+      const subtotalCls = isJa ? 'bg-amber-50/40 border-t border-amber-200' : 'bg-slate-50/80 border-t border-slate-200';
+      const grandTotalCls = isJa
+        ? 'bg-amber-50/70 border-amber-300'
+        : 'bg-teal-50/60 border-teal-200';
+
+      let grandPairs = 0;
+      let grandAmt = 0;
+      groups.forEach(g => {
+        grandPairs += g.totalPairs;
+        grandAmt += g.totalAmount;
+      });
+
+      const toolbarHtml = groups.length > 1 ? `
+        <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-slate-50/80 border-b border-slate-200 text-[11px]">
+          <span class="font-bold text-slate-600">
+            Grouped by Retailer: <span class="text-slate-900">${groups.length} Retailers</span> • ${filteredRows.length} Item Lines
+          </span>
+          <div class="flex items-center gap-1.5">
+            <button onclick="setAllChallanGroupsCollapsed(false, ${isJa})"
+              class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold transition-colors">
+              ▾ Expand All
+            </button>
+            <button onclick="setAllChallanGroupsCollapsed(true, ${isJa})"
+              class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold transition-colors">
+              ▸ Collapse All
+            </button>
+          </div>
+        </div>
+      ` : '';
+
+      const groupsHtml = groups.map((g, idx) => {
+        const isCollapsed = collapsedSet.has(g.filterKey);
+        const safeKey = escHtml(g.filterKey);
+        const safeName = escHtml(g.retailerName);
+        const orderCount = g.orderNos.size;
+        return `
+          <div class="rounded-2xl border ${cardBorder} bg-white overflow-hidden shadow-xs">
+            <div onclick="toggleChallanGroupExpand('${safeKey}', ${isJa})"
+              class="cursor-pointer select-none px-4 py-3 ${headerBg} transition-colors flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="text-slate-500 text-xs font-bold w-4 text-center">${isCollapsed ? '▸' : '▾'}</span>
+                <span class="w-6 h-6 rounded-lg ${badgeCls} text-[11px] font-extrabold flex items-center justify-center shrink-0">${idx + 1}</span>
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs sm:text-sm font-extrabold text-slate-900 truncate" title="${safeName}">${safeName}</span>
+                    <span class="px-2 py-0.5 rounded-md bg-white/90 border border-slate-200 font-mono text-[11px] text-slate-600">${escHtml(g.phone)}</span>
+                  </div>
+                  <p class="text-[11px] text-slate-500 mt-0.5">
+                    ${orderCount} ${orderCount === 1 ? 'Order' : 'Orders'} • ${g.items.length} ${g.items.length === 1 ? 'Item Line' : 'Item Lines'}
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5 sm:gap-3 shrink-0">
+                <div class="text-right">
+                  <div class="text-xs font-extrabold text-teal-700">${g.totalPairs.toLocaleString()} Pairs</div>
+                  <div class="text-xs font-mono font-extrabold text-amber-700">₹${g.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                </div>
+                <button onclick="event.stopPropagation(); ${csvFnName}('${safeKey}', '${safeName}')"
+                  class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold shadow-xs transition-colors flex items-center gap-1"
+                  title="Download Challan CSV for ${safeName}">
+                  <span>⬇ Challan CSV</span>
+                </button>
+              </div>
+            </div>
+            ${isCollapsed ? '' : `
+            <div class="overflow-x-auto border-t ${cardBorder}">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead class="${theadCls} font-bold uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th class="px-3.5 py-2.5">Order No</th>
+                    <th class="px-3.5 py-2.5">Item Code</th>
+                    <th class="px-3.5 py-2.5">Article / Product Name</th>
+                    <th class="px-3.5 py-2.5">${brandColTitle}</th>
+                    <th class="px-3.5 py-2.5 text-right">Pairs</th>
+                    <th class="px-3.5 py-2.5 text-right">Rate (₹)</th>
+                    <th class="px-3.5 py-2.5 text-right">MRP (₹)</th>
+                    <th class="px-3.5 py-2.5 text-right">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-medium">
+                  ${g.items.map(x => `
+                    <tr class="${rowHoverCls} transition-colors">
+                      <td class="px-3.5 py-2.5 font-mono text-teal-700 font-semibold whitespace-nowrap">${escHtml(x.orderNo)}</td>
+                      <td class="px-3.5 py-2.5 font-mono font-bold text-amber-700 whitespace-nowrap">${escHtml(x.itemCode)}</td>
+                      <td class="px-3.5 py-2.5 font-bold text-slate-900 truncate max-w-[220px]" title="${escHtml(x.productName)}">${escHtml(x.productName)}</td>
+                      <td class="px-3.5 py-2.5 text-indigo-700 font-semibold">${escHtml(x.company)}</td>
+                      <td class="px-3.5 py-2.5 text-right font-extrabold text-teal-700">${x.qtyPairs}</td>
+                      <td class="px-3.5 py-2.5 text-right font-mono text-slate-700">₹${x.rate.toFixed(2)}</td>
+                      <td class="px-3.5 py-2.5 text-right font-mono text-slate-500">₹${x.mrp.toFixed(2)}</td>
+                      <td class="px-3.5 py-2.5 text-right font-mono font-extrabold text-amber-700">₹${x.lineAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                  `).join('')}
+                  <tr class="${subtotalCls} font-extrabold text-[11px]">
+                    <td colspan="4" class="px-3.5 py-2.5 text-right text-slate-600 uppercase">Subtotal (${safeName}):</td>
+                    <td class="px-3.5 py-2.5 text-right text-teal-700">${g.totalPairs.toLocaleString()} Pairs</td>
+                    <td colspan="2"></td>
+                    <td class="px-3.5 py-2.5 text-right font-mono text-amber-700">₹${g.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>`}
+          </div>
+        `;
+      }).join('');
+
+      const grandTotalHtml = `
+        <div class="rounded-2xl border-2 ${grandTotalCls} px-4 py-3 flex flex-wrap items-center justify-between gap-2 font-extrabold text-xs">
+          <span class="text-slate-800 uppercase">
+            ${totalLabelPrefix} (${groups.length} ${groups.length === 1 ? 'Retailer' : 'Retailers'} • ${filteredRows.length} Item Lines)
+          </span>
+          <div class="flex items-center gap-5">
+            <span class="text-teal-700 text-sm">${grandPairs.toLocaleString()} Pairs</span>
+            <span class="font-mono text-amber-700 text-sm">₹${grandAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+        </div>
+      `;
+
+      return `${toolbarHtml}<div class="p-4 space-y-4">${groupsHtml}${grandTotalHtml}</div>`;
+    }
+
     function getOrdersForReport() {
       const challanFilterEl = document.getElementById('reports-retailer-challan-filter');
       const selectedKey = challanFilterEl ? (challanFilterEl.value || 'ALL') : 'ALL';
@@ -3561,60 +3757,7 @@
           </table>
         `;
       } else if (currentReportSubTab === 'retailer_items') {
-        let sumPairs = 0;
-        let sumAmt = 0;
-        filtered.forEach(x => {
-          sumPairs += Number(x.qtyPairs || 0);
-          sumAmt += Number(x.lineAmount || 0);
-        });
-        tableHtml = `
-          <table class="w-full text-left border-collapse text-xs">
-            <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] sticky top-0 border-b border-slate-200">
-              <tr>
-                <th class="p-3.5">Retailer / Shop</th>
-                <th class="p-3.5">Phone</th>
-                <th class="p-3.5">Order No</th>
-                <th class="p-3.5">Item Code</th>
-                <th class="p-3.5">Article / Product Name</th>
-                <th class="p-3.5">Brand</th>
-                <th class="p-3.5 text-right">Pairs</th>
-                <th class="p-3.5 text-right">Rate (₹)</th>
-                <th class="p-3.5 text-right">MRP (₹)</th>
-                <th class="p-3.5 text-right">Amount (₹)</th>
-                <th class="p-3.5 text-center">Challan</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200 font-medium">
-              ${filtered.map(x => `
-                <tr class="hover:bg-slate-50 transition-colors">
-                  <td class="p-3.5 font-bold text-slate-900 truncate max-w-[160px]" title="${escHtml(x.retailerName)}">${escHtml(x.retailerName)}</td>
-                  <td class="p-3.5 font-mono text-slate-500">${escHtml(x.phone)}</td>
-                  <td class="p-3.5 font-mono text-teal-700 font-semibold">${escHtml(x.orderNo)}</td>
-                  <td class="p-3.5 font-mono font-bold text-amber-700">${escHtml(x.itemCode)}</td>
-                  <td class="p-3.5 font-bold text-slate-900 truncate max-w-[200px]" title="${escHtml(x.productName)}">${escHtml(x.productName)}</td>
-                  <td class="p-3.5 text-indigo-700 font-semibold">${escHtml(x.company)}</td>
-                  <td class="p-3.5 text-right font-extrabold text-teal-700">${x.qtyPairs}</td>
-                  <td class="p-3.5 text-right font-mono text-slate-700">₹${x.rate.toFixed(2)}</td>
-                  <td class="p-3.5 text-right font-mono text-slate-500">₹${x.mrp.toFixed(2)}</td>
-                  <td class="p-3.5 text-right font-mono font-extrabold text-amber-700">₹${x.lineAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td class="p-3.5 text-center">
-                    <button onclick="downloadSingleRetailerChallanCsv('${escHtml(x.phone && x.phone !== 'N/A' ? x.phone : `PARTY:${String(x.retailerName || '').trim().toUpperCase()}`)}', '${escHtml(x.retailerName)}')"
-                      class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-teal-700 border border-slate-300 text-[10px] font-bold">
-                      ⬇ CSV
-                    </button>
-                  </td>
-                </tr>
-              `).join('')}
-              <tr class="bg-slate-50 font-extrabold border-t-2 border-teal-300">
-                <td colspan="6" class="p-3.5 text-right text-slate-800 uppercase">Grand Total (${filtered.length} Item Lines):</td>
-                <td class="p-3.5 text-right text-teal-700 text-sm">${sumPairs.toLocaleString()} Pairs</td>
-                <td colspan="2"></td>
-                <td class="p-3.5 text-right font-mono text-amber-700 text-sm">₹${sumAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td></td>
-              </tr>
-            </tbody>
-          </table>
-        `;
+        tableHtml = renderGroupedRetailerChallanHtml(filtered, { isJa: false });
       } else if (currentReportSubTab === 'company') {
         tableHtml = `
           <table class="w-full text-left border-collapse text-xs">
@@ -4117,60 +4260,7 @@
           </table>
         `;
       } else if (currentJaReportSubTab === 'retailer_items') {
-        let sumPairs = 0;
-        let sumAmt = 0;
-        filtered.forEach(x => {
-          sumPairs += Number(x.qtyPairs || 0);
-          sumAmt += Number(x.lineAmount || 0);
-        });
-        tableHtml = `
-          <table class="w-full text-left border-collapse text-xs">
-            <thead class="bg-amber-50/60 text-slate-600 font-bold uppercase tracking-wider text-[11px] sticky top-0 border-b border-amber-200">
-              <tr>
-                <th class="p-3.5">Retailer / Shop</th>
-                <th class="p-3.5">Phone</th>
-                <th class="p-3.5">Order No</th>
-                <th class="p-3.5">Item Code</th>
-                <th class="p-3.5">Article / Product Name</th>
-                <th class="p-3.5">JA Brand</th>
-                <th class="p-3.5 text-right">Pairs</th>
-                <th class="p-3.5 text-right">Rate (₹)</th>
-                <th class="p-3.5 text-right">MRP (₹)</th>
-                <th class="p-3.5 text-right">Amount (₹)</th>
-                <th class="p-3.5 text-center">Challan</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200 font-medium">
-              ${filtered.map(x => `
-                <tr class="hover:bg-amber-50/30 transition-colors">
-                  <td class="p-3.5 font-bold text-slate-900 truncate max-w-[160px]" title="${escHtml(x.retailerName)}">${escHtml(x.retailerName)}</td>
-                  <td class="p-3.5 font-mono text-slate-500">${escHtml(x.phone)}</td>
-                  <td class="p-3.5 font-mono text-teal-700 font-semibold">${escHtml(x.orderNo)}</td>
-                  <td class="p-3.5 font-mono font-bold text-amber-700">${escHtml(x.itemCode)}</td>
-                  <td class="p-3.5 font-bold text-slate-900 truncate max-w-[200px]" title="${escHtml(x.productName)}">${escHtml(x.productName)}</td>
-                  <td class="p-3.5 text-indigo-700 font-semibold">${escHtml(x.company)}</td>
-                  <td class="p-3.5 text-right font-extrabold text-teal-700">${x.qtyPairs}</td>
-                  <td class="p-3.5 text-right font-mono text-slate-700">₹${x.rate.toFixed(2)}</td>
-                  <td class="p-3.5 text-right font-mono text-slate-500">₹${x.mrp.toFixed(2)}</td>
-                  <td class="p-3.5 text-right font-mono font-extrabold text-amber-700">₹${x.lineAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td class="p-3.5 text-center">
-                    <button onclick="downloadSingleRetailerJaChallanCsv('${escHtml(x.phone && x.phone !== 'N/A' ? x.phone : `PARTY:${String(x.retailerName || '').trim().toUpperCase()}`)}', '${escHtml(x.retailerName)}')"
-                      class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-teal-700 border border-slate-300 text-[10px] font-bold">
-                      ⬇ CSV
-                    </button>
-                  </td>
-                </tr>
-              `).join('')}
-              <tr class="bg-amber-50/50 font-extrabold border-t-2 border-amber-300">
-                <td colspan="6" class="p-3.5 text-right text-slate-800 uppercase">JA Grand Total (${filtered.length} Item Lines):</td>
-                <td class="p-3.5 text-right text-teal-700 text-sm">${sumPairs.toLocaleString()} Pairs</td>
-                <td colspan="2"></td>
-                <td class="p-3.5 text-right font-mono text-amber-700 text-sm">₹${sumAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td></td>
-              </tr>
-            </tbody>
-          </table>
-        `;
+        tableHtml = renderGroupedRetailerChallanHtml(filtered, { isJa: true });
       } else if (currentJaReportSubTab === 'company') {
         tableHtml = `
           <table class="w-full text-left border-collapse text-xs">

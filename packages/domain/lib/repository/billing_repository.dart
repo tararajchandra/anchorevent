@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:services/services.dart';
@@ -128,21 +129,96 @@ class BillingRepository {
     _savedBills.insert(0, newBill);
     await _persistBillsToStorage();
 
-    await RestApi.instance.pushBillHeader(
-      billNo: newBill.billNo,
-      billDate: newBill.billDate,
-      createdTime: newBill.createdTime,
-      partyName: newBill.partyName,
-      deviceUuid: newBill.deviceUuid,
-      salesmanName: newBill.salesmanName,
-      totalPairs: newBill.totalPairs,
-      totalAmount: newBill.totalAmount,
-      items: newBill.items
-          .map((BillItemEntity item) => item.toJson())
-          .toList(),
+    unawaited(
+      RestApi.instance.pushBillHeader(
+        billNo: newBill.billNo,
+        billDate: newBill.billDate,
+        createdTime: newBill.createdTime,
+        partyName: newBill.partyName,
+        deviceUuid: newBill.deviceUuid,
+        salesmanName: newBill.salesmanName,
+        totalPairs: newBill.totalPairs,
+        totalAmount: newBill.totalAmount,
+        items: newBill.items
+            .map((BillItemEntity item) => item.toJson())
+            .toList(),
+      ),
     );
 
     return ServiceResponse<SalesBillEntity>.success(data: newBill);
+  }
+
+  Future<ServiceResponse<SalesBillEntity>> updateBill({
+    required SalesBillEntity updatedBill,
+  }) async {
+    _ensureLoadedFromStorage();
+    if (updatedBill.items.isEmpty) {
+      await deleteBill(
+        billNo: updatedBill.billNo,
+        phone: updatedBill.retailerPhone,
+        partyName: updatedBill.partyName,
+      );
+      return ServiceResponse<SalesBillEntity>.success(data: updatedBill);
+    }
+
+    final idx = _savedBills.indexWhere(
+      (SalesBillEntity b) =>
+          b.billNo == updatedBill.billNo &&
+          b.belongsToRetailer(
+            phone: updatedBill.retailerPhone,
+            partyName: updatedBill.partyName,
+          ),
+    );
+    if (idx < 0) {
+      return ServiceResponse<SalesBillEntity>.error(
+        message: 'Order ${updatedBill.billNo} not found.',
+      );
+    }
+
+    _savedBills[idx] = updatedBill;
+    await _persistBillsToStorage();
+
+    unawaited(
+      RestApi.instance.updateCloudBill(
+        billNo: updatedBill.billNo,
+        billDate: updatedBill.billDate,
+        createdTime: updatedBill.createdTime,
+        partyName: updatedBill.partyName,
+        deviceUuid: updatedBill.deviceUuid,
+        salesmanName: updatedBill.salesmanName,
+        totalPairs: updatedBill.totalPairs,
+        totalAmount: updatedBill.totalAmount,
+        items: updatedBill.items
+            .map((BillItemEntity item) => item.toJson())
+            .toList(),
+      ),
+    );
+
+    return ServiceResponse<SalesBillEntity>.success(data: updatedBill);
+  }
+
+  Future<ServiceResponse<bool>> deleteBill({
+    required String billNo,
+    required String phone,
+    required String partyName,
+  }) async {
+    _ensureLoadedFromStorage();
+    final idx = _savedBills.indexWhere(
+      (SalesBillEntity b) =>
+          b.billNo == billNo &&
+          b.belongsToRetailer(phone: phone, partyName: partyName),
+    );
+    if (idx < 0) {
+      return ServiceResponse<bool>.error(
+        message: 'Order $billNo not found.',
+      );
+    }
+
+    _savedBills.removeAt(idx);
+    await _persistBillsToStorage();
+
+    unawaited(RestApi.instance.deleteCloudBill(billNo: billNo));
+    return ServiceResponse<bool>.success(data: true);
   }
 
   String generateMargExportCsv({

@@ -47,6 +47,7 @@ class ArticleVariantSelectionSheet extends StatefulWidget {
     return showModalBottomSheet<List<ArticleVariantBookingItem>>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Padding(
@@ -236,6 +237,10 @@ class _ArticleVariantSelectionSheetState
               itemBuilder: (context, index) {
                 final item = _items[index];
                 final effRate = item.rate > 0 ? item.rate : item.mrp;
+                final displayMrp = item.mrp > 0 ? item.mrp : effRate;
+                final mrpFormatted = displayMrp % 1 == 0
+                    ? displayMrp.toStringAsFixed(0)
+                    : displayMrp.toStringAsFixed(2);
                 final controller = _controllers[index];
 
                 return Container(
@@ -326,13 +331,45 @@ class _ArticleVariantSelectionSheetState
                                   ),
                               ],
                             ),
-                            const SizedBox(height: 4.0),
-                            Text(
-                              '₹${effRate.toStringAsFixed(2)} / Pair',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: GraphicsColorConsts.primaryTeal,
-                                fontWeight: FontWeight.w800,
-                              ),
+                            const SizedBox(height: 6.0),
+                            Wrap(
+                              spacing: 6.0,
+                              runSpacing: 4.0,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: <Widget>[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7.0,
+                                    vertical: 2.0,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: GraphicsColorConsts.accentCrimson
+                                        .withValues(alpha: isDark ? 0.22 : 0.12),
+                                    borderRadius: BorderRadius.circular(6.0),
+                                    border: Border.all(
+                                      color: GraphicsColorConsts.accentCrimson
+                                          .withValues(alpha: 0.55),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'MRP ₹$mrpFormatted',
+                                    style:
+                                        theme.textTheme.labelSmall?.copyWith(
+                                      color: isDark
+                                          ? GraphicsColorConsts.dangerRed
+                                          : GraphicsColorConsts.accentCrimson,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '₹${effRate.toStringAsFixed(2)} / Pair',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    color: GraphicsColorConsts.primaryTeal,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -411,61 +448,64 @@ class _ArticleVariantSelectionSheetState
             ),
           ),
           const Divider(height: 1.0),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        '$_totalSelectedPairs Pairs Selected',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: GraphicsColorConsts.primaryTeal,
-                          fontWeight: FontWeight.w900,
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(
+                          '$_totalSelectedPairs Pairs Selected',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: GraphicsColorConsts.primaryTeal,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Total: ₹${_totalEstimatedAmount.toStringAsFixed(2)}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: GraphicsColorConsts.textMuted,
-                          fontWeight: FontWeight.w600,
+                        Text(
+                          'Total: ₹${_totalEstimatedAmount.toStringAsFixed(2)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: GraphicsColorConsts.textMuted,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: GraphicsColorConsts.primaryTeal,
+                      foregroundColor: GraphicsColorConsts.backgroundDark,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20.0,
+                        vertical: 12.0,
                       ),
-                    ],
-                  ),
-                ),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: GraphicsColorConsts.primaryTeal,
-                    foregroundColor: GraphicsColorConsts.backgroundDark,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0,
-                      vertical: 12.0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                  ),
-                  onPressed: _totalSelectedPairs > 0
-                      ? () {
-                          final selected =
-                              _items.where((i) => i.isSelected).toList();
-                          Navigator.of(context).pop(selected);
-                        }
-                      : null,
-                  icon: const Icon(Icons.check_circle_rounded),
-                  label: Text(
-                    'Submit Order',
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: GraphicsColorConsts.backgroundDark,
-                      fontWeight: FontWeight.w800,
+                    onPressed: _totalSelectedPairs > 0
+                        ? () {
+                            final selected =
+                                _items.where((i) => i.isSelected).toList();
+                            Navigator.of(context).pop(selected);
+                          }
+                        : null,
+                    icon: const Icon(Icons.check_circle_rounded),
+                    label: Text(
+                      'Submit Order',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: GraphicsColorConsts.backgroundDark,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

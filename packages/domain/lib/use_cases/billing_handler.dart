@@ -49,6 +49,28 @@ class BillingHandler with ServiceStateMixin<List<SalesBillEntity>> {
     });
   }
 
+  Future<ServiceResponse<SalesBillEntity>> updateBill({
+    required SalesBillEntity updatedBill,
+  }) async {
+    return serviceObserver(() async {
+      return BillingRepository.instance.updateBill(updatedBill: updatedBill);
+    });
+  }
+
+  Future<ServiceResponse<bool>> deleteBill({
+    required String billNo,
+    required String phone,
+    required String partyName,
+  }) async {
+    return serviceObserver(() async {
+      return BillingRepository.instance.deleteBill(
+        billNo: billNo,
+        phone: phone,
+        partyName: partyName,
+      );
+    });
+  }
+
   String generateMargCsvContent({
     String phone = '',
     String partyName = '',

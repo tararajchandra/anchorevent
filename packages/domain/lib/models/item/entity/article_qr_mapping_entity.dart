@@ -17,6 +17,31 @@ class ArticleQrVariantEntity {
     required this.productName,
   });
 
+  static double _parseDouble(dynamic raw) {
+    if (raw is num) {
+      return raw.toDouble();
+    }
+    if (raw is String) {
+      return double.tryParse(raw.trim()) ?? 0.0;
+    }
+    return 0.0;
+  }
+
+  ArticleQrVariantEntity copyWithPricing({
+    double? rate,
+    double? mrp,
+  }) {
+    return ArticleQrVariantEntity(
+      itemCode: itemCode,
+      color: color,
+      size: size,
+      rate: rate ?? this.rate,
+      mrp: mrp ?? this.mrp,
+      company: company,
+      productName: productName,
+    );
+  }
+
   factory ArticleQrVariantEntity.fromJson(
     Map<String, dynamic> json, {
     String fallbackCompany = '',
@@ -40,13 +65,17 @@ class ArticleQrVariantEntity {
     final resolvedProduct = rawProduct.isNotEmpty
         ? rawProduct
         : '$fallbackArticleNo $color $size'.trim();
+    final parsedRate = _parseDouble(
+      json['rate'] ?? json['default_rate'] ?? json['wholesale_rate'],
+    );
+    final parsedMrp = _parseDouble(json['mrp'] ?? json['MRP']);
 
     return ArticleQrVariantEntity(
       itemCode: resolvedCode,
       color: color,
       size: size,
-      rate: (json['rate'] as num? ?? 0.0).toDouble(),
-      mrp: (json['mrp'] as num? ?? 0.0).toDouble(),
+      rate: parsedRate,
+      mrp: parsedMrp,
       company: resolvedCompany,
       productName: resolvedProduct,
     );

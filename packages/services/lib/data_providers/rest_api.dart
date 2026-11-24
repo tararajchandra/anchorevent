@@ -18,6 +18,13 @@ class RestApi {
   );
   static const String _defaultShopUuid = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
 
+  static const Duration _connectTimeout = Duration(seconds: 6);
+  static const Duration _requestTimeout = Duration(seconds: 8);
+
+  final HttpClient _httpClient = HttpClient()
+    ..connectionTimeout = _connectTimeout
+    ..idleTimeout = const Duration(seconds: 20);
+
   String _activeShopUuid = _defaultShopUuid;
 
   final Map<String, String> _cloudBarcodeStore = <String, String>{
@@ -175,38 +182,12 @@ class RestApi {
     List<Map<String, dynamic>>? items,
   }) async {
     if (isCloudConfigured) {
-      var effectiveBillNo = billNo;
-      final existingRows = await _getSupabaseList(
-        path: '/rest/v1/bills?shop_id=eq.$_activeShopUuid'
-            '&bill_no=eq.${Uri.encodeComponent(effectiveBillNo)}'
-            '&select=id,party_name,device_uuid,salesman_name',
-      );
-      if (existingRows != null && existingRows.isNotEmpty) {
-        final first = existingRows.first;
-        if (first is Map<String, dynamic>) {
-          final existingUuid =
-              (first['device_uuid'] ?? '').toString().trim().toUpperCase();
-          final existingParty =
-              (first['party_name'] ?? '').toString().trim().toUpperCase();
-          final currentUuid = deviceUuid.trim().toUpperCase();
-          final currentParty = partyName.trim().toUpperCase();
-          final uuidDiffers =
-              existingUuid.isNotEmpty && existingUuid != currentUuid;
-          final partyDiffers =
-              existingParty.isNotEmpty && existingParty != currentParty;
-          if (uuidDiffers || partyDiffers) {
-            final suffix = DateTime.now().millisecondsSinceEpoch % 10000;
-            effectiveBillNo = '$billNo-$suffix';
-          }
-        }
-      }
-
       final billRow = await _postSupabaseJson(
         path: '/rest/v1/bills?on_conflict=shop_id,bill_no',
         preferHeader: 'resolution=merge-duplicates,return=representation',
         body: <String, dynamic>{
           'shop_id': _activeShopUuid,
-          'bill_no': effectiveBillNo,
+          'bill_no': billNo,
           'bill_date': billDate,
           'created_time': createdTime,
           'party_name': partyName,
@@ -218,7 +199,6 @@ class RestApi {
       );
       final billId = billRow?['id']?.toString() ?? '';
       if (billId.isNotEmpty && items != null && items.isNotEmpty) {
-        await _deleteSupabase(path: '/rest/v1/bill_items?bill_id=eq.$billId');
         final itemRows = items
             .map(
               (item) => <String, dynamic>{
@@ -239,6 +219,91 @@ class RestApi {
           path: '/rest/v1/bill_items',
           body: itemRows,
         );
+      }
+    }
+    return ServiceResponse<bool>.success(data: true);
+  }
+
+  Future<ServiceResponse<bool>> updateCloudBill({
+    required String billNo,
+    required String billDate,
+    required String createdTime,
+    required String partyName,
+    required String deviceUuid,
+    required String salesmanName,
+    required int totalPairs,
+    required double totalAmount,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    if (isCloudConfigured) {
+      final billRow = await _postSupabaseJson(
+        path: '/rest/v1/bills?on_conflict=shop_id,bill_no',
+        preferHeader: 'resolution=merge-duplicates,return=representation',
+        body: <String, dynamic>{
+          'shop_id': _activeShopUuid,
+          'bill_no': billNo,
+          'bill_date': billDate,
+          'created_time': createdTime,
+          'party_name': partyName,
+          'device_uuid': deviceUuid,
+          'salesman_name': salesmanName,
+          'total_pairs': totalPairs,
+          'total_amount': totalAmount,
+        },
+      );
+      final billId = billRow?['id']?.toString() ?? '';
+      if (billId.isNotEmpty) {
+        await _deleteSupabase(path: '/rest/v1/bill_items?bill_id=eq.$billId');
+        if (items.isNotEmpty) {
+          final itemRows = items
+              .map(
+                (item) => <String, dynamic>{
+                  'bill_id': billId,
+                  'item_code': item['item_code'] ?? item['itemCode'] ?? '',
+                  'barcode': item['barcode'] ?? '',
+                  'product_name':
+                      item['product_name'] ?? item['productName'] ?? '',
+                  'company': item['company'] ?? '',
+                  'unit': item['unit'] ?? 'PAIR',
+                  'qty_pairs': item['qty_pairs'] ?? item['qtyPairs'] ?? 1,
+                  'rate': item['rate'] ?? 0.0,
+                  'mrp': item['mrp'] ?? 0.0,
+                },
+              )
+              .toList();
+          await _postSupabaseList(
+            path: '/rest/v1/bill_items',
+            body: itemRows,
+          );
+        }
+      }
+    }
+    return ServiceResponse<bool>.success(data: true);
+  }
+
+  Future<ServiceResponse<bool>> deleteCloudBill({
+    required String billNo,
+  }) async {
+    if (isCloudConfigured && billNo.trim().isNotEmpty) {
+      final encodedNo = Uri.encodeQueryComponent(billNo.trim());
+      final rows = await _getSupabaseList(
+        path: '/rest/v1/bills?shop_id=eq.$_activeShopUuid'
+            '&bill_no=eq.$encodedNo&select=id',
+      );
+      if (rows != null) {
+        for (final row in rows) {
+          if (row is Map<String, dynamic>) {
+            final billId = row['id']?.toString() ?? '';
+            if (billId.isNotEmpty) {
+              await _deleteSupabase(
+                path: '/rest/v1/bill_items?bill_id=eq.$billId',
+              );
+              await _deleteSupabase(
+                path: '/rest/v1/bills?id=eq.$billId',
+              );
+            }
+          }
+        }
       }
     }
     return ServiceResponse<bool>.success(data: true);
@@ -637,14 +702,14 @@ class RestApi {
     required Object body,
     String? preferHeader,
   }) async {
-    final client = HttpClient();
     try {
       final uri = Uri.parse('$_supabaseUrl$path');
-      final request = await client.postUrl(uri);
+      final request = await _httpClient.postUrl(uri).timeout(_requestTimeout);
       _attachSupabaseHeaders(request, preferHeader);
       request.write(jsonEncode(body));
-      final response = await request.close();
-      final responseBody = await response.transform(utf8.decoder).join();
+      final response = await request.close().timeout(_requestTimeout);
+      final responseBody =
+          await response.transform(utf8.decoder).join().timeout(_requestTimeout);
       if (response.statusCode >= 200 &&
           response.statusCode < 300 &&
           responseBody.isNotEmpty) {
@@ -652,8 +717,6 @@ class RestApi {
       }
     } catch (_) {
       return null;
-    } finally {
-      client.close();
     }
     return null;
   }
@@ -694,44 +757,38 @@ class RestApi {
     required String path,
     required Map<String, dynamic> body,
   }) async {
-    final client = HttpClient();
     try {
       final uri = Uri.parse('$_supabaseUrl$path');
-      final request = await client.patchUrl(uri);
+      final request = await _httpClient.patchUrl(uri).timeout(_requestTimeout);
       _attachSupabaseHeaders(request, null);
       request.write(jsonEncode(body));
-      final response = await request.close();
-      await response.drain<void>();
+      final response = await request.close().timeout(_requestTimeout);
+      await response.drain<void>().timeout(_requestTimeout);
     } catch (_) {
       return;
-    } finally {
-      client.close();
     }
   }
 
   Future<void> _deleteSupabase({required String path}) async {
-    final client = HttpClient();
     try {
       final uri = Uri.parse('$_supabaseUrl$path');
-      final request = await client.deleteUrl(uri);
+      final request = await _httpClient.deleteUrl(uri).timeout(_requestTimeout);
       _attachSupabaseHeaders(request, null);
-      final response = await request.close();
-      await response.drain<void>();
+      final response = await request.close().timeout(_requestTimeout);
+      await response.drain<void>().timeout(_requestTimeout);
     } catch (_) {
       return;
-    } finally {
-      client.close();
     }
   }
 
   Future<List<dynamic>?> _getSupabaseList({required String path}) async {
-    final client = HttpClient();
     try {
       final uri = Uri.parse('$_supabaseUrl$path');
-      final request = await client.getUrl(uri);
+      final request = await _httpClient.getUrl(uri).timeout(_requestTimeout);
       _attachSupabaseHeaders(request, null);
-      final response = await request.close();
-      final responseBody = await response.transform(utf8.decoder).join();
+      final response = await request.close().timeout(_requestTimeout);
+      final responseBody =
+          await response.transform(utf8.decoder).join().timeout(_requestTimeout);
       if (response.statusCode >= 200 &&
           response.statusCode < 300 &&
           responseBody.isNotEmpty) {
@@ -742,8 +799,6 @@ class RestApi {
       }
     } catch (_) {
       return null;
-    } finally {
-      client.close();
     }
     return null;
   }

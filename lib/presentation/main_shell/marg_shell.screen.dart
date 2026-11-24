@@ -32,7 +32,9 @@ class MargShellScreen extends ReactiveStateWidget<MargAppController> {
             reactiv: controller.isDealerLoggedIn,
             builder: (context, isLoggedIn) {
               if (!isLoggedIn) {
-                return Scaffold(body: _buildRegistrationGate());
+                return Scaffold(
+                  body: SafeArea(child: _buildRegistrationGate()),
+                );
               }
 
               return ReactiveBuilder<DealerProfileEntity>(
@@ -195,6 +197,10 @@ class MargShellScreen extends ReactiveStateWidget<MargAppController> {
                               reactiv: controller.authSuccessMessage,
                               builder: (context, okMsg) {
                                 return DealerRegistrationCard(
+                                  brandWelcomeTitle: GraphicsStringConsts
+                                      .welcomeAncharEventTitle,
+                                  logoAssetPath: GraphicsStringConsts
+                                      .ancharLogoAssetPath,
                                   title: GraphicsStringConsts
                                       .dealerRegistrationHeader,
                                   subtitle: GraphicsStringConsts

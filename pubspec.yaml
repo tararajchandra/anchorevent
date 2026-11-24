@@ -29,3 +29,4 @@ flutter:
   assets:
     - full_item_master.csv
     - clean_parties.csv
+    - anchar_Logo.jpeg

@@ -17,12 +17,20 @@ class ScannerBillingView extends StatelessWidget {
     if (!controller.canProcessBarcodeScan()) {
       return;
     }
-    final artMapping = controller.lookupArticleMapping(rawBarcode);
-    if (artMapping != null && artMapping.variants.isNotEmpty) {
+    var artMapping = controller.lookupArticleMapping(rawBarcode);
+    if (artMapping == null &&
+        rawBarcode.trim().toUpperCase().startsWith('MARG_ART:')) {
+      artMapping = await controller.syncAndLookupArticleMapping(rawBarcode);
+      if (!context.mounted || !controller.canProcessBarcodeScan()) {
+        return;
+      }
+    }
+    final resolvedMapping = artMapping;
+    if (resolvedMapping != null && resolvedMapping.variants.isNotEmpty) {
       controller.beginArticleSheetScan();
       controller.playScanBeep();
       try {
-        final initialList = artMapping.variants
+        final initialList = resolvedMapping.variants
             .map(
               (v) => ArticleVariantBookingItem(
                 itemCode: v.itemCode,
@@ -30,7 +38,8 @@ class ScannerBillingView extends StatelessWidget {
                 size: v.size,
                 rate: v.rate,
                 mrp: v.mrp,
-                company: v.company.isNotEmpty ? v.company : artMapping.brand,
+                company:
+                    v.company.isNotEmpty ? v.company : resolvedMapping.brand,
                 productName: v.productName,
                 isSelected: true,
                 qtyPairs: 12,
@@ -40,8 +49,8 @@ class ScannerBillingView extends StatelessWidget {
 
         final selected = await ArticleVariantSelectionSheet.show(
           context: context,
-          brand: artMapping.brand,
-          articleNo: artMapping.articleNo,
+          brand: resolvedMapping.brand,
+          articleNo: resolvedMapping.articleNo,
           initialVariants: initialList,
         );
 
@@ -51,7 +60,7 @@ class ScannerBillingView extends StatelessWidget {
             context,
             GraphicsStringConsts.articleVariantsAddedSuccess(
               selected.length,
-              artMapping.articleNo,
+              resolvedMapping.articleNo,
             ),
           );
         }
@@ -67,7 +76,7 @@ class ScannerBillingView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return ListView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 24.0),
       children: <Widget>[
         ReactiveBuilder<bool>(
           reactiv: controller.isLiveCameraActive,
@@ -173,11 +182,17 @@ class ScannerBillingView extends StatelessWidget {
                 else
                   ...List<Widget>.generate(items.length, (idx) {
                     final cartItem = items[idx];
+                    final displayMrp =
+                        cartItem.mrp > 0 ? cartItem.mrp : cartItem.rate;
                     return CartItemRowCard(
                       productName: cartItem.productName,
                       itemCodeAndRate:
-                          'Code: ${cartItem.itemCode} • ${cartItem.qtyPairs} '
-                          'Pairs @ ${CurrencyUtils.formatInr(cartItem.rate)}',
+                          'Code: ${cartItem.itemCode} • '
+                          '${CurrencyUtils.formatInr(cartItem.rate)} / Pair',
+                      mrpFormatted: CurrencyUtils.formatInrCompact(displayMrp),
+                      qtyPairs: cartItem.qtyPairs,
+                      onQtyChanged: (newQty) =>
+                          controller.updateCartItemQtyAt(idx, newQty),
                       lineTotalFormatted: CurrencyUtils.formatInr(
                         cartItem.lineAmount,
                       ),
@@ -185,25 +200,31 @@ class ScannerBillingView extends StatelessWidget {
                     );
                   }),
                 const SizedBox(height: 10.0),
-                BillCheckoutBottomBar(
-                  grandTotalFormatted: CurrencyUtils.formatInr(
-                    controller.cartGrandTotal,
-                  ),
-                  pairsSummary: CurrencyUtils.formatPairsCount(
-                    controller.cartTotalPairs,
-                  ),
-                  onSaveBill: () async {
-                    final saved =
-                        await controller.finalizeAndSaveCurrentBill();
-                    if (saved != null && context.mounted) {
-                      AppSnackBar.showSuccess(
-                        context,
-                        GraphicsStringConsts.bookingSavedSuccess(
-                          saved.billNo,
-                          saved.partyName,
-                        ),
-                      );
-                    }
+                ReactiveBuilder<bool>(
+                  reactiv: controller.isSavingBill,
+                  builder: (context, isSaving) {
+                    return BillCheckoutBottomBar(
+                      grandTotalFormatted: CurrencyUtils.formatInr(
+                        controller.cartGrandTotal,
+                      ),
+                      pairsSummary: CurrencyUtils.formatPairsCount(
+                        controller.cartTotalPairs,
+                      ),
+                      isSaving: isSaving,
+                      onSaveBill: () async {
+                        final saved =
+                            await controller.finalizeAndSaveCurrentBill();
+                        if (saved != null && context.mounted) {
+                          AppSnackBar.showSuccess(
+                            context,
+                            GraphicsStringConsts.bookingSavedSuccess(
+                              saved.billNo,
+                              saved.partyName,
+                            ),
+                          );
+                        }
+                      },
+                    );
                   },
                 ),
               ],

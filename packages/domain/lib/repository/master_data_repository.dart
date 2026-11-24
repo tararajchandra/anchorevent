@@ -581,32 +581,58 @@ class MasterDataRepository {
     );
   }
 
+  ArticleQrMappingEntity _enrichVariantPricing(ArticleQrMappingEntity mapping) {
+    if (_cachedItems.isEmpty || mapping.variants.isEmpty) {
+      return mapping;
+    }
+    var changed = false;
+    final enriched = mapping.variants.map((variant) {
+      if (variant.mrp > 0 && variant.rate > 0) {
+        return variant;
+      }
+      final masterMatch = findItemByBarcodeOrCode(variant.itemCode);
+      if (masterMatch == null) {
+        return variant;
+      }
+      final resolvedMrp = variant.mrp > 0 ? variant.mrp : masterMatch.mrp;
+      final resolvedRate =
+          variant.rate > 0 ? variant.rate : masterMatch.effectiveRate;
+      if (resolvedMrp != variant.mrp || resolvedRate != variant.rate) {
+        changed = true;
+        return variant.copyWithPricing(rate: resolvedRate, mrp: resolvedMrp);
+      }
+      return variant;
+    }).toList();
+
+    if (!changed) {
+      return mapping;
+    }
+    return ArticleQrMappingEntity(
+      articleNo: mapping.articleNo,
+      brand: mapping.brand,
+      qrPayload: mapping.qrPayload,
+      variants: enriched,
+      source: mapping.source,
+    );
+  }
+
   ArticleQrMappingEntity? findArticleQrMapping(String rawInput) {
     if (_articleQrMappings.isEmpty) {
       _loadStoredArticleQrMappings();
     }
     final trimmed = rawInput.trim();
-    if (_articleQrMappings.containsKey(trimmed)) {
-      return _articleQrMappings[trimmed];
-    }
+    ArticleQrMappingEntity? found = _articleQrMappings[trimmed];
     final upper = trimmed.toUpperCase();
-    if (_articleQrMappings.containsKey(upper)) {
-      return _articleQrMappings[upper];
-    }
-    if (upper.startsWith('MARG_ART:')) {
+    found ??= _articleQrMappings[upper];
+    if (found == null && upper.startsWith('MARG_ART:')) {
       final payload = trimmed.substring('MARG_ART:'.length).trim();
-      if (_articleQrMappings.containsKey(payload)) {
-        return _articleQrMappings[payload];
-      }
-      final upperPayload = payload.toUpperCase();
-      if (_articleQrMappings.containsKey(upperPayload)) {
-        return _articleQrMappings[upperPayload];
-      }
+      found = _articleQrMappings[payload] ??
+          _articleQrMappings[payload.toUpperCase()];
     }
-    final withPrefix = 'MARG_ART:$upper';
-    if (_articleQrMappings.containsKey(withPrefix)) {
-      return _articleQrMappings[withPrefix];
+    found ??= _articleQrMappings['MARG_ART:$upper'];
+    if (found == null) {
+      return null;
     }
-    return null;
+    return _enrichVariantPricing(found);
   }
 }

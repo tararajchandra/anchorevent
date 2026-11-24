@@ -7,9 +7,19 @@ class GraphicsStringConsts {
   static const String navMyOrders = 'My Orders';
   static const String navSchemes = 'Schemes';
 
+  static const String welcomeAncharEventTitle = 'Welcome to Anchar Shoe Event';
+  static const String ancharLogoAssetPath = 'anchar_Logo.jpeg';
   static const String dealerRegistrationHeader = 'Shop Owner Registration';
   static const String dealerRegistrationSubtitle =
       'Enter your 10-digit mobile number to start seasonal shoe booking.';
+  static const String newRetailerRegisterCta =
+      'New Retailer? Register & Set PIN';
+  static const String alreadyRegisteredLoginCta =
+      'Already Registered? Login with 5-Digit PIN';
+  static const String backToShopDetailsCta = '← Back to Shop Details';
+  static const String loginAndStartBookingCta = 'Login & Start Booking';
+  static const String registerAndSetPinCta = 'Register & Set 5-Digit PIN';
+  static const String savePinCta = 'Save 5-Digit PIN';
   static const String errInvalidPhone =
       'Please enter a valid 10-digit mobile number.';
   static const String errEmptyShopName =
@@ -43,6 +53,7 @@ class GraphicsStringConsts {
   static const String noBookingsTodaySubtitle =
       'Tap "+ Scan & Book Shoes" to place your first booking.';
   static const String confirmBookingCta = 'Confirm Booking';
+  static const String savingBookingCta = 'Saving...';
 
   // My Orders & Dealer Strings
   static const String noBookingsYetTitle = 'No Bookings Placed Yet';
@@ -53,7 +64,22 @@ class GraphicsStringConsts {
   static const String ordersBreakdownTitle = 'BOOKED ORDERS BREAKDOWN';
   static const String pdfSlipLabel = 'PDF Slip';
   static const String whatsAppLabel = 'WhatsApp';
-  static const String bookingSummarySharedSuccess = 'Booking summary shared to WhatsApp!';
+  static const String editOrderLabel = 'Edit';
+  static const String deleteOrderLabel = 'Delete';
+  static const String confirmedStatusBadge = 'CONFIRMED';
+  static const String totalPairsLabel = 'Total Pairs';
+  static const String bookingValueLabel = 'Booking Value';
+  static const String editOrderSheetTitle = 'Edit Order';
+  static const String editOrderSheetSubtitle =
+      'Adjust quantities or remove items from this order';
+  static const String saveOrderChangesCta = 'Save Changes';
+  static const String removeOrderCta = 'Remove Order';
+  static const String removeAllItemsWarning =
+      'All items removed. Confirm to delete this order.';
+  static const String deleteOrderDialogTitle = 'Delete Order?';
+  static const String deleteOrderConfirmLabel = 'Delete Order';
+  static const String bookingSummarySharedSuccess =
+      'Booking summary shared to WhatsApp!';
   static const String schemesTitle = 'Event Booking Schemes';
   static const String schemesSubtitle =
       'Earn valuable gifts, coins and discounts on pair targets.';
@@ -78,8 +104,29 @@ class GraphicsStringConsts {
 
   static String ordersConfirmedBadge(int count) => '$count Orders Confirmed';
 
+  static String orderItemsCountSummary(int articleCount, int totalPairs) =>
+      '$articleCount Articles • $totalPairs Pairs';
+
   static String bookingSavedSuccess(String orderNo, String partyName) =>
       'Order $orderNo confirmed for $partyName!';
+
+  static String orderUpdatedSuccess(String orderNo) =>
+      'Order $orderNo updated! Scheme progress recalculated.';
+
+  static String orderDeletedSuccess(String orderNo) =>
+      'Order $orderNo removed! Scheme progress updated.';
+
+  static String deleteOrderDialogContent(String orderNo) =>
+      'Are you sure you want to remove order $orderNo? '
+      'Your scheme achievement will adjust automatically.';
+
+  static String qualifiedSchemeBanner(String schemeName, String reward) =>
+      'Qualified: $schemeName ($reward)';
+
+  static String nextSchemeTargetBanner(int pairsNeeded, String schemeName) =>
+      '$pairsNeeded more pairs to unlock $schemeName';
+
+  static String mrpBadgeText(String formattedAmount) => 'MRP $formattedAmount';
 
   static String bookingSlipGeneratedSuccess(String orderNo) =>
       'Booking Slip for $orderNo generated successfully!';

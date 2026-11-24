@@ -85,6 +85,18 @@ class SalesBillEntity {
     return false;
   }
 
+  SalesBillEntity copyWithItems(List<BillItemEntity> updatedItems) {
+    return SalesBillEntity(
+      billNo: billNo,
+      billDate: billDate,
+      createdTime: createdTime,
+      partyName: partyName,
+      deviceUuid: deviceUuid,
+      salesmanName: salesmanName,
+      items: List<BillItemEntity>.unmodifiable(updatedItems),
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'billNo': billNo,

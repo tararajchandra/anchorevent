@@ -7,12 +7,14 @@ class BillCheckoutBottomBar extends StatelessWidget {
   final String grandTotalFormatted;
   final String pairsSummary;
   final VoidCallback onSaveBill;
+  final bool isSaving;
 
   const BillCheckoutBottomBar({
     super.key,
     required this.grandTotalFormatted,
     required this.pairsSummary,
     required this.onSaveBill,
+    this.isSaving = false,
   });
 
   @override
@@ -71,10 +73,21 @@ class BillCheckoutBottomBar extends StatelessWidget {
                 vertical: 12.0,
               ),
             ),
-            onPressed: onSaveBill,
-            icon: const Icon(Icons.check_circle_outline_rounded, size: 18.0),
+            onPressed: isSaving ? null : onSaveBill,
+            icon: isSaving
+                ? const SizedBox(
+                    width: 16.0,
+                    height: 16.0,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.0,
+                      color: GraphicsColorConsts.backgroundDark,
+                    ),
+                  )
+                : const Icon(Icons.check_circle_outline_rounded, size: 18.0),
             label: Text(
-              GraphicsStringConsts.confirmBookingCta,
+              isSaving
+                  ? GraphicsStringConsts.savingBookingCta
+                  : GraphicsStringConsts.confirmBookingCta,
               style: theme.textTheme.labelLarge?.copyWith(
                 color: GraphicsColorConsts.backgroundDark,
                 fontWeight: FontWeight.w800,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:domain/domain.dart';
 import 'package:flutter/services.dart';
 import 'package:graphics/graphics.dart';
@@ -15,7 +17,7 @@ class MargAppController extends ReactiveController {
 
   final ReactiveBool isDealerLoggedIn = ReactiveBool(false);
   final Reactive<DealerAuthStepEnum> authStep =
-      Reactive<DealerAuthStepEnum>(DealerAuthStepEnum.registerDetails);
+      Reactive<DealerAuthStepEnum>(DealerAuthStepEnum.loginWithPin);
   final ReactiveString loginErrorMessage = ReactiveString('');
   final ReactiveString authSuccessMessage = ReactiveString('');
   final ReactiveString pendingPhone = ReactiveString('');
@@ -40,6 +42,8 @@ class MargAppController extends ReactiveController {
   final ReactiveInt scannedPairQty = ReactiveInt(12);
   final ReactiveBool isLiveCameraActive = ReactiveBool(false);
   final ReactiveBool isArticleSheetOpen = ReactiveBool(false);
+  final ReactiveBool isSavingBill = ReactiveBool(false);
+  bool _isFetchingArticleQr = false;
   DateTime? _lastArticleSheetClosedAt;
 
   static const Duration _articleRescanCooldown = Duration(milliseconds: 1500);
@@ -458,6 +462,8 @@ class MargAppController extends ReactiveController {
     currentTab.value = tab;
     if (tab == AppTabEnum.myOrders) {
       _refreshActiveRetailerBills();
+    } else if (tab == AppTabEnum.scan) {
+      unawaited(MasterDataHandler.instance.fetchArticleQrMappings());
     }
   }
 
@@ -479,6 +485,21 @@ class MargAppController extends ReactiveController {
 
   ArticleQrMappingEntity? lookupArticleMapping(String raw) {
     return MasterDataHandler.instance.lookupArticleQrMapping(raw);
+  }
+
+  Future<ArticleQrMappingEntity?> syncAndLookupArticleMapping(
+    String raw,
+  ) async {
+    if (_isFetchingArticleQr) {
+      return null;
+    }
+    _isFetchingArticleQr = true;
+    try {
+      await MasterDataHandler.instance.fetchArticleQrMappings();
+      return MasterDataHandler.instance.lookupArticleQrMapping(raw);
+    } finally {
+      _isFetchingArticleQr = false;
+    }
   }
 
   Future<void> playScanBeep() => _playScanBeep();
@@ -602,6 +623,67 @@ class MargAppController extends ReactiveController {
     }
   }
 
+  void updateCartItemQtyAt(int index, int newQty) {
+    if (index < 0 || index >= cartItems.length) {
+      return;
+    }
+    if (newQty <= 0) {
+      cartItems.removeAt(index);
+    } else {
+      cartItems[index] = cartItems[index].copyWithQty(newQty);
+    }
+    recalculateSchemeProgress();
+  }
+
+  Future<bool> updateSavedBillItems({
+    required SalesBillEntity bill,
+    required List<OrderEditItemData> editedItems,
+  }) async {
+    if (editedItems.isEmpty) {
+      return deleteSavedBill(bill);
+    }
+    final originalByCode = <String, BillItemEntity>{};
+    for (final orig in bill.items) {
+      originalByCode[orig.itemCode] = orig;
+    }
+    final updatedItems = <BillItemEntity>[];
+    for (final edited in editedItems) {
+      if (edited.qtyPairs <= 0) {
+        continue;
+      }
+      final orig = originalByCode[edited.itemCode];
+      if (orig != null) {
+        updatedItems.add(orig.copyWithQty(edited.qtyPairs));
+      }
+    }
+    if (updatedItems.isEmpty) {
+      return deleteSavedBill(bill);
+    }
+
+    final resp = await BillingHandler.instance.updateBill(
+      updatedBill: bill.copyWithItems(updatedItems),
+    );
+    if (resp.status.isSuccess) {
+      _refreshActiveRetailerBills();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> deleteSavedBill(SalesBillEntity bill) async {
+    final profile = dealerProfile.value;
+    final resp = await BillingHandler.instance.deleteBill(
+      billNo: bill.billNo,
+      phone: profile.phone,
+      partyName: profile.shopName,
+    );
+    if (resp.status.isSuccess) {
+      _refreshActiveRetailerBills();
+      return true;
+    }
+    return false;
+  }
+
   int get cartTotalPairs {
     var sum = 0;
     for (final item in cartItems) {
@@ -635,27 +717,35 @@ class MargAppController extends ReactiveController {
   }
 
   Future<SalesBillEntity?> finalizeAndSaveCurrentBill() async {
-    final activeShop = dealerProfile.value.shopName.isNotEmpty
-        ? dealerProfile.value.shopName
-        : 'A.R.SHOE COLLECTION';
-
-    final dealerPhone = dealerProfile.value.phone;
-    final deviceId =
-        dealerPhone.isNotEmpty ? 'PHONE-$dealerPhone' : 'DEVICE-APP-DEFAULT';
-
-    final resp = await BillingHandler.instance.createAndSaveBill(
-      partyName: activeShop,
-      deviceUuid: deviceId,
-      salesmanName: dealerPhone,
-      cartItems: cartItems.toList(),
-    );
-    final created = resp.data;
-    if (resp.status.isSuccess && created != null) {
-      cartItems.clear();
-      _refreshActiveRetailerBills();
-      switchTab(AppTabEnum.myOrders);
-      return created;
+    if (isSavingBill.value || cartItems.isEmpty) {
+      return null;
     }
-    return null;
+    isSavingBill.value = true;
+    try {
+      final activeShop = dealerProfile.value.shopName.isNotEmpty
+          ? dealerProfile.value.shopName
+          : 'A.R.SHOE COLLECTION';
+
+      final dealerPhone = dealerProfile.value.phone;
+      final deviceId =
+          dealerPhone.isNotEmpty ? 'PHONE-$dealerPhone' : 'DEVICE-APP-DEFAULT';
+
+      final resp = await BillingHandler.instance.createAndSaveBill(
+        partyName: activeShop,
+        deviceUuid: deviceId,
+        salesmanName: dealerPhone,
+        cartItems: cartItems.toList(),
+      );
+      final created = resp.data;
+      if (resp.status.isSuccess && created != null) {
+        cartItems.clear();
+        _refreshActiveRetailerBills();
+        switchTab(AppTabEnum.myOrders);
+        return created;
+      }
+      return null;
+    } finally {
+      isSavingBill.value = false;
+    }
   }
 }

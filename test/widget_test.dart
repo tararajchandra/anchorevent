@@ -29,6 +29,22 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(DealerRegistrationCard), findsOneWidget);
+      expect(
+        find.text(GraphicsStringConsts.welcomeAncharEventTitle),
+        findsOneWidget,
+      );
+      expect(find.byType(Image), findsOneWidget);
+      expect(
+        find.text(GraphicsStringConsts.loginAndStartBookingCta),
+        findsOneWidget,
+      );
+      final openRegisterBtn =
+          find.text(GraphicsStringConsts.newRetailerRegisterCta);
+      expect(openRegisterBtn, findsOneWidget);
+      await tester.ensureVisible(openRegisterBtn);
+      await tester.tap(openRegisterBtn);
+      await tester.pumpAndSettle();
+
       expect(find.text('Register & Set 5-Digit PIN'), findsOneWidget);
 
       // Step 1: Enter 10-digit mobile number and verify shop auto-fetch.
@@ -104,6 +120,13 @@ void main() {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 250)),
       );
+      await tester.pumpAndSettle();
+
+      // Tap New Retailer registration button from landing login screen
+      final openRegisterBtn =
+          find.text(GraphicsStringConsts.newRetailerRegisterCta);
+      await tester.ensureVisible(openRegisterBtn);
+      await tester.tap(openRegisterBtn);
       await tester.pumpAndSettle();
 
       // Enter unknown new phone number
@@ -438,6 +461,166 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('12 Pairs'), findsOneWidget);
       expect(find.text('24 Pairs'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'shows crimson MRP badge, supports cart/order edit and deletion, and tracks scheme progress',
+    (WidgetTester tester) async {
+      await LocalStorage.instance.writeBool(
+        StorageKeyConsts.isDealerLoggedIn,
+        true,
+      );
+      await LocalStorage.instance.writeString(
+        StorageKeyConsts.activeShopName,
+        'TEST SHOE MART',
+      );
+      await LocalStorage.instance.writeString(
+        StorageKeyConsts.activeDealerPhone,
+        '9123456780',
+      );
+
+      final mappingsJson = jsonEncode(<Map<String, dynamic>>[
+        <String, dynamic>{
+          'article_no': 'BADSHA-1',
+          'brand': 'AIRSON (JA TRADERS)',
+          'qr_payload': 'MARG_ART:AIRSON (JA TRADERS)|BADSHA-1',
+          'variants': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'item_code': 'BADSHA-1-BLUE-7X11',
+              'color': 'BLUE',
+              'size': '7X11',
+              'rate': 180.0,
+              'mrp': 299.0,
+            },
+          ],
+        },
+      ]);
+      await LocalStorage.instance.writeString(
+        StorageKeyConsts.articleQrMappingsJson,
+        mappingsJson,
+      );
+      addTearDown(() async {
+        await LocalStorage.instance.writeString(
+          StorageKeyConsts.articleQrMappingsJson,
+          '',
+        );
+      });
+
+      await tester.pumpWidget(const DealerConnectApp());
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 250)),
+      );
+      await tester.pumpAndSettle();
+
+      // Open Scan & Book tab and trigger article QR
+      await tester.tap(find.text(GraphicsStringConsts.navScan));
+      await tester.pumpAndSettle();
+
+      final viewfinder = tester.widget<ScannerViewfinderCard>(
+        find.byType(ScannerViewfinderCard),
+      );
+      viewfinder.onBarcodeDetected('MARG_ART:AIRSON (JA TRADERS)|BADSHA-1');
+      await tester.pumpAndSettle();
+
+      // Verify attractive crimson MRP badge is displayed in sheet
+      final mrpFinder = find.text('MRP ₹299');
+      expect(mrpFinder, findsOneWidget);
+      final mrpText = tester.widget<Text>(mrpFinder);
+      expect(mrpText.style?.color, GraphicsColorConsts.accentCrimson);
+
+      // Submit variant to cart (12 pairs)
+      await tester.tap(find.text('Submit Order'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('1 Items (12 Pairs)'), findsOneWidget);
+
+      // Dismiss floating snackbar before interacting with cart item
+      ScaffoldMessenger.of(
+        tester.element(find.byType(CartItemRowCard)),
+      ).clearSnackBars();
+      await tester.pumpAndSettle();
+
+      // Edit quantity in cart (+1 -> 13 pairs)
+      final cartPlusIcon = find.descendant(
+        of: find.byType(CartItemRowCard),
+        matching: find.byIcon(Icons.add_rounded),
+      );
+      await tester.ensureVisible(cartPlusIcon);
+      await tester.tap(cartPlusIcon);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('1 Items (13 Pairs)'), findsOneWidget);
+
+      // Confirm booking -> navigates to My Orders
+      final confirmBtn = find.text(GraphicsStringConsts.confirmBookingCta);
+      await tester.ensureVisible(confirmBtn);
+      await tester.tap(confirmBtn);
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OrdersSummaryHeaderCard), findsOneWidget);
+      expect(find.byType(BookedOrderCard), findsOneWidget);
+      expect(find.text('13 Prs'), findsOneWidget);
+
+      ScaffoldMessenger.of(
+        tester.element(find.byType(BookedOrderCard)),
+      ).clearSnackBars();
+      await tester.pumpAndSettle();
+
+      // Edit confirmed order -> increase qty to 110 pairs to unlock Bronze Scheme (100 pairs)
+      final editBtn = find.text(GraphicsStringConsts.editOrderLabel);
+      await tester.ensureVisible(editBtn);
+      await tester.tap(editBtn);
+      await tester.pumpAndSettle();
+      expect(find.byType(OrderEditSheet), findsOneWidget);
+
+      final qtyField = find.descendant(
+        of: find.byType(OrderEditSheet),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(qtyField, '110');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(GraphicsStringConsts.saveOrderChangesCta));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify updated pairs and scheme achievement unlocked!
+      expect(find.text('110 Prs'), findsOneWidget);
+      expect(find.textContaining('Qualified:'), findsOneWidget);
+
+      // Check Schemes tab reflects 110 Pairs live
+      await tester.tap(find.text(GraphicsStringConsts.navSchemes));
+      await tester.pumpAndSettle();
+      expect(find.text('110 Pairs'), findsOneWidget);
+
+      // Return to My Orders and delete the order
+      await tester.tap(find.text(GraphicsStringConsts.navMyOrders));
+      await tester.pumpAndSettle();
+      ScaffoldMessenger.of(
+        tester.element(find.byType(BookedOrderCard)),
+      ).clearSnackBars();
+      await tester.pumpAndSettle();
+      final deleteBtn = find.text(GraphicsStringConsts.deleteOrderLabel);
+      await tester.ensureVisible(deleteBtn);
+      await tester.tap(deleteBtn);
+      await tester.pumpAndSettle();
+      expect(find.byType(ConfirmActionDialog), findsOneWidget);
+
+      await tester.tap(find.text(GraphicsStringConsts.deleteOrderConfirmLabel));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+
+      // Order deleted -> empty state shown and Schemes resets to 0 Pairs
+      expect(find.byType(OrdersEmptyStateCard), findsOneWidget);
+      await tester.tap(find.text(GraphicsStringConsts.navSchemes));
+      await tester.pumpAndSettle();
+      expect(find.text('0 Pairs'), findsOneWidget);
     },
   );
 }

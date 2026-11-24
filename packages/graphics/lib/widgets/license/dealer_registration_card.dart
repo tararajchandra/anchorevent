@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../graphics_consts/dealer_auth_step_enum.dart';
 import '../../graphics_consts/graphics_color_consts.dart';
+import '../../graphics_consts/graphics_string_consts.dart';
 
 class DealerRegistrationCard extends StatefulWidget {
   const DealerRegistrationCard({
@@ -19,10 +20,14 @@ class DealerRegistrationCard extends StatefulWidget {
     required this.onLoginSubmitted,
     required this.onStepChanged,
     super.key,
+    this.brandWelcomeTitle,
+    this.logoAssetPath,
     this.errorMessage,
     this.successMessage,
   });
 
+  final String? brandWelcomeTitle;
+  final String? logoAssetPath;
   final String title;
   final String subtitle;
   final DealerAuthStepEnum authStep;
@@ -211,8 +216,17 @@ class _DealerRegistrationCardState extends State<DealerRegistrationCard> {
   }
 
   Widget _actionBtn(
-      ThemeData theme, IconData icon, String label, VoidCallback onPressed,
-      String switchText, DealerAuthStepEnum targetStep) {
+    ThemeData theme,
+    bool isDark,
+    IconData icon,
+    String label,
+    VoidCallback onPressed,
+    String switchText,
+    DealerAuthStepEnum targetStep, {
+    IconData? switchIcon,
+    bool useLightButton = true,
+  }) {
+    final primary = theme.colorScheme.primary;
     return Column(children: <Widget>[
       SizedBox(
         width: double.infinity,
@@ -220,22 +234,58 @@ class _DealerRegistrationCardState extends State<DealerRegistrationCard> {
         child: ElevatedButton.icon(
           onPressed: onPressed,
           icon: Icon(icon, size: 20.0),
-          label: Text(label,
-              style: theme.textTheme.titleSmall?.copyWith(
-                  color: Colors.white, fontWeight: FontWeight.w700)),
+          label: Text(
+            label,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: theme.colorScheme.primary,
+            backgroundColor: primary,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14.0)),
+              borderRadius: BorderRadius.circular(14.0),
+            ),
             elevation: 3.0,
           ),
         ),
       ),
-      const SizedBox(height: 8.0),
-      TextButton(
+      const SizedBox(height: 12.0),
+      if (useLightButton)
+        SizedBox(
+          width: double.infinity,
+          height: 48.0,
+          child: ElevatedButton.icon(
+            onPressed: () => widget.onStepChanged(targetStep),
+            icon: Icon(
+              switchIcon ?? Icons.person_add_alt_1_rounded,
+              size: 19.0,
+            ),
+            label: Text(
+              switchText,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primary.withAlpha(isDark ? 45 : 26),
+              foregroundColor: primary,
+              elevation: 0.0,
+              shadowColor: Colors.transparent,
+              side: BorderSide(color: primary.withAlpha(isDark ? 110 : 80)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14.0),
+              ),
+            ),
+          ),
+        )
+      else
+        TextButton(
           onPressed: () => widget.onStepChanged(targetStep),
-          child: Text(switchText)),
+          child: Text(switchText),
+        ),
     ]);
   }
 
@@ -278,16 +328,19 @@ class _DealerRegistrationCardState extends State<DealerRegistrationCard> {
               onChanged: (_) => setState(() {})),
           const SizedBox(height: 22.0),
           _actionBtn(
-              theme,
-              Icons.arrow_forward_rounded,
-              'Register & Set 5-Digit PIN',
-              () => widget.onRegisterStepSubmitted(
-                    _phoneCtrl.text.trim(),
-                    _shopCtrl.text.trim(),
-                    _addrCtrl.text.trim(),
-                  ),
-              'Already Registered? Login with 5-Digit PIN',
-              DealerAuthStepEnum.loginWithPin),
+            theme,
+            isDark,
+            Icons.arrow_forward_rounded,
+            GraphicsStringConsts.registerAndSetPinCta,
+            () => widget.onRegisterStepSubmitted(
+              _phoneCtrl.text.trim(),
+              _shopCtrl.text.trim(),
+              _addrCtrl.text.trim(),
+            ),
+            GraphicsStringConsts.alreadyRegisteredLoginCta,
+            DealerAuthStepEnum.loginWithPin,
+            switchIcon: Icons.login_rounded,
+          ),
         ];
       case DealerAuthStepEnum.setPin:
         return <Widget>[
@@ -319,17 +372,20 @@ class _DealerRegistrationCardState extends State<DealerRegistrationCard> {
           _pinInput(theme, isDark, 'Create 5-Digit Security PIN'),
           const SizedBox(height: 22.0),
           _actionBtn(
-              theme,
-              Icons.save_rounded,
-              'Save 5-Digit PIN',
-              () => widget.onSavePinSubmitted(
-                    _phoneCtrl.text.trim(),
-                    _shopCtrl.text.trim(),
-                    _addrCtrl.text.trim(),
-                    _pinCtrl.text.trim(),
-                  ),
-              '← Back to Shop Details',
-              DealerAuthStepEnum.registerDetails),
+            theme,
+            isDark,
+            Icons.save_rounded,
+            GraphicsStringConsts.savePinCta,
+            () => widget.onSavePinSubmitted(
+              _phoneCtrl.text.trim(),
+              _shopCtrl.text.trim(),
+              _addrCtrl.text.trim(),
+              _pinCtrl.text.trim(),
+            ),
+            GraphicsStringConsts.backToShopDetailsCta,
+            DealerAuthStepEnum.registerDetails,
+            useLightButton: false,
+          ),
         ];
       case DealerAuthStepEnum.loginWithPin:
         return <Widget>[
@@ -343,17 +399,83 @@ class _DealerRegistrationCardState extends State<DealerRegistrationCard> {
           _pinInput(theme, isDark, 'Enter 5-Digit Security PIN'),
           const SizedBox(height: 22.0),
           _actionBtn(
-              theme,
-              Icons.login_rounded,
-              'Login & Start Booking',
-              () => widget.onLoginSubmitted(
-                    _phoneCtrl.text.trim(),
-                    _pinCtrl.text.trim(),
-                  ),
-              'New Retailer? Register & Set PIN',
-              DealerAuthStepEnum.registerDetails),
+            theme,
+            isDark,
+            Icons.login_rounded,
+            GraphicsStringConsts.loginAndStartBookingCta,
+            () => widget.onLoginSubmitted(
+              _phoneCtrl.text.trim(),
+              _pinCtrl.text.trim(),
+            ),
+            GraphicsStringConsts.newRetailerRegisterCta,
+            DealerAuthStepEnum.registerDetails,
+            switchIcon: Icons.person_add_alt_1_rounded,
+          ),
         ];
     }
+  }
+
+  Widget _buildBrandHeader(ThemeData theme, bool isDark) {
+    final logoPath = widget.logoAssetPath ?? '';
+    final welcomeTitle = widget.brandWelcomeTitle ?? '';
+    if (logoPath.isEmpty && welcomeTitle.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          if (logoPath.isNotEmpty)
+            Container(
+              width: 82.0,
+              height: 82.0,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20.0),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withAlpha(80),
+                  width: 1.5,
+                ),
+                boxShadow: <BoxShadow>[
+                  BoxShadow(
+                    color: Colors.black.withAlpha(isDark ? 70 : 28),
+                    blurRadius: 16.0,
+                    offset: const Offset(0.0, 6.0),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18.5),
+                child: Image.asset(
+                  logoPath,
+                  width: 82.0,
+                  height: 82.0,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: theme.colorScheme.primary.withAlpha(24),
+                    child: Icon(
+                      Icons.storefront_rounded,
+                      color: theme.colorScheme.primary,
+                      size: 38.0,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (logoPath.isNotEmpty && welcomeTitle.isNotEmpty)
+            const SizedBox(height: 12.0),
+          if (welcomeTitle.isNotEmpty)
+            Text(
+              welcomeTitle,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -365,61 +487,70 @@ class _DealerRegistrationCardState extends State<DealerRegistrationCard> {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
-        child: Container(
+        child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440.0),
-          padding: const EdgeInsets.all(24.0),
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(24.0),
-            border: Border.all(color: theme.dividerColor),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: Colors.black.withAlpha(isDark ? 50 : 15),
-                blurRadius: 24.0,
-                offset: const Offset(0.0, 8.0),
-              ),
-            ],
-          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Row(children: <Widget>[
-                Container(
-                  width: 48.0,
-                  height: 48.0,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary
-                        .withAlpha(isDark ? 50 : 25),
-                    borderRadius: BorderRadius.circular(16.0),
-                    border: Border.all(color: theme.colorScheme.primary),
-                  ),
-                  child: Icon(Icons.storefront_rounded,
-                      color: theme.colorScheme.primary, size: 26.0),
+              _buildBrandHeader(theme, isDark),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24.0),
+                decoration: BoxDecoration(
+                  color: theme.cardColor,
+                  borderRadius: BorderRadius.circular(24.0),
+                  border: Border.all(color: theme.dividerColor),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: Colors.black.withAlpha(isDark ? 50 : 15),
+                      blurRadius: 24.0,
+                      offset: const Offset(0.0, 8.0),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 14.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(widget.title,
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 2.0),
-                      Text(widget.subtitle,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.textTheme.bodySmall?.color
-                                  ?.withAlpha(160))),
-                    ],
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(children: <Widget>[
+                      Container(
+                        width: 48.0,
+                        height: 48.0,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary
+                              .withAlpha(isDark ? 50 : 25),
+                          borderRadius: BorderRadius.circular(16.0),
+                          border: Border.all(color: theme.colorScheme.primary),
+                        ),
+                        child: Icon(Icons.storefront_rounded,
+                            color: theme.colorScheme.primary, size: 26.0),
+                      ),
+                      const SizedBox(width: 14.0),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(widget.title,
+                                style: theme.textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 2.0),
+                            Text(widget.subtitle,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.textTheme.bodySmall?.color
+                                        ?.withAlpha(160))),
+                          ],
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 20.0),
+                    if (ok.trim().isNotEmpty)
+                      _banner(theme, ok, GraphicsColorConsts.accentEmerald),
+                    if (err.trim().isNotEmpty)
+                      _banner(theme, err, GraphicsColorConsts.dangerRed),
+                    ..._buildStepWidgets(theme, isDark),
+                  ],
                 ),
-              ]),
-              const SizedBox(height: 20.0),
-              if (ok.trim().isNotEmpty)
-                _banner(theme, ok, GraphicsColorConsts.accentEmerald),
-              if (err.trim().isNotEmpty)
-                _banner(theme, err, GraphicsColorConsts.dangerRed),
-              ..._buildStepWidgets(theme, isDark),
+              ),
             ],
           ),
         ),

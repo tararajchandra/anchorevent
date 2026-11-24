@@ -21,9 +21,12 @@ class SchemesView extends StatelessWidget {
     return ReactiveBuilder<List<BookingSchemeEntity>>(
       reactiv: controller.bookingSchemes,
       builder: (context, schemes) {
-        final totalPairs = controller.todayTotalPairs + controller.cartTotalPairs;
+        return ReactiveBuilder<SchemeProgressEntity>(
+          reactiv: controller.schemeProgress,
+          builder: (context, progress) {
+            final totalPairs = progress.currentPairs;
 
-        return ListView(
+            return ListView(
           padding: const EdgeInsets.all(16.0),
           children: <Widget>[
             Container(
@@ -190,6 +193,8 @@ class SchemesView extends StatelessWidget {
               );
             }),
           ],
+        );
+          },
         );
       },
     );
