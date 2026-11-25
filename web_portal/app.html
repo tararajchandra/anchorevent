@@ -2039,7 +2039,7 @@
             <kbd class="kbd-chip">Alt + 2</kbd>
           </div>
           <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
-            <span class="text-slate-600">Master Catalog (4,774 items)</span>
+            <span class="text-slate-600">Master Catalog (3,344 items)</span>
             <kbd class="kbd-chip">Alt + 3</kbd>
           </div>
           <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
@@ -4636,18 +4636,83 @@
         renderMasterItems(masterCurrentPage || 1);
       }
 
-      // In parallel, sync cloud barcodes, rates, and catalog metadata (non-blocking)
+      // In parallel, sync live Postgres master_items, barcodes, rates, and catalog metadata
       if (IS_CLOUD) {
         try {
+          const fetchAllCloudMasterItems = async () => {
+            const pageSize = 1000;
+            const collected = [];
+            let offset = 0;
+            while (true) {
+              const res = await fetch(
+                `${SUPABASE_URL}/rest/v1/master_items?select=code,barcode,product,unit,company,item_group,category,mrp,ratea&order=code.asc&limit=${pageSize}&offset=${offset}`,
+                { headers: sbHeaders() }
+              );
+              if (!res.ok) return collected.length > 0 ? collected : [];
+              const page = await res.json();
+              if (!Array.isArray(page) || page.length === 0) break;
+              collected.push(...page);
+              if (page.length < pageSize) break;
+              offset += pageSize;
+            }
+            return collected;
+          };
+
           const fetchPromises = [
             fetch(`${SUPABASE_URL}/rest/v1/barcode_mappings?select=barcode,item_code`, { headers: sbHeaders() }).then(r => r.ok ? r.json() : []).catch(() => []),
             fetch(`${SUPABASE_URL}/rest/v1/rate_overrides?select=*`, { headers: sbHeaders() }).then(r => r.ok ? r.json() : []).catch(() => []),
-            fetch(`${SUPABASE_URL}/rest/v1/catalog_metadata?id=eq.global&select=*`, { headers: sbHeaders() }).then(r => r.ok ? r.json() : []).catch(() => [])
+            fetch(`${SUPABASE_URL}/rest/v1/catalog_metadata?id=eq.global&select=*`, { headers: sbHeaders() }).then(r => r.ok ? r.json() : []).catch(() => []),
+            fetchAllCloudMasterItems().catch(() => [])
           ];
 
-          const [barcodeRows, rateRows, metaRows] = await Promise.all(fetchPromises);
+          const [barcodeRows, rateRows, metaRows, cloudMasterRows] = await Promise.all(fetchPromises);
 
           let hasChanges = false;
+          if (Array.isArray(cloudMasterRows) && cloudMasterRows.length > 0) {
+            const mappedCloudItems = cloudMasterRows.map(r => {
+              const code = (r.code || "").toString().trim();
+              const rawProduct = (r.product || "").toString().trim();
+              const rawGroup = (r.item_group || r.group || "").toString().trim();
+              const rawCompany = (r.company || "").toString().trim();
+              const rawUnit = (r.unit || "").toString().trim();
+              const parsedMrp = Number(r.mrp) || 0;
+              const parsedRate = Number(r.ratea) || 0;
+              const baseMrp = parsedMrp > 0 ? parsedMrp : (parsedRate > 0 ? parsedRate : 0);
+              const baseRate = parsedRate > 0 ? parsedRate : (parsedMrp > 0 ? parsedMrp : 0);
+              const mappedBarcode = cloudBarcodeMappings[code] || (r.barcode || "").toString().trim();
+              const override = rateOverrides[code];
+              return {
+                code: code,
+                barcode: mappedBarcode,
+                articleNo: rawProduct.split(" ")[0].trim(),
+                product: rawProduct,
+                color: rawGroup,
+                size: extractSizeFromProduct(rawProduct),
+                unit: rawUnit.length > 0 ? rawUnit : "PAIR",
+                company: rawCompany.length > 0 ? rawCompany : "FOOTWEAR",
+                group: rawGroup,
+                category: (r.category || "").toString().trim(),
+                mrp: override && override.mrp != null ? override.mrp : baseMrp,
+                rate: override && override.wholesale_rate != null ? override.wholesale_rate : baseRate,
+                packSize: override && override.pack_size ? override.pack_size : 12
+              };
+            }).filter(it => it.code.length > 0 && it.product.length > 0);
+
+            if (mappedCloudItems.length > 0) {
+              try {
+                const custom = JSON.parse(localStorage.getItem('anchar_custom_master_items') || '[]');
+                if (Array.isArray(custom) && custom.length > 0) {
+                  masterItems = [...custom, ...mappedCloudItems.filter(i => !custom.some(c => c.code === i.code))];
+                } else {
+                  masterItems = mappedCloudItems;
+                }
+              } catch (e) {
+                masterItems = mappedCloudItems;
+              }
+              hasChanges = true;
+            }
+          }
+
           if (Array.isArray(barcodeRows) && barcodeRows.length > 0) {
             barcodeRows.forEach(r => {
               if (r.item_code && r.barcode) {

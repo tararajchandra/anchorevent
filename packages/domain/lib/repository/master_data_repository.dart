@@ -222,17 +222,57 @@ class MasterDataRepository {
       itemCodeToBarcode[entry.value] = entry.key;
     }
 
-    final rawCsv = await CsvFileService.instance.loadAssetCsv(_itemMasterAsset);
-    if (rawCsv.isEmpty) {
-      _cachedItems = _fallbackItems(itemCodeToBarcode);
-      return ServiceResponse<List<FootwearItemEntity>>.success(
-        data: _cachedItems,
+    List<FootwearItemEntity> loadedItems = <FootwearItemEntity>[];
+
+    // 1. Try live Supabase Postgres master_items table first
+    final cloudMasterResp = await RestApi.instance.fetchCloudMasterItems();
+    final cloudRows = cloudMasterResp.data;
+    if (cloudRows != null && cloudRows.isNotEmpty) {
+      loadedItems = FootwearItemConverter.fromCloudRows(
+        cloudRows,
+        itemCodeToBarcode,
       );
+      if (loadedItems.isNotEmpty) {
+        await LocalStorage.instance.writeString(
+          StorageKeyConsts.cachedMasterItemsJson,
+          jsonEncode(cloudRows),
+        );
+      }
     }
 
-    final rows = CsvFileService.instance.parseCsvLines(rawCsv);
-    final parsed = FootwearItemConverter.fromCsvRows(rows, itemCodeToBarcode);
-    _cachedItems = parsed.isEmpty ? _fallbackItems(itemCodeToBarcode) : parsed;
+    // 2. Offline fallback: cached cloud master_items JSON
+    if (loadedItems.isEmpty) {
+      final cachedRaw = LocalStorage.instance.readString(
+        StorageKeyConsts.cachedMasterItemsJson,
+      );
+      if (cachedRaw != null && cachedRaw.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(cachedRaw);
+          if (decoded is List<dynamic>) {
+            final cachedRows =
+                decoded.whereType<Map<String, dynamic>>().toList();
+            loadedItems = FootwearItemConverter.fromCloudRows(
+              cachedRows,
+              itemCodeToBarcode,
+            );
+          }
+        } catch (_) {}
+      }
+    }
+
+    // 3. Bundled CSV asset fallback
+    if (loadedItems.isEmpty) {
+      final rawCsv =
+          await CsvFileService.instance.loadAssetCsv(_itemMasterAsset);
+      if (rawCsv.isNotEmpty) {
+        final rows = CsvFileService.instance.parseCsvLines(rawCsv);
+        loadedItems =
+            FootwearItemConverter.fromCsvRows(rows, itemCodeToBarcode);
+      }
+    }
+
+    _cachedItems =
+        loadedItems.isEmpty ? _fallbackItems(itemCodeToBarcode) : loadedItems;
 
     // Apply cloud dynamic rate & MRP overrides (Module A)
     final rateOverridesResp = await RestApi.instance.fetchCloudRateOverrides();

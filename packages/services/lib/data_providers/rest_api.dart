@@ -459,6 +459,43 @@ class RestApi {
   }
 
   Future<ServiceResponse<List<Map<String, dynamic>>>>
+      fetchCloudMasterItems() async {
+    if (!isCloudConfigured) {
+      return ServiceResponse<List<Map<String, dynamic>>>.success(
+        data: const <Map<String, dynamic>>[],
+      );
+    }
+    const pageSize = 1000;
+    final allRows = <Map<String, dynamic>>[];
+    var offset = 0;
+    while (true) {
+      final path =
+          '/rest/v1/master_items?select=code,barcode,product,unit,company,'
+          'item_group,category,hsn,gst,closing_stock,mrp,ratea'
+          '&order=code.asc&limit=$pageSize&offset=$offset';
+      final page = await _getSupabaseList(path: path);
+      if (page == null) {
+        if (allRows.isEmpty) {
+          return ServiceResponse<List<Map<String, dynamic>>>.success(
+            data: const <Map<String, dynamic>>[],
+          );
+        }
+        break;
+      }
+      for (final item in page) {
+        if (item is Map<String, dynamic>) {
+          allRows.add(item);
+        }
+      }
+      if (page.length < pageSize) {
+        break;
+      }
+      offset += pageSize;
+    }
+    return ServiceResponse<List<Map<String, dynamic>>>.success(data: allRows);
+  }
+
+  Future<ServiceResponse<List<Map<String, dynamic>>>>
       fetchCloudArticleQrMappings() async {
     if (isCloudConfigured) {
       final list = await _getSupabaseList(
@@ -688,7 +725,7 @@ class RestApi {
   void _attachSupabaseHeaders(HttpClientRequest request, String? preferHeader) {
     final key = _supabaseAnonKey.trim();
     request.headers.set('apikey', key);
-    if (key.isNotEmpty) {
+    if (key.startsWith('eyJ')) {
       request.headers.set('Authorization', 'Bearer $key');
     }
     request.headers.set('Content-Type', 'application/json');
